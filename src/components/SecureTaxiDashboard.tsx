@@ -16,10 +16,13 @@ import { DrivingModeHeader } from "./DrivingModeHeader";
 import { SimpleSettingsDialog } from "./SimpleSettingsDialog";
 import { EditTripsDialog } from "./EditTripsDialog";
 import { GoalsProgress } from "./GoalsProgress";
+import { MobileStatus } from "./MobileStatus";
 import { useAuth } from "@/hooks/useAuth";
 import { useDatabase, Trip, WorkDay, DailyGoals, DailyExpenses } from "@/hooks/useDatabase";
 import { useAppMode } from "@/hooks/useAppMode";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useLocation } from "@/hooks/useLocation";
+import { useOfflineStorage } from "@/hooks/useOfflineStorage";
 
 export const TaxiDashboard = () => {
   const { user, signOut } = useAuth();
@@ -43,6 +46,8 @@ export const TaxiDashboard = () => {
   const [isEditTripsOpen, setIsEditTripsOpen] = useState(false);
   const [quickAmount, setQuickAmount] = useState<number | null>(null);
   const { mode, toggleNightMode, toggleDrivingMode } = useAppMode();
+  const { currentLocation } = useLocation();
+  const { isOnline, saveOfflineTrip, vibrateSuccess, vibrateError } = useOfflineStorage();
 
   const dailyStats = useMemo(() => {
     const totalIncome = trips.reduce((sum, trip) => sum + trip.amount, 0);
@@ -72,10 +77,38 @@ export const TaxiDashboard = () => {
   });
 
   const handleAddTrip = async (amount: number, paymentMethod: 'cash' | 'card' | 'app') => {
+    // אם אופליין, שמור אופליין
+    if (!isOnline) {
+      const offlineTrip = {
+        id: `offline_${Date.now()}`,
+        amount,
+        payment_method: paymentMethod,
+        timestamp: new Date().toISOString(),
+        location: currentLocation ? {
+          latitude: currentLocation.latitude,
+          longitude: currentLocation.longitude
+        } : undefined
+      };
+      
+      const success = await saveOfflineTrip(offlineTrip);
+      if (success) {
+        setIsAddTripOpen(false);
+        setQuickAmount(null);
+        vibrateSuccess();
+      } else {
+        vibrateError();
+      }
+      return;
+    }
+
+    // אם מחובר, שמור בדרך הרגילה
     const success = await addTrip(amount, paymentMethod);
     if (success) {
       setIsAddTripOpen(false);
       setQuickAmount(null);
+      vibrateSuccess();
+    } else {
+      vibrateError();
     }
   };
 
@@ -191,6 +224,9 @@ export const TaxiDashboard = () => {
             </Button>
           </div>
         </div>
+
+        {/* Mobile Status */}
+        <MobileStatus />
 
         {/* Work Day Controls */}
         <Card className="border-2 border-primary/20">

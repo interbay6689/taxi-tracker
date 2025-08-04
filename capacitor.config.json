@@ -1,0 +1,15 @@
+{
+  "appId": "app.lovable.1aa5e47df02c4ad284dd5ee597f2cabe",
+  "appName": "taxi-tracker",
+  "webDir": "dist",
+  "server": {
+    "url": "https://1aa5e47d-f02c-4ad2-84dd-5ee597f2cabe.lovableproject.com?forceHideBadge=true",
+    "cleartext": true
+  },
+  "plugins": {
+    "Geolocation": {
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+    },
+    "Haptics": {}
+  }
+}

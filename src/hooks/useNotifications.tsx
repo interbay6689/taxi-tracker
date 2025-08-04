@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
 
 interface UseNotificationsProps {
   dailyGoals: { income_goal: number; trips_goal: number };
@@ -29,10 +30,13 @@ export const useNotifications = ({
         duration: 5000,
       });
       
-      // רטט אם נתמך
-      if (navigator.vibrate) {
-        navigator.vibrate([200, 100, 200]);
-      }
+      // רטט חזק לחגיגה
+      Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {
+        // Fallback לדפדפן
+        if (navigator.vibrate) {
+          navigator.vibrate([200, 100, 200, 100, 400]);
+        }
+      });
     }
     lastGoalMet.current = goalMet;
   }, [goalMet, toast]);
@@ -52,6 +56,14 @@ export const useNotifications = ({
           description: "אתה עובד כבר יותר מ-10 שעות. אולי הגיע הזמן להפסקה?",
           duration: 8000,
         });
+        
+        // רטט קל להתראה
+        Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {
+          if (navigator.vibrate) {
+            navigator.vibrate([300, 200, 300]);
+          }
+        });
+        
         longShiftNotified.current = true;
       }
     };
