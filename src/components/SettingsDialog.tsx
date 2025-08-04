@@ -81,15 +81,19 @@ export const SettingsDialog = ({
           </TabsList>
 
           <TabsContent value="goals">
-            <GoalsTab goals={goals} onUpdateGoals={onUpdateGoals} />
+            <GoalsTab goals={goals} setGoals={onUpdateGoals} />
           </TabsContent>
 
           <TabsContent value="expenses">
-            <ExpensesTab expenses={expenses} onUpdateExpenses={onUpdateExpenses} />
+            <ExpensesTab expenses={expenses} setExpenses={onUpdateExpenses} />
           </TabsContent>
 
           <TabsContent value="trips">
-            <TripsTab trips={trips} onUpdateTrips={onUpdateTrips} />
+            <TripsTab 
+              trips={trips} 
+              onDeleteTrip={(tripId) => console.log('Delete trip:', tripId)}
+              onEditTrip={(tripId, amount) => console.log('Edit trip:', tripId, amount)}
+            />
           </TabsContent>
 
           <TabsContent value="analytics">
