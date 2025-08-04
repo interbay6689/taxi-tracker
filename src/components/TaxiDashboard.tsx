@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Settings, Target, TrendingUp, DollarSign } from "lucide-react";
@@ -8,6 +8,7 @@ import { ProgressBar } from "./ProgressBar";
 import { TripsList } from "./TripsList";
 import { SettingsDialog } from "./SettingsDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useLocalStorage, cleanupOldData } from "@/hooks/useLocalStorage";
 
 export interface Trip {
   id: string;
@@ -29,19 +30,24 @@ export interface DailyExpenses {
 }
 
 export const TaxiDashboard = () => {
-  const [trips, setTrips] = useState<Trip[]>([]);
+  const [trips, setTrips] = useLocalStorage<Trip[]>('taxi-trips', []);
   const [isAddTripOpen, setIsAddTripOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [goals, setGoals] = useState<DailyGoals>({
+  const [goals, setGoals] = useLocalStorage<DailyGoals>('taxi-goals', {
     daily: 909,
     weekly: 4545,
     monthly: 20000
   });
-  const [expenses, setExpenses] = useState<DailyExpenses>({
+  const [expenses, setExpenses] = useLocalStorage<DailyExpenses>('taxi-expenses', {
     fixedDaily: 260,
     fuel: 150
   });
   const { toast } = useToast();
+
+  // Clean up old data on component mount
+  useEffect(() => {
+    cleanupOldData();
+  }, []);
 
   const today = new Date().toDateString();
   const todayTrips = trips.filter(trip => trip.date === today);

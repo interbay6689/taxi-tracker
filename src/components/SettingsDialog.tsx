@@ -5,9 +5,10 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, Edit3, Target, Fuel, List } from "lucide-react";
+import { Trash2, Edit3, Target, Fuel, List, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Trip, DailyGoals, DailyExpenses } from "./TaxiDashboard";
+import { ReportsExport } from "./ReportsExport";
 
 interface SettingsDialogProps {
   isOpen: boolean;
@@ -102,7 +103,7 @@ export const SettingsDialog = ({
         </DialogHeader>
 
         <Tabs defaultValue="goals" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="goals" className="text-xs">
               <Target className="h-3 w-3 ml-1" />
               יעדים
@@ -114,6 +115,10 @@ export const SettingsDialog = ({
             <TabsTrigger value="trips" className="text-xs">
               <List className="h-3 w-3 ml-1" />
               נסיעות
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="text-xs">
+              <FileText className="h-3 w-3 ml-1" />
+              דוחות
             </TabsTrigger>
           </TabsList>
 
@@ -309,6 +314,11 @@ export const SettingsDialog = ({
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Reports Tab */}
+          <TabsContent value="reports" className="space-y-4">
+            <ReportsExport trips={trips} />
           </TabsContent>
         </Tabs>
 

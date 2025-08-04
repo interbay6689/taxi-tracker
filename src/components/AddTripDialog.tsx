@@ -85,8 +85,7 @@ export const AddTripDialog = ({ isOpen, onClose, onAddTrip }: AddTripDialogProps
                   type="button"
                   variant="outline"
                   onClick={() => {
-                    setAmount(quickAmount.toString());
-                    handleSubmit();
+                    onAddTrip(quickAmount, paymentMethod);
                   }}
                   className="text-base h-12"
                 >
