@@ -7,8 +7,11 @@ import { DailySummaryCard } from "./DailySummaryCard";
 import { ProgressBar } from "./ProgressBar";
 import { TripsList } from "./TripsList";
 import { SettingsDialog } from "./SettingsDialog";
+import { TripTimer } from "./TripTimer";
+import { QuickAmounts } from "./QuickAmounts";
 import { useToast } from "@/hooks/use-toast";
 import { useLocalStorage, cleanupOldData } from "@/hooks/useLocalStorage";
+import { useMemo } from "react";
 
 export interface Trip {
   id: string;
@@ -49,33 +52,60 @@ export const TaxiDashboard = () => {
     cleanupOldData();
   }, []);
 
-  const today = new Date().toDateString();
-  const todayTrips = trips.filter(trip => trip.date === today);
-  const todayIncome = todayTrips.reduce((sum, trip) => sum + trip.amount, 0);
-  const todayExpenses = expenses.fixedDaily + expenses.fuel;
-  const todayNet = todayIncome - todayExpenses;
-  const remainingToGoal = Math.max(0, goals.daily - todayIncome);
-  const goalProgress = Math.min(100, (todayIncome / goals.daily) * 100);
+  // קאשינג חישובים יומיים לביצועים
+  const dailyStats = useMemo(() => {
+    const today = new Date().toDateString();
+    const todayTrips = trips.filter(trip => trip.date === today);
+    const todayIncome = todayTrips.reduce((sum, trip) => sum + trip.amount, 0);
+    const todayExpenses = expenses.fixedDaily + expenses.fuel;
+    const todayNet = todayIncome - todayExpenses;
+    const remainingToGoal = Math.max(0, goals.daily - todayIncome);
+    const goalProgress = Math.min(100, (todayIncome / goals.daily) * 100);
+    
+    return {
+      today,
+      todayTrips,
+      todayIncome,
+      todayExpenses,
+      todayNet,
+      remainingToGoal,
+      goalProgress
+    };
+  }, [trips, expenses, goals]);
 
   const addTrip = (amount: number, paymentMethod: string = "מזומן") => {
     const newTrip: Trip = {
       id: Date.now().toString(),
       amount,
       timestamp: new Date(),
-      date: today,
+      date: dailyStats.today,
       paymentMethod
     };
     setTrips(prev => [newTrip, ...prev]);
     setIsAddTripOpen(false);
     
     // Check if goal is reached
-    const newTotalIncome = todayIncome + amount;
+    const newTotalIncome = dailyStats.todayIncome + amount;
     if (newTotalIncome >= goals.daily) {
       toast({
         title: "יעד יומי הושג! 🎉",
         description: `הכנסת ₪${newTotalIncome} היום`,
       });
     }
+  };
+
+  const handleQuickAmount = (amount: number) => {
+    setIsAddTripOpen(true);
+    // הוספת לוגיקה להכנסת סכום מהיר
+  };
+
+  const handleTripComplete = (duration: number, distance?: number) => {
+    // פתיחת דיאלוג הוספת נסיעה עם פרטי הזמן
+    setIsAddTripOpen(true);
+    toast({
+      title: "נסיעה הושלמה",
+      description: `משך זמן: ${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')}${distance ? `, מרחק: ${distance.toFixed(1)} ק"מ` : ''}`,
+    });
   };
 
   return (
@@ -98,28 +128,34 @@ export const TaxiDashboard = () => {
           <CardContent>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-2xl font-bold text-primary">
-                  ₪{todayIncome.toLocaleString()}
+                <span className="text-2xl font-bold text-primary animate-scale-in">
+                  ₪{dailyStats.todayIncome.toLocaleString()}
                 </span>
                 <span className="text-sm text-muted-foreground">
                   מתוך ₪{goals.daily.toLocaleString()}
                 </span>
               </div>
-              <ProgressBar progress={goalProgress} />
+              <ProgressBar progress={dailyStats.goalProgress} />
               <div className="text-center">
                 <span className="text-sm text-muted-foreground">
-                  נותר: ₪{remainingToGoal.toLocaleString()}
+                  נותר: ₪{dailyStats.remainingToGoal.toLocaleString()}
                 </span>
               </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Trip Timer */}
+        <TripTimer onTripComplete={handleTripComplete} />
+
+        {/* Quick Amounts */}
+        <QuickAmounts onSelectAmount={handleQuickAmount} />
+
         {/* Add Trip Button */}
         <Button
           onClick={() => setIsAddTripOpen(true)}
           size="lg"
-          className="w-full h-20 text-lg font-semibold bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-500/90 shadow-lg touch-manipulation"
+          className="w-full h-20 text-lg font-semibold bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-500/90 shadow-lg touch-manipulation hover-scale"
         >
           <Plus className="mr-2 h-7 w-7" />
           הוספת נסיעה
@@ -129,25 +165,25 @@ export const TaxiDashboard = () => {
         <div className="grid grid-cols-2 gap-3">
           <DailySummaryCard
             title="הכנסות היום"
-            value={todayIncome}
+            value={dailyStats.todayIncome}
             icon={DollarSign}
             variant="income"
           />
           <DailySummaryCard
             title="רווח נקי"
-            value={todayNet}
+            value={dailyStats.todayNet}
             icon={TrendingUp}
-            variant={todayNet >= 0 ? "profit" : "loss"}
+            variant={dailyStats.todayNet >= 0 ? "profit" : "loss"}
           />
         </div>
 
         {/* Today's Trips */}
-        <TripsList trips={todayTrips} />
+        <TripsList trips={dailyStats.todayTrips} />
 
         {/* Settings Button */}
         <Button
           variant="outline"
-          className="w-full touch-manipulation"
+          className="w-full touch-manipulation hover-scale"
           onClick={() => setIsSettingsOpen(true)}
         >
           <Settings className="mr-2 h-4 w-4" />
