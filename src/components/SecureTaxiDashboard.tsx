@@ -140,10 +140,19 @@ export const TaxiDashboard = () => {
       lng: number;
     };
     duration: number;
+    paymentMethod: string;
   }) => {
+    // מיפוי אמצעי תשלום עבריים לאנגליים
+    const paymentMethodMap: { [key: string]: 'cash' | 'card' | 'app' } = {
+      'מזומן': 'cash',
+      'ביט': 'card',
+      'אשראי': 'card',
+      'GetTaxi': 'app'
+    };
+
     const success = await addTripWithLocation({
       ...tripData,
-      paymentMethod: 'cash'
+      paymentMethod: paymentMethodMap[tripData.paymentMethod] || 'cash'
     });
 
     if (success) {
