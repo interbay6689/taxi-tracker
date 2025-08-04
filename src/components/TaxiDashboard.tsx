@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Settings, Target, TrendingUp, DollarSign } from "lucide-react";
+import { Plus, Settings, Target, TrendingUp, DollarSign, Moon, Sun, Edit, LogOut } from "lucide-react";
 import { AddTripDialog } from "./AddTripDialog";
 import { DailySummaryCard } from "./DailySummaryCard";
 import { ProgressBar } from "./ProgressBar";
@@ -11,6 +11,8 @@ import { TripTimer } from "./TripTimer";
 import { QuickAmounts } from "./QuickAmounts";
 import { useToast } from "@/hooks/use-toast";
 import { useLocalStorage, cleanupOldData } from "@/hooks/useLocalStorage";
+import { useLocation } from "@/hooks/useLocation";
+import { useTheme } from "next-themes";
 import { useMemo } from "react";
 
 export interface Trip {
@@ -59,6 +61,8 @@ export const TaxiDashboard = () => {
     fuel: 150
   });
   const { toast } = useToast();
+  const { startTracking, stopTracking } = useLocation();
+  const { theme, setTheme } = useTheme();
 
   // Clean up old data on component mount
   useEffect(() => {
@@ -142,7 +146,7 @@ export const TaxiDashboard = () => {
     });
   };
 
-  const startWorkDay = () => {
+  const startWorkDay = async () => {
     if (currentWorkDay) {
       toast({
         title: "יום עבודה כבר פעיל",
@@ -162,13 +166,17 @@ export const TaxiDashboard = () => {
     };
 
     setCurrentWorkDay(newWorkDay);
+    
+    // התחלת מעקב מיקום אוטומטית
+    await startTracking();
+    
     toast({
       title: "יום עבודה התחיל! 🚖",
-      description: `התחלת עבודה ב-${new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}`,
+      description: `התחלת עבודה ב-${new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })} | מעקב מיקום פעיל`,
     });
   };
 
-  const endWorkDay = () => {
+  const endWorkDay = async () => {
     if (!currentWorkDay) {
       toast({
         title: "אין יום עבודה פעיל",
@@ -191,6 +199,9 @@ export const TaxiDashboard = () => {
     setWorkDayHistory(prev => [completedWorkDay, ...prev]);
     setCurrentWorkDay(null);
 
+    // הפסקת מעקב מיקום
+    await stopTracking();
+
     const workDuration = Math.round((endTime.getTime() - currentWorkDay.startTime.getTime()) / (1000 * 60 * 60 * 100)) / 10;
     
     toast({
@@ -199,18 +210,56 @@ export const TaxiDashboard = () => {
     });
   };
 
+  const handleLogout = () => {
+    // ניקוי נתונים מקומיים
+    localStorage.clear();
+    window.location.reload();
+  };
+
   return (
     <div className="min-h-screen bg-background p-3 rtl">
       <div className="w-full max-w-sm mx-auto space-y-4">
         {/* Header */}
-        <div className="text-center py-2">
-          <h1 className="text-xl font-bold text-foreground">מונית פרו</h1>
-          <p className="text-sm text-muted-foreground">מעקב הכנסות יומי</p>
-          {currentWorkDay && (
-            <div className="text-xs text-primary font-medium mt-1">
-              יום עבודה פעיל מ-{new Date(currentWorkDay.startTime).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-            </div>
-          )}
+        <div className="flex items-center justify-between py-2">
+          <div className="flex-1">
+            <h1 className="text-xl font-bold text-foreground">מונית פרו</h1>
+            <p className="text-sm text-muted-foreground">מעקב הכנסות יומי</p>
+            {currentWorkDay && (
+              <div className="text-xs text-primary font-medium mt-1">
+                יום עבודה פעיל מ-{new Date(currentWorkDay.startTime).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            )}
+          </div>
+          
+          {/* Control Panel */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="p-2 h-8 w-8"
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsSettingsOpen(true)}
+              className="p-2 h-8 w-8"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              className="p-2 h-8 w-8 text-destructive hover:text-destructive"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Work Day Controls */}
@@ -299,15 +348,6 @@ export const TaxiDashboard = () => {
         {/* Today's Trips */}
         <TripsList trips={dailyStats.todayTrips} />
 
-        {/* Settings Button */}
-        <Button
-          variant="outline"
-          className="w-full touch-manipulation hover-scale"
-          onClick={() => setIsSettingsOpen(true)}
-        >
-          <Settings className="mr-2 h-4 w-4" />
-          הגדרות
-        </Button>
 
         {/* Add Trip Dialog */}
         <AddTripDialog
