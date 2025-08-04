@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Settings, Target, TrendingUp, DollarSign, Play, Square, LogOut, User } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Settings, Target, TrendingUp, DollarSign, Play, Square, LogOut, User, Moon, Sun, Car, BarChart3, FileText, Navigation } from "lucide-react";
 import { AddTripDialog } from "./AddTripDialog";
 import { DailySummaryCard } from "./DailySummaryCard";
 import { ProgressBar } from "./ProgressBar";
@@ -9,8 +10,13 @@ import { TripsList } from "./TripsList";
 import { SettingsDialog } from "./SettingsDialog";
 import { TripTimer } from "./TripTimer";
 import { QuickAmounts } from "./QuickAmounts";
+import { AnalyticsTab } from "./analytics/AnalyticsTab";
+import { ReportsExport } from "./ReportsExport";
+import { DrivingModeHeader } from "./DrivingModeHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { useDatabase, Trip, WorkDay, DailyGoals, DailyExpenses } from "@/hooks/useDatabase";
+import { useAppMode } from "@/hooks/useAppMode";
+import { useNotifications } from "@/hooks/useNotifications";
 
 export const TaxiDashboard = () => {
   const { user, signOut } = useAuth();
@@ -32,6 +38,7 @@ export const TaxiDashboard = () => {
   const [isAddTripOpen, setIsAddTripOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [quickAmount, setQuickAmount] = useState<number | null>(null);
+  const { mode, toggleNightMode, toggleDrivingMode } = useAppMode();
 
   const dailyStats = useMemo(() => {
     const totalIncome = trips.reduce((sum, trip) => sum + trip.amount, 0);
@@ -50,6 +57,15 @@ export const TaxiDashboard = () => {
       goalMet: totalIncome >= dailyGoals.income_goal && trips.length >= dailyGoals.trips_goal
     };
   }, [trips, dailyGoals, dailyExpenses]);
+
+  // התראות
+  useNotifications({
+    dailyGoals,
+    totalIncome: dailyStats.totalIncome,
+    tripsCount: dailyStats.tripsCount,
+    workDayStartTime: currentWorkDay?.start_time,
+    goalMet: dailyStats.goalMet
+  });
 
   const handleAddTrip = async (amount: number, paymentMethod: 'cash' | 'card' | 'app') => {
     const success = await addTrip(amount, paymentMethod);
@@ -92,19 +108,80 @@ export const TaxiDashboard = () => {
     );
   }
 
+  // מצב נהיגה
+  if (mode === 'driving') {
+    return (
+      <div className="min-h-screen">{/* מצב נהיגה */}
+        <DrivingModeHeader
+          totalIncome={dailyStats.totalIncome}
+          tripsCount={dailyStats.tripsCount}
+          dailyGoal={dailyGoals.income_goal}
+          onAddTrip={() => setIsAddTripOpen(true)}
+          onEndWorkDay={endWorkDay}
+          currentWorkDay={currentWorkDay}
+        />
+        
+        <div className="pt-32 pb-6 px-4">
+          <div className="max-w-md mx-auto">
+            <Button 
+              onClick={toggleDrivingMode}
+              variant="outline"
+              className="w-full mb-4"
+            >
+              חזור למצב רגיל
+            </Button>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-center text-lg">
+                  מצב נהיגה פעיל
+                </div>
+                <div className="text-center text-sm text-muted-foreground mt-2">
+                  ממשק מינימלי לנהיגה בטוחה
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <AddTripDialog
+          isOpen={isAddTripOpen}
+          onClose={() => setIsAddTripOpen(false)}
+          onAddTrip={(amount, method) => {
+            const paymentMap: Record<string, 'cash' | 'card' | 'app'> = {
+              'מזומן': 'cash',
+              'אשראי': 'card', 
+              'ביט': 'card',
+              'GetTaxi': 'app'
+            };
+            handleAddTrip(amount, paymentMap[method] || 'cash');
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/50 p-4">
+    <div className={`min-h-screen bg-gradient-to-br from-background to-muted/50 p-4 ${mode === 'night' ? 'dark' : ''}`}>
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header with User Info and Logout */}
+        {/* Header with User Info, Mode Controls and Logout */}
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <User className="h-6 w-6 text-primary" />
             <span className="text-lg font-medium">שלום, {user?.user_metadata?.display_name || user?.email}</span>
           </div>
-          <Button variant="outline" onClick={signOut} size="sm">
-            <LogOut className="h-4 w-4 mr-2" />
-            התנתק
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={toggleNightMode} size="sm">
+              {mode === 'night' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+            <Button variant="outline" onClick={toggleDrivingMode} size="sm">
+              <Car className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" onClick={signOut} size="sm">
+              <LogOut className="h-4 w-4 mr-2" />
+              התנתק
+            </Button>
+          </div>
         </div>
 
         {/* Work Day Controls */}
@@ -194,36 +271,87 @@ export const TaxiDashboard = () => {
           />
         </div>
 
-        {/* Today's Trips - Convert format */}
-        <Card>
-          <CardHeader>
-            <CardTitle>נסיעות היום ({trips.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {trips.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                עדיין לא נוספו נסיעות היום
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {trips.map((trip) => (
-                  <div key={trip.id} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <span className="font-medium">₪{trip.amount}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(trip.timestamp).toLocaleTimeString('he-IL')}
-                      </span>
-                      <span className="text-xs bg-primary/10 px-2 py-1 rounded">
-                        {trip.payment_method === 'cash' ? 'מזומן' : 
-                         trip.payment_method === 'card' ? 'כרטיס' : 'אפליקציה'}
-                      </span>
-                    </div>
+        {/* Main Content Tabs */}
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="dashboard">דשבורד</TabsTrigger>
+            <TabsTrigger value="analytics">ניתוחים</TabsTrigger>
+            <TabsTrigger value="reports">דוחות</TabsTrigger>
+            <TabsTrigger value="navigation">ניווט</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="dashboard" className="space-y-6">
+            {/* Today's Trips */}
+            <Card>
+              <CardHeader>
+                <CardTitle>נסיעות היום ({trips.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {trips.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    עדיין לא נוספו נסיעות היום
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {trips.map((trip) => (
+                      <div key={trip.id} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium">₪{trip.amount}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {new Date(trip.timestamp).toLocaleTimeString('he-IL')}
+                          </span>
+                          <span className="text-xs bg-primary/10 px-2 py-1 rounded">
+                            {trip.payment_method === 'cash' ? 'מזומן' : 
+                             trip.payment_method === 'card' ? 'כרטיס' : 'אפליקציה'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <AnalyticsTab trips={trips} />
+          </TabsContent>
+
+          <TabsContent value="reports">
+            <ReportsExport trips={trips} />
+          </TabsContent>
+
+          <TabsContent value="navigation">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Navigation className="h-5 w-5" />
+                  ניווט ומפות
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <Button 
+                    className="w-full"
+                    onClick={() => window.open('https://maps.google.com', '_blank')}
+                  >
+                    פתח Google Maps
+                  </Button>
+                  <Button 
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => window.open('https://waze.com', '_blank')}
+                  >
+                    פתח Waze
+                  </Button>
+                  <div className="text-center text-sm text-muted-foreground">
+                    ניווט חכם בקרוב...
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
         {/* Add Trip Dialog - Simple version */}
         <AddTripDialog

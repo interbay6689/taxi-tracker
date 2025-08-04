@@ -93,11 +93,15 @@ export const SettingsDialog = ({
           </TabsContent>
 
           <TabsContent value="analytics">
-            <AnalyticsTab trips={trips} />
+            <div className="text-center p-8 text-muted-foreground">
+              ניתוחים זמינים בדשבורד הראשי
+            </div>
           </TabsContent>
 
           <TabsContent value="reports">
-            <ReportsExport trips={trips} />
+            <div className="text-center p-8 text-muted-foreground">
+              דוחות זמינים בדשבורד הראשי
+            </div>
           </TabsContent>
         </Tabs>
 
