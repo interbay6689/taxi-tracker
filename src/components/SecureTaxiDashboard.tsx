@@ -83,6 +83,7 @@ export const SecureTaxiDashboard = () => {
   });
 
   const handleAddTrip = async (amount: number, paymentMethod: 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי') => {
+    console.log('handleAddTrip called with:', { amount, paymentMethod });
     // אם אופליין, שמור אופליין
     if (!isOnline) {
       const offlineTrip = {
@@ -222,13 +223,6 @@ export const SecureTaxiDashboard = () => {
           </div>
         </div>
 
-        <AddTripDialog
-          isOpen={isAddTripOpen}
-          onClose={() => setIsAddTripOpen(false)}
-          onAddTrip={(amount, method) => {
-            handleAddTrip(amount, method as 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי');
-          }}
-        />
       </div>
     );
   }
