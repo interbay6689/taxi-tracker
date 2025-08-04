@@ -319,28 +319,6 @@ export const TaxiDashboard = () => {
           </Card>
         )}
 
-        {/* כפתור התחל נסיעה - תמיד נראה */}
-        <Card className="mb-4 border-2 border-green-200 dark:border-green-800">
-          <CardContent className="p-4">
-            <Button 
-              onClick={() => {
-                // אם אין יום עבודה פעיל, התחל יום עבודה תחילה
-                if (!currentWorkDay) {
-                  startWorkDay().then(() => {
-                    console.log("יום עבודה התחיל");
-                  });
-                } else {
-                  console.log("מתחיל נסיעה");
-                }
-              }}
-              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg"
-              size="lg"
-            >
-              <Play className="h-5 w-5 mr-2" />
-              {currentWorkDay ? 'התחל נסיעה עם GPS' : 'התחל יום עבודה'}
-            </Button>
-          </CardContent>
-        </Card>
 
         {/* Trip Tracker - רק כשיום עבודה פעיל */}
         {currentWorkDay && (
@@ -390,19 +368,30 @@ export const TaxiDashboard = () => {
                     עדיין לא נוספו נסיעות היום
                   </p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {trips.map((trip) => (
-                      <div key={trip.id} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <span className="font-medium">₪{trip.amount}</span>
+                      <div key={trip.id} className="p-3 bg-muted/50 rounded-lg border border-muted-foreground/20">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center gap-3">
+                            <span className="font-medium text-lg">₪{trip.amount.toLocaleString()}</span>
+                            <span className="text-xs bg-primary/10 px-2 py-1 rounded">
+                              {trip.payment_method === 'cash' ? 'מזומן' : 
+                               trip.payment_method === 'card' ? 'כרטיס' : 'אפליקציה'}
+                            </span>
+                          </div>
                           <span className="text-sm text-muted-foreground">
                             {new Date(trip.timestamp).toLocaleTimeString('he-IL')}
                           </span>
-                          <span className="text-xs bg-primary/10 px-2 py-1 rounded">
-                            {trip.payment_method === 'cash' ? 'מזומן' : 
-                             trip.payment_method === 'card' ? 'כרטיס' : 'אפליקציה'}
-                          </span>
                         </div>
+                        
+                        {/* תצוגת מיקומים */}
+                        {trip.start_location_city && trip.end_location_city && (
+                          <div className="text-sm text-muted-foreground">
+                            <span className="text-primary font-medium">
+                              {trip.start_location_city} → {trip.end_location_city}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
