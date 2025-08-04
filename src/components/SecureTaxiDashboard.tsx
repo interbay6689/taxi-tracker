@@ -171,6 +171,10 @@ export const TaxiDashboard = () => {
             <span className="text-lg font-medium">שלום, {user?.user_metadata?.display_name || user?.email}</span>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setIsSettingsOpen(true)} size="sm">
+              <Settings className="h-4 w-4 mr-1" />
+              הגדרות
+            </Button>
             <Button variant="outline" onClick={toggleNightMode} size="sm">
               {mode === 'night' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
@@ -353,7 +357,19 @@ export const TaxiDashboard = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Add Trip Dialog - Simple version */}
+        {/* Settings and Add Trip Dialogs */}
+        <SettingsDialog
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          goals={dailyGoals}
+          expenses={dailyExpenses}
+          trips={[]}
+          onUpdateGoals={handleUpdateGoals}
+          onUpdateExpenses={handleUpdateExpenses}
+          onUpdateTrips={() => {}}
+        />
+
+        {/* Add Trip Dialog */}
         <AddTripDialog
           isOpen={isAddTripOpen}
           onClose={() => setIsAddTripOpen(false)}
