@@ -14,6 +14,7 @@ import { AnalyticsTab } from "./analytics/AnalyticsTab";
 import { ReportsExport } from "./ReportsExport";
 import { DrivingModeHeader } from "./DrivingModeHeader";
 import { SimpleSettingsDialog } from "./SimpleSettingsDialog";
+import { EditTripsDialog } from "./EditTripsDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useDatabase, Trip, WorkDay, DailyGoals, DailyExpenses } from "@/hooks/useDatabase";
 import { useAppMode } from "@/hooks/useAppMode";
@@ -38,6 +39,7 @@ export const TaxiDashboard = () => {
 
   const [isAddTripOpen, setIsAddTripOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isEditTripsOpen, setIsEditTripsOpen] = useState(false);
   const [quickAmount, setQuickAmount] = useState<number | null>(null);
   const { mode, toggleNightMode, toggleDrivingMode } = useAppMode();
 
@@ -179,7 +181,7 @@ export const TaxiDashboard = () => {
             <Button variant="outline" onClick={toggleNightMode} size="sm">
               {mode === 'night' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
-            <Button variant="outline" onClick={toggleDrivingMode} size="sm">
+            <Button variant="outline" onClick={() => setIsEditTripsOpen(true)} size="sm">
               <Car className="h-4 w-4" />
             </Button>
             <Button variant="outline" onClick={signOut} size="sm">
@@ -366,6 +368,19 @@ export const TaxiDashboard = () => {
           expenses={dailyExpenses}
           onUpdateGoals={handleUpdateGoals}
           onUpdateExpenses={handleUpdateExpenses}
+        />
+
+        {/* Edit Trips Dialog */}
+        <EditTripsDialog
+          isOpen={isEditTripsOpen}
+          onClose={() => setIsEditTripsOpen(false)}
+          trips={trips}
+          onDeleteTrip={deleteTrip}
+          onUpdateTrip={updateTrip}
+          onAddTrip={() => {
+            setIsEditTripsOpen(false);
+            setIsAddTripOpen(true);
+          }}
         />
 
         {/* Add Trip Dialog */}
