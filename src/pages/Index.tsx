@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, Car, LogIn } from 'lucide-react';
-import { TaxiDashboard } from "@/components/SecureTaxiDashboard";
+import { SecureTaxiDashboard } from "@/components/SecureTaxiDashboard";
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -55,7 +55,7 @@ const Index = () => {
     );
   }
 
-  return <TaxiDashboard />;
+  return <SecureTaxiDashboard />;
 };
 
 export default Index;

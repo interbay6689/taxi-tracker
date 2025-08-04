@@ -25,7 +25,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useLocation } from "@/hooks/useLocation";
 import { useOfflineStorage } from "@/hooks/useOfflineStorage";
 
-export const TaxiDashboard = () => {
+export const SecureTaxiDashboard = () => {
   const { user, signOut } = useAuth();
   const { 
     trips, 

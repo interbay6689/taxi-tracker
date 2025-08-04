@@ -243,7 +243,7 @@ export const TripTracker: React.FC<TripTrackerProps> = ({ onTripComplete }) => {
       />
       <Card className="mb-4">
         <CardContent className="p-4">
-        <div className="text-center">
+          <div className="text-center">
           <h3 className="text-lg font-semibold mb-4 flex items-center justify-center gap-2">
             <MapPin className="h-5 w-5" />
             מעקב נסיעה
