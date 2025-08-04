@@ -15,6 +15,7 @@ import { ReportsExport } from "./ReportsExport";
 import { DrivingModeHeader } from "./DrivingModeHeader";
 import { SimpleSettingsDialog } from "./SimpleSettingsDialog";
 import { EditTripsDialog } from "./EditTripsDialog";
+import { GoalsProgress } from "./GoalsProgress";
 import { useAuth } from "@/hooks/useAuth";
 import { useDatabase, Trip, WorkDay, DailyGoals, DailyExpenses } from "@/hooks/useDatabase";
 import { useAppMode } from "@/hooks/useAppMode";
@@ -221,24 +222,15 @@ export const TaxiDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Daily Goal Progress */}
-        <DailySummaryCard
-          title="יעד יומי"
-          value={dailyGoals.income_goal}
-          icon={Target}
-          variant="income"
+        {/* Goals Progress */}
+        <GoalsProgress
+          incomeProgress={dailyStats.incomeProgress}
+          tripsProgress={dailyStats.tripsProgress}
+          currentIncome={dailyStats.totalIncome}
+          currentTrips={dailyStats.tripsCount}
+          incomeGoal={dailyGoals.income_goal}
+          tripsGoal={dailyGoals.trips_goal}
         />
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ProgressBar
-            progress={dailyStats.incomeProgress}
-            className="h-full"
-          />
-          <ProgressBar
-            progress={dailyStats.tripsProgress}
-            className="h-full"
-          />
-        </div>
 
         {/* Add Trip Button */}
         {currentWorkDay && (
