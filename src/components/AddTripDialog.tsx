@@ -32,6 +32,7 @@ export const AddTripDialog = ({ isOpen, onClose, onAddTrip }: AddTripDialogProps
     onAddTrip(parsedAmount, paymentMethod);
     setAmount("");
     setPaymentMethod("מזומן");
+    onClose();
     toast({
       title: "נסיעה נוספה",
       description: `נוספה נסיעה בסכום ₪${parsedAmount} (${paymentMethod})`,
@@ -86,6 +87,13 @@ export const AddTripDialog = ({ isOpen, onClose, onAddTrip }: AddTripDialogProps
                   variant="outline"
                   onClick={() => {
                     onAddTrip(quickAmount, paymentMethod);
+                    setAmount("");
+                    setPaymentMethod("מזומן");
+                    onClose();
+                    toast({
+                      title: "נסיעה נוספה",
+                      description: `נוספה נסיעה בסכום ₪${quickAmount} (${paymentMethod})`,
+                    });
                   }}
                   className="text-base h-12"
                 >
