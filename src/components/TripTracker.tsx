@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MapPin, Play, Square, Clock } from 'lucide-react';
@@ -39,6 +39,48 @@ export const TripTracker: React.FC<TripTrackerProps> = ({ onTripComplete }) => {
   const { getCurrentPosition } = useLocation();
   const { toast } = useToast();
 
+  // טען מצב נסיעה מהזיכרון כאשר הקומפוננט נטען
+  useEffect(() => {
+    const savedTripState = localStorage.getItem('activeTrip');
+    if (savedTripState) {
+      try {
+        const tripData = JSON.parse(savedTripState);
+        setIsTracking(tripData.isTracking);
+        setStartTime(new Date(tripData.startTime));
+        setStartLocation(tripData.startLocation);
+        
+        // חשב את משך הזמן מאז התחלת הנסיעה
+        const elapsedSeconds = Math.floor((new Date().getTime() - new Date(tripData.startTime).getTime()) / 1000);
+        setCurrentDuration(elapsedSeconds);
+
+        // התחל ספירת זמן מחדש
+        if (tripData.isTracking) {
+          const interval = setInterval(() => {
+            setCurrentDuration(prev => prev + 1);
+          }, 1000);
+          sessionStorage.setItem('tripInterval', interval.toString());
+        }
+      } catch (error) {
+        console.error('Error loading trip state:', error);
+        localStorage.removeItem('activeTrip');
+      }
+    }
+  }, []);
+
+  // שמור מצב נסיעה בזיכרון כאשר המצב משתנה
+  const saveTripState = (tracking: boolean, time: Date | null, location: LocationInfo | null) => {
+    if (tracking && time && location) {
+      const tripData = {
+        isTracking: tracking,
+        startTime: time.toISOString(),
+        startLocation: location
+      };
+      localStorage.setItem('activeTrip', JSON.stringify(tripData));
+    } else {
+      localStorage.removeItem('activeTrip');
+    }
+  };
+
   const startTrip = async () => {
     try {
       const location = await getCurrentPosition();
@@ -58,10 +100,14 @@ export const TripTracker: React.FC<TripTrackerProps> = ({ onTripComplete }) => {
         lng: location.longitude
       };
 
+      const newStartTime = new Date();
       setStartLocation(startLocationData);
-      setStartTime(new Date());
+      setStartTime(newStartTime);
       setIsTracking(true);
       setCurrentDuration(0);
+
+      // שמור מצב הנסיעה
+      saveTripState(true, newStartTime, startLocationData);
 
       // התחל ספירת זמן
       const interval = setInterval(() => {
@@ -131,6 +177,9 @@ export const TripTracker: React.FC<TripTrackerProps> = ({ onTripComplete }) => {
         setStartTime(null);
         setStartLocation(null);
         setCurrentDuration(0);
+
+        // נקה את מצב הנסיעה מהזיכרון
+        saveTripState(false, null, null);
 
         toast({
           title: "נסיעה הושלמה!",
