@@ -8,6 +8,17 @@ export interface Trip {
   amount: number;
   payment_method: 'cash' | 'card' | 'app';
   timestamp: string;
+  start_location_address?: string;
+  start_location_city?: string;
+  start_location_lat?: number;
+  start_location_lng?: number;
+  end_location_address?: string;
+  end_location_city?: string;
+  end_location_lat?: number;
+  end_location_lng?: number;
+  trip_status?: 'active' | 'completed';
+  trip_start_time?: string;
+  trip_end_time?: string;
 }
 
 export interface WorkDay {
@@ -69,7 +80,18 @@ export function useDatabase() {
         id: trip.id,
         amount: Number(trip.amount),
         payment_method: trip.payment_method as 'cash' | 'card' | 'app',
-        timestamp: trip.timestamp
+        timestamp: trip.timestamp,
+        start_location_address: trip.start_location_address,
+        start_location_city: trip.start_location_city,
+        start_location_lat: trip.start_location_lat ? Number(trip.start_location_lat) : undefined,
+        start_location_lng: trip.start_location_lng ? Number(trip.start_location_lng) : undefined,
+        end_location_address: trip.end_location_address,
+        end_location_city: trip.end_location_city,
+        end_location_lat: trip.end_location_lat ? Number(trip.end_location_lat) : undefined,
+        end_location_lng: trip.end_location_lng ? Number(trip.end_location_lng) : undefined,
+        trip_status: trip.trip_status as 'active' | 'completed' | undefined,
+        trip_start_time: trip.trip_start_time,
+        trip_end_time: trip.trip_end_time
       })));
 
       // Load current active work day
@@ -157,7 +179,18 @@ export function useDatabase() {
         id: data.id,
         amount: Number(data.amount),
         payment_method: data.payment_method as 'cash' | 'card' | 'app',
-        timestamp: data.timestamp
+        timestamp: data.timestamp,
+        start_location_address: data.start_location_address,
+        start_location_city: data.start_location_city,
+        start_location_lat: data.start_location_lat ? Number(data.start_location_lat) : undefined,
+        start_location_lng: data.start_location_lng ? Number(data.start_location_lng) : undefined,
+        end_location_address: data.end_location_address,
+        end_location_city: data.end_location_city,
+        end_location_lat: data.end_location_lat ? Number(data.end_location_lat) : undefined,
+        end_location_lng: data.end_location_lng ? Number(data.end_location_lng) : undefined,
+        trip_status: data.trip_status as 'active' | 'completed' | undefined,
+        trip_start_time: data.trip_start_time,
+        trip_end_time: data.trip_end_time
       }, ...prev]);
 
       // Update current work day if active
@@ -190,6 +223,101 @@ export function useDatabase() {
       return true;
     } catch (error: any) {
       console.error('Error adding trip:', error);
+      toast({
+        title: "שגיאה בהוספת נסיעה",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const addTripWithLocation = async (tripData: {
+    amount: number;
+    paymentMethod?: 'cash' | 'card' | 'app';
+    startLocation: {
+      address: string;
+      city: string;
+      lat: number;
+      lng: number;
+    };
+    endLocation: {
+      address: string;
+      city: string;
+      lat: number;
+      lng: number;
+    };
+    duration?: number;
+  }) => {
+    if (!user) return false;
+
+    try {
+      const { data, error } = await supabase
+        .from('trips')
+        .insert({
+          amount: tripData.amount,
+          payment_method: tripData.paymentMethod || 'cash',
+          user_id: user.id,
+          start_location_address: tripData.startLocation.address,
+          start_location_city: tripData.startLocation.city,
+          start_location_lat: tripData.startLocation.lat,
+          start_location_lng: tripData.startLocation.lng,
+          end_location_address: tripData.endLocation.address,
+          end_location_city: tripData.endLocation.city,
+          end_location_lat: tripData.endLocation.lat,
+          end_location_lng: tripData.endLocation.lng,
+          trip_status: 'completed',
+          trip_start_time: new Date(Date.now() - (tripData.duration || 0) * 1000).toISOString(),
+          trip_end_time: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setTrips(prev => [{
+        id: data.id,
+        amount: Number(data.amount),
+        payment_method: data.payment_method as 'cash' | 'card' | 'app',
+        timestamp: data.timestamp,
+        start_location_address: data.start_location_address,
+        start_location_city: data.start_location_city,
+        start_location_lat: data.start_location_lat ? Number(data.start_location_lat) : undefined,
+        start_location_lng: data.start_location_lng ? Number(data.start_location_lng) : undefined,
+        end_location_address: data.end_location_address,
+        end_location_city: data.end_location_city,
+        end_location_lat: data.end_location_lat ? Number(data.end_location_lat) : undefined,
+        end_location_lng: data.end_location_lng ? Number(data.end_location_lng) : undefined,
+        trip_status: data.trip_status as 'active' | 'completed' | undefined,
+        trip_start_time: data.trip_start_time,
+        trip_end_time: data.trip_end_time
+      }, ...prev]);
+
+      // Update current work day if active
+      if (currentWorkDay) {
+        const newTotalIncome = currentWorkDay.total_income + tripData.amount;
+        const newTotalTrips = currentWorkDay.total_trips + 1;
+
+        const { error: updateError } = await supabase
+          .from('work_days')
+          .update({
+            total_income: newTotalIncome,
+            total_trips: newTotalTrips
+          })
+          .eq('id', currentWorkDay.id);
+
+        if (updateError) throw updateError;
+
+        setCurrentWorkDay(prev => prev ? {
+          ...prev,
+          total_income: newTotalIncome,
+          total_trips: newTotalTrips
+        } : null);
+      }
+
+      return true;
+    } catch (error: any) {
+      console.error('Error adding trip with location:', error);
       toast({
         title: "שגיאה בהוספת נסיעה",
         description: error.message,
@@ -462,6 +590,7 @@ export function useDatabase() {
     dailyExpenses,
     loading,
     addTrip,
+    addTripWithLocation,
     startWorkDay,
     endWorkDay,
     updateGoals,

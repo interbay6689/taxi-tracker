@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Target, Fuel, List, FileText, BarChart3, Moon, Sun } from "lucide-react";
-import { Trip, DailyGoals, DailyExpenses } from "./TaxiDashboard";
+import { Trip, DailyGoals, DailyExpenses } from "@/hooks/useDatabase";
 import { ReportsExport } from "./ReportsExport";
 import { GoalsTab } from "./settings/GoalsTab";
 import { ExpensesTab } from "./settings/ExpensesTab";

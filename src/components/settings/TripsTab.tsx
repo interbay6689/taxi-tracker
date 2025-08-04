@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, Edit3, List } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Trip } from "../TaxiDashboard";
+import { Trip } from "@/hooks/useDatabase";
 
 interface TripsTabProps {
   trips: Trip[];

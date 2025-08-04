@@ -99,25 +99,58 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          end_location_address: string | null
+          end_location_city: string | null
+          end_location_lat: number | null
+          end_location_lng: number | null
           id: string
           payment_method: string
+          start_location_address: string | null
+          start_location_city: string | null
+          start_location_lat: number | null
+          start_location_lng: number | null
           timestamp: string
+          trip_end_time: string | null
+          trip_start_time: string | null
+          trip_status: string | null
           user_id: string
         }
         Insert: {
           amount: number
           created_at?: string
+          end_location_address?: string | null
+          end_location_city?: string | null
+          end_location_lat?: number | null
+          end_location_lng?: number | null
           id?: string
           payment_method: string
+          start_location_address?: string | null
+          start_location_city?: string | null
+          start_location_lat?: number | null
+          start_location_lng?: number | null
           timestamp?: string
+          trip_end_time?: string | null
+          trip_start_time?: string | null
+          trip_status?: string | null
           user_id: string
         }
         Update: {
           amount?: number
           created_at?: string
+          end_location_address?: string | null
+          end_location_city?: string | null
+          end_location_lat?: number | null
+          end_location_lng?: number | null
           id?: string
           payment_method?: string
+          start_location_address?: string | null
+          start_location_city?: string | null
+          start_location_lat?: number | null
+          start_location_lng?: number | null
           timestamp?: string
+          trip_end_time?: string | null
+          trip_start_time?: string | null
+          trip_status?: string | null
           user_id?: string
         }
         Relationships: []

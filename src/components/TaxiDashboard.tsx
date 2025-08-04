@@ -14,36 +14,9 @@ import { useLocalStorage, cleanupOldData } from "@/hooks/useLocalStorage";
 import { useLocation } from "@/hooks/useLocation";
 import { useTheme } from "next-themes";
 import { useMemo } from "react";
+import { Trip, WorkDay, DailyGoals, DailyExpenses } from "@/hooks/useDatabase";
 
-export interface Trip {
-  id: string;
-  amount: number;
-  timestamp: Date;
-  date: string;
-  paymentMethod: string;
-  workDayId?: string;
-}
-
-export interface WorkDay {
-  id: string;
-  startTime: Date;
-  endTime?: Date;
-  totalIncome: number;
-  totalExpenses: number;
-  netProfit: number;
-  tripCount: number;
-}
-
-export interface DailyGoals {
-  daily: number;
-  weekly: number;
-  monthly: number;
-}
-
-export interface DailyExpenses {
-  fixedDaily: number;
-  fuel: number;
-}
+// Using interfaces from useDatabase hook
 
 export const TaxiDashboard = () => {
   const [trips, setTrips] = useLocalStorage<Trip[]>('taxi-trips', []);

@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Fuel } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { DailyExpenses } from "../TaxiDashboard";
+import { DailyExpenses } from "@/hooks/useDatabase";
 
 interface ExpensesTabProps {
   expenses: DailyExpenses;

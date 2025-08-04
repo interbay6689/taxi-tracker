@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Target } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { DailyGoals } from "../TaxiDashboard";
+import { DailyGoals } from "@/hooks/useDatabase";
 
 interface GoalsTabProps {
   goals: DailyGoals;
