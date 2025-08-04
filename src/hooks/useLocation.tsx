@@ -17,13 +17,44 @@ export const useLocation = () => {
 
   const requestPermissions = async () => {
     try {
+      // בדיקה אם כבר יש הרשאות
+      const currentPermissions = await Geolocation.checkPermissions();
+      
+      if (currentPermissions.location === 'granted') {
+        return true;
+      }
+      
+      if (currentPermissions.location === 'denied') {
+        toast({
+          title: "הרשאות מיקום נדחו",
+          description: "אנא אפשר גישה למיקום בהגדרות הדפדפן או האפליקציה",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      // בקשת הרשאות חדשות
       const permissions = await Geolocation.requestPermissions();
-      return permissions.location === 'granted';
+      
+      if (permissions.location === 'granted') {
+        toast({
+          title: "הרשאות מיקום אושרו",
+          description: "המערכת יכולה כעת לעקוב אחר המיקום שלך",
+        });
+        return true;
+      } else {
+        toast({
+          title: "הרשאות מיקום נדחו",
+          description: "לא ניתן להשתמש במעקב מיקום ללא הרשאה",
+          variant: "destructive"
+        });
+        return false;
+      }
     } catch (error) {
       console.error('Error requesting location permissions:', error);
       toast({
         title: "שגיאה בהרשאות",
-        description: "לא ניתן לגשת למיקום. אנא אפשר גישה בהגדרות האפליקציה",
+        description: "בעיה טכנית בבקשת הרשאות מיקום",
         variant: "destructive"
       });
       return false;
