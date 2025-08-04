@@ -235,7 +235,7 @@ export const TaxiDashboard = () => {
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Car className="h-6 w-6 text-primary" />
-            <span className="text-lg font-medium leading-tight">
+            <span className="text-lg font-medium leading-tight text-right">
               Taxi<br />Tracker
             </span>
           </div>

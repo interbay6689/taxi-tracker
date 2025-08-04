@@ -179,7 +179,7 @@ export const TripTracker: React.FC<TripTrackerProps> = ({ onTripComplete }) => {
               className="w-full bg-green-600 hover:bg-green-700 text-white"
               size="lg"
             >
-              <Play className="h-5 w-5 mr-2" />
+              <Play className="h-5 w-5 ml-2" />
               התחל נסיעה
             </Button>
           ) : (
@@ -207,7 +207,7 @@ export const TripTracker: React.FC<TripTrackerProps> = ({ onTripComplete }) => {
                 className="w-full"
                 size="lg"
               >
-                <Square className="h-5 w-5 mr-2" />
+                <Square className="h-5 w-5 ml-2" />
                 סיים נסיעה
               </Button>
             </div>
