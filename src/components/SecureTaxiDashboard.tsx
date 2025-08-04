@@ -205,22 +205,27 @@ export const TaxiDashboard = () => {
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Car className="h-6 w-6 text-primary" />
-            <span className="text-lg font-medium">מונית פרו</span>
+            <span className="text-lg font-medium leading-tight">
+              Taxi<br />Tracker
+            </span>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setIsSettingsOpen(true)} size="sm">
-              <Settings className="h-4 w-4 mr-1" />
-              הגדרות
+            <Button variant="outline" onClick={() => setIsSettingsOpen(true)} size="sm" className="bg-secondary/50 hover:bg-secondary">
+              <Settings className={`h-4 w-4 mr-1 ${mode === 'night' ? 'text-white' : 'text-foreground'}`} />
+              <span className={mode === 'night' ? 'text-white' : 'text-foreground'}>הגדרות</span>
             </Button>
-            <Button variant="outline" onClick={toggleNightMode} size="sm">
-              {mode === 'night' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            <Button variant="outline" onClick={toggleNightMode} size="sm" className="bg-secondary/50 hover:bg-secondary">
+              {mode === 'night' ? 
+                <Sun className="h-4 w-4 text-white" /> : 
+                <Moon className="h-4 w-4 text-foreground" />
+              }
             </Button>
-            <Button variant="outline" onClick={() => setIsEditTripsOpen(true)} size="sm">
-              <Car className="h-4 w-4" />
+            <Button variant="outline" onClick={() => setIsEditTripsOpen(true)} size="sm" className="bg-secondary/50 hover:bg-secondary">
+              <Car className={`h-4 w-4 ${mode === 'night' ? 'text-white' : 'text-foreground'}`} />
             </Button>
-            <Button variant="outline" onClick={signOut} size="sm">
-              <LogOut className="h-4 w-4 mr-2" />
-              התנתק
+            <Button variant="outline" onClick={signOut} size="sm" className="bg-secondary/50 hover:bg-destructive/10">
+              <LogOut className={`h-4 w-4 mr-2 ${mode === 'night' ? 'text-white' : 'text-destructive'}`} />
+              <span className={mode === 'night' ? 'text-white' : 'text-foreground'}>התנתק</span>
             </Button>
           </div>
         </div>
