@@ -50,10 +50,7 @@ export const TaxiDashboard = () => {
   const { isOnline, saveOfflineTrip, vibrateSuccess, vibrateError } = useOfflineStorage();
 
   const dailyStats = useMemo(() => {
-    const totalIncome = trips.reduce((sum, trip) => {
-      const amount = trip.payment_method === 'דהרי' ? trip.amount * 0.9 : trip.amount;
-      return sum + amount;
-    }, 0);
+    const totalIncome = trips.reduce((sum, trip) => sum + trip.amount, 0);
     const totalExpensesValue = dailyExpenses.fuel + dailyExpenses.maintenance + dailyExpenses.other;
     const netProfit = totalIncome - totalExpensesValue;
     const incomeProgress = Math.min((totalIncome / dailyGoals.income_goal) * 100, 100);
