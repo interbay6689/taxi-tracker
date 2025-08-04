@@ -55,12 +55,16 @@ export const TripsList = ({ trips }: TripsListProps) => {
                   <p className="font-medium text-foreground">
                     ₪{trip.amount.toLocaleString()}
                   </p>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
                     {trip.timestamp.toLocaleTimeString('he-IL', {
                       hour: '2-digit',
                       minute: '2-digit'
                     })}
+                    <span>•</span>
+                    <span className="text-primary font-medium">
+                      {trip.paymentMethod || "מזומן"}
+                    </span>
                   </div>
                 </div>
               </div>

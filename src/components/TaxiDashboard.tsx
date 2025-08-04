@@ -14,6 +14,7 @@ export interface Trip {
   amount: number;
   timestamp: Date;
   date: string;
+  paymentMethod: string;
 }
 
 export interface DailyGoals {
@@ -50,12 +51,13 @@ export const TaxiDashboard = () => {
   const remainingToGoal = Math.max(0, goals.daily - todayIncome);
   const goalProgress = Math.min(100, (todayIncome / goals.daily) * 100);
 
-  const addTrip = (amount: number) => {
+  const addTrip = (amount: number, paymentMethod: string = "מזומן") => {
     const newTrip: Trip = {
       id: Date.now().toString(),
       amount,
       timestamp: new Date(),
-      date: today
+      date: today,
+      paymentMethod
     };
     setTrips(prev => [newTrip, ...prev]);
     setIsAddTripOpen(false);

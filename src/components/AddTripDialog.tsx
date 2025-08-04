@@ -1,24 +1,26 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
 interface AddTripDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddTrip: (amount: number) => void;
+  onAddTrip: (amount: number, paymentMethod: string) => void;
 }
 
 export const AddTripDialog = ({ isOpen, onClose, onAddTrip }: AddTripDialogProps) => {
   const [amount, setAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("מזומן");
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const numAmount = parseFloat(amount);
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const parsedAmount = parseFloat(amount);
     
-    if (isNaN(numAmount) || numAmount <= 0) {
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
       toast({
         title: "שגיאה",
         description: "אנא הזן סכום תקין",
@@ -27,15 +29,14 @@ export const AddTripDialog = ({ isOpen, onClose, onAddTrip }: AddTripDialogProps
       return;
     }
 
-    onAddTrip(numAmount);
+    onAddTrip(parsedAmount, paymentMethod);
     setAmount("");
+    setPaymentMethod("מזומן");
     toast({
-      title: "נסיעה נוספה!",
-      description: `נוספו ₪${numAmount} להכנסות היום`,
+      title: "נסיעה נוספה",
+      description: `נוספה נסיעה בסכום ₪${parsedAmount} (${paymentMethod})`,
     });
   };
-
-  const quickAmounts = [20, 30, 40, 50, 60, 80, 100];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -43,37 +44,51 @@ export const AddTripDialog = ({ isOpen, onClose, onAddTrip }: AddTripDialogProps
         <DialogHeader>
           <DialogTitle className="text-center text-lg">הוספת נסיעה</DialogTitle>
         </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              סכום בשקלים
-            </label>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-3">
+            <Label htmlFor="amount" className="text-base">סכום הנסיעה</Label>
             <Input
+              id="amount"
               type="number"
-              placeholder="הזן סכום..."
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="text-xl text-center h-14 touch-manipulation"
+              placeholder="הכנס סכום"
+              className="text-xl text-center h-14"
               dir="ltr"
-              autoFocus
             />
           </div>
 
-          {/* Quick Amount Buttons */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              סכומים מהירים
-            </label>
+          <div className="space-y-3">
+            <Label className="text-base">אמצעי תשלום</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {["מזומן", "ביט", "אשראי", "GetTaxi"].map((method) => (
+                <Button
+                  key={method}
+                  type="button"
+                  variant={paymentMethod === method ? "default" : "outline"}
+                  onClick={() => setPaymentMethod(method)}
+                  className="text-sm h-10"
+                >
+                  {method}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <Label className="text-base">סכומים מהירים</Label>
             <div className="grid grid-cols-3 gap-2">
-              {quickAmounts.map((quickAmount) => (
+              {[20, 30, 40, 50, 60, 80].map((quickAmount) => (
                 <Button
                   key={quickAmount}
                   type="button"
                   variant="outline"
-                  size="sm"
-                  onClick={() => setAmount(quickAmount.toString())}
-                  className="h-12 touch-manipulation"
+                  onClick={() => {
+                    setAmount(quickAmount.toString());
+                    handleSubmit();
+                  }}
+                  className="text-base h-12"
                 >
                   ₪{quickAmount}
                 </Button>

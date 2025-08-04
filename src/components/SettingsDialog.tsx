@@ -274,9 +274,14 @@ export const SettingsDialog = ({
                                 ביטול
                               </Button>
                             </div>
-                          ) : (
-                            <div className="font-semibold">₪{trip.amount}</div>
-                          )}
+                           ) : (
+                             <div>
+                               <div className="font-semibold">₪{trip.amount}</div>
+                               <div className="text-xs text-muted-foreground">
+                                 {trip.paymentMethod || "מזומן"}
+                               </div>
+                             </div>
+                           )}
                         </div>
                         {editingTrip !== trip.id && (
                           <div className="flex gap-1">
