@@ -57,7 +57,7 @@ export const TripsList = ({ trips }: TripsListProps) => {
                   </p>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
-                    {trip.timestamp.toLocaleTimeString('he-IL', {
+                    {new Date(trip.timestamp).toLocaleTimeString('he-IL', {
                       hour: '2-digit',
                       minute: '2-digit'
                     })}

@@ -77,7 +77,7 @@ export const TripsTab = ({ trips, onUpdateTrips }: TripsTabProps) => {
               <div key={trip.id} className="flex items-center justify-between p-2 bg-muted rounded-lg animate-scale-in">
                 <div className="flex-1">
                   <div className="text-sm text-muted-foreground">
-                    {trip.timestamp.toLocaleTimeString('he-IL', { 
+                    {new Date(trip.timestamp).toLocaleTimeString('he-IL', { 
                       hour: '2-digit', 
                       minute: '2-digit' 
                     })}
