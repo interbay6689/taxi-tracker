@@ -220,7 +220,7 @@ export const TaxiDashboard = () => {
     <div className="min-h-screen bg-background p-3 rtl">
       <div className="w-full max-w-sm mx-auto space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between py-2">
+        <div className="flex items-center justify-between py-3 bg-card rounded-lg px-4 shadow-sm border">
           <div className="flex-1">
             <h1 className="text-xl font-bold text-foreground">מונית פרו</h1>
             <p className="text-sm text-muted-foreground">מעקב הכנסות יומי</p>
@@ -232,32 +232,38 @@ export const TaxiDashboard = () => {
           </div>
           
           {/* Control Panel */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-2 h-8 w-8"
+              className="p-3 h-10 w-10 bg-secondary/50 hover:bg-secondary rounded-full"
+              title={theme === "dark" ? "מצב יום" : "מצב לילה"}
             >
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {theme === "dark" ? 
+                <Sun className="h-5 w-5 text-foreground" /> : 
+                <Moon className="h-5 w-5 text-foreground" />
+              }
             </Button>
             
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsSettingsOpen(true)}
-              className="p-2 h-8 w-8"
+              className="p-3 h-10 w-10 bg-secondary/50 hover:bg-secondary rounded-full"
+              title="הגדרות"
             >
-              <Edit className="h-4 w-4" />
+              <Edit className="h-5 w-5 text-foreground" />
             </Button>
             
             <Button
               variant="ghost"
               size="sm"
               onClick={handleLogout}
-              className="p-2 h-8 w-8 text-destructive hover:text-destructive"
+              className="p-3 h-10 w-10 bg-secondary/50 hover:bg-destructive/10 rounded-full"
+              title="התנתק"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-5 w-5 text-destructive" />
             </Button>
           </div>
         </div>
