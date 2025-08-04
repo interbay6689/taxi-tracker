@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Settings, Target, TrendingUp, DollarSign, Moon, Sun, Edit, LogOut } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Settings, Target, TrendingUp, DollarSign, Play, Square, LogOut, User, Moon, Sun, Car, BarChart3, FileText, Navigation } from "lucide-react";
 import { AddTripDialog } from "./AddTripDialog";
 import { DailySummaryCard } from "./DailySummaryCard";
 import { ProgressBar } from "./ProgressBar";
@@ -9,345 +10,83 @@ import { TripsList } from "./TripsList";
 import { SettingsDialog } from "./SettingsDialog";
 import { TripTimer } from "./TripTimer";
 import { QuickAmounts } from "./QuickAmounts";
-import { useToast } from "@/hooks/use-toast";
-import { useLocalStorage, cleanupOldData } from "@/hooks/useLocalStorage";
+import { AnalyticsTab } from "./analytics/AnalyticsTab";
+import { ReportsExport } from "./ReportsExport";
+import { DrivingModeHeader } from "./DrivingModeHeader";
+import { SimpleSettingsDialog } from "./SimpleSettingsDialog";
+import { EditTripsDialog } from "./EditTripsDialog";
+import { GoalsProgress } from "./GoalsProgress";
+import { MobileStatus } from "./MobileStatus";
+import { useAuth } from "@/hooks/useAuth";
+import { useDatabase, Trip, WorkDay, DailyGoals, DailyExpenses } from "@/hooks/useDatabase";
+import { useAppMode } from "@/hooks/useAppMode";
+import { useNotifications } from "@/hooks/useNotifications";
 import { useLocation } from "@/hooks/useLocation";
-import { useTheme } from "next-themes";
-import { useMemo } from "react";
-import { Trip, WorkDay, DailyGoals, DailyExpenses } from "@/hooks/useDatabase";
-
-// Using interfaces from useDatabase hook
+import { useOfflineStorage } from "@/hooks/useOfflineStorage";
 
 export const TaxiDashboard = () => {
-  const [trips, setTrips] = useLocalStorage<Trip[]>('taxi-trips', []);
+  const { user, signOut } = useAuth();
+  const {
+    trips,
+    currentWorkDay,
+    dailyGoals,
+    dailyExpenses,
+    loading,
+    addTrip,
+    startWorkDay,
+    endWorkDay,
+    updateGoals,
+    updateExpenses,
+    deleteTrip,
+    updateTrip
+  } = useDatabase();
+
   const [isAddTripOpen, setIsAddTripOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [currentWorkDay, setCurrentWorkDay] = useLocalStorage<WorkDay | null>('current-work-day', null);
-  const [workDayHistory, setWorkDayHistory] = useLocalStorage<WorkDay[]>('work-day-history', []);
-  const [goals, setGoals] = useLocalStorage<DailyGoals>('taxi-goals', {
-    daily: 909,
-    weekly: 4545,
-    monthly: 20000
-  });
-  const [expenses, setExpenses] = useLocalStorage<DailyExpenses>('taxi-expenses', {
-    fixedDaily: 260,
-    fuel: 150
-  });
-  const { toast } = useToast();
-  const { startTracking, stopTracking } = useLocation();
-  const { theme, setTheme } = useTheme();
+  const [isEditTripsOpen, setIsEditTripsOpen] = useState(false);
+  const [quickAmount, setQuickAmount] = useState<number | null>(null);
+  const { mode, toggleNightMode, toggleDrivingMode } = useAppMode();
+  const { currentLocation } = useLocation();
+  const { isOnline, saveOfflineTrip, vibrateSuccess, vibrateError } = useOfflineStorage();
 
-  // Clean up old data on component mount
-  useEffect(() => {
-    cleanupOldData();
-  }, []);
-
-  // קאשינג חישובים יומיים לביצועים
   const dailyStats = useMemo(() => {
-    if (!currentWorkDay) {
-      return {
-        today: new Date().toDateString(),
-        todayTrips: [],
-        todayIncome: 0,
-        todayExpenses: 0,
-        todayNet: 0,
-        remainingToGoal: goals.daily,
-        goalProgress: 0
-      };
-    }
-
-    const workDayTrips = trips.filter(trip => trip.workDayId === currentWorkDay.id);
-    const todayIncome = workDayTrips.reduce((sum, trip) => sum + trip.amount, 0);
-    const todayExpenses = expenses.fixedDaily + expenses.fuel;
-    const todayNet = todayIncome - todayExpenses;
-    const remainingToGoal = Math.max(0, goals.daily - todayIncome);
-    const goalProgress = Math.min(100, (todayIncome / goals.daily) * 100);
+    const totalIncome = trips.reduce((sum, trip) => sum + trip.amount, 0);
+    const totalExpensesValue = dailyExpenses.fuel + dailyExpenses.maintenance + dailyExpenses.other;
+    const netProfit = totalIncome - totalExpensesValue;
+    const incomeProgress = Math.min((totalIncome / dailyGoals.income_goal) * 100, 100);
+    const tripsProgress = Math.min((trips.length / dailyGoals.trips_goal) * 100, 100);
     
     return {
-      today: new Date().toDateString(),
-      todayTrips: workDayTrips,
-      todayIncome,
-      todayExpenses,
-      todayNet,
-      remainingToGoal,
-      goalProgress
+      totalIncome,
+      totalExpenses: totalExpensesValue,
+      netProfit,
+      incomeProgress,
+      tripsProgress,
+      tripsCount: trips.length,
+      goalMet: totalIncome >= dailyGoals.income_goal && trips.length >= dailyGoals.trips_goal
     };
-  }, [trips, expenses, goals, currentWorkDay]);
+  }, [trips, dailyGoals, dailyExpenses]);
 
-  const addTrip = (amount: number, paymentMethod: string = "מזומן") => {
-    if (!currentWorkDay) {
-      toast({
-        title: "שגיאה",
-        description: "יש להתחיל יום עבודה לפני הוספת נסיעות",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const newTrip: Trip = {
-      id: Date.now().toString(),
-      amount,
-      timestamp: new Date(),
-      date: dailyStats.today,
-      paymentMethod,
-      workDayId: currentWorkDay.id
-    };
-    setTrips(prev => [newTrip, ...prev]);
-    setIsAddTripOpen(false);
-    
-    // Check if goal is reached
-    const newTotalIncome = dailyStats.todayIncome + amount;
-    if (newTotalIncome >= goals.daily) {
-      toast({
-        title: "יעד יומי הושג! 🎉",
-        description: `הכנסת ₪${newTotalIncome} היום`,
-      });
-    }
-  };
-
-  const handleQuickAmount = (amount: number) => {
-    setIsAddTripOpen(true);
-    // הוספת לוגיקה להכנסת סכום מהיר
-  };
-
-  const handleTripComplete = (duration: number, distance?: number) => {
-    // פתיחת דיאלוג הוספת נסיעה עם פרטי הזמן
-    setIsAddTripOpen(true);
-    toast({
-      title: "נסיעה הושלמה",
-      description: `משך זמן: ${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')}${distance ? `, מרחק: ${distance.toFixed(1)} ק"מ` : ''}`,
-    });
-  };
-
-  const startWorkDay = async () => {
-    if (currentWorkDay) {
-      toast({
-        title: "יום עבודה כבר פעיל",
-        description: "יש לסיים את יום העבודה הנוכחי לפני התחלת יום חדש",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const newWorkDay: WorkDay = {
-      id: Date.now().toString(),
-      startTime: new Date(),
-      totalIncome: 0,
-      totalExpenses: expenses.fixedDaily + expenses.fuel,
-      netProfit: 0,
-      tripCount: 0
-    };
-
-    setCurrentWorkDay(newWorkDay);
-    
-    // התחלת מעקב מיקום אוטומטית
-    await startTracking();
-    
-    toast({
-      title: "יום עבודה התחיל! 🚖",
-      description: `התחלת עבודה ב-${new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })} | מעקב מיקום פעיל`,
-    });
-  };
-
-  const endWorkDay = async () => {
-    if (!currentWorkDay) {
-      toast({
-        title: "אין יום עבודה פעיל",
-        description: "יש להתחיל יום עבודה לפני הסיום",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const endTime = new Date();
-    const completedWorkDay: WorkDay = {
-      ...currentWorkDay,
-      endTime,
-      totalIncome: dailyStats.todayIncome,
-      totalExpenses: dailyStats.todayExpenses,
-      netProfit: dailyStats.todayNet,
-      tripCount: dailyStats.todayTrips.length
-    };
-
-    setWorkDayHistory(prev => [completedWorkDay, ...prev]);
-    setCurrentWorkDay(null);
-
-    // הפסקת מעקב מיקום
-    await stopTracking();
-
-    const workDuration = Math.round((endTime.getTime() - currentWorkDay.startTime.getTime()) / (1000 * 60 * 60 * 100)) / 10;
-    
-    toast({
-      title: "יום עבודה הסתיים! 🏁",
-      description: `סה"כ הכנסות: ₪${dailyStats.todayIncome} | משך עבודה: ${workDuration} שעות`,
-    });
-  };
-
-  const handleLogout = () => {
-    // ניקוי נתונים מקומיים
-    localStorage.clear();
-    window.location.reload();
-  };
+  // Load page in read-only mode
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
-    <div className="min-h-screen bg-background p-3 rtl">
-      <div className="w-full max-w-sm mx-auto space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between py-3 bg-card rounded-lg px-4 shadow-sm border">
-          <div className="flex-1">
-            <h1 className="text-xl font-bold text-foreground leading-tight">
-              Taxi<br />Tracker
-            </h1>
-            <p className="text-sm text-muted-foreground">מעקב הכנסות יומי</p>
-            {currentWorkDay && (
-              <div className="text-xs text-primary font-medium mt-1">
-                יום עבודה פעיל מ-{new Date(currentWorkDay.startTime).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-              </div>
-            )}
-          </div>
-          
-          {/* Control Panel */}
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-3 h-10 w-10 bg-secondary/50 hover:bg-secondary rounded-full"
-              title={theme === "dark" ? "מצב יום" : "מצב לילה"}
-            >
-              {theme === "dark" ? 
-                <Sun className="h-5 w-5 text-white dark:text-white" /> : 
-                <Moon className="h-5 w-5 text-foreground" />
-              }
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsSettingsOpen(true)}
-              className="p-3 h-10 w-10 bg-secondary/50 hover:bg-secondary rounded-full"
-              title="הגדרות"
-            >
-              <Edit className="h-5 w-5 text-foreground dark:text-white" />
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              className="p-3 h-10 w-10 bg-secondary/50 hover:bg-destructive/10 rounded-full"
-              title="התנתק"
-            >
-              <LogOut className="h-5 w-5 text-destructive dark:text-white" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Work Day Controls */}
-        <div className="flex gap-2">
-          {!currentWorkDay ? (
-            <Button
-              onClick={startWorkDay}
-              size="lg"
-              className="flex-1 h-14 bg-success hover:bg-success/90 text-success-foreground font-semibold touch-manipulation hover-scale"
-            >
-              🚖 התחל יום עבודה
-            </Button>
-          ) : (
-            <Button
-              onClick={endWorkDay}
-              size="lg"
-              variant="destructive"
-              className="flex-1 h-14 font-semibold touch-manipulation hover-scale"
-            >
-              🏁 סיים יום עבודה
-            </Button>
-          )}
-        </div>
-
-        {/* Daily Progress */}
-        <Card className="shadow-lg">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Target className="h-5 w-5 text-primary" />
-              יעד יומי
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-2xl font-bold text-primary animate-scale-in">
-                  ₪{dailyStats.todayIncome.toLocaleString()}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  מתוך ₪{goals.daily.toLocaleString()}
-                </span>
-              </div>
-              <ProgressBar progress={dailyStats.goalProgress} />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="container mx-auto p-4 max-w-md">
+        <div className="space-y-4">
+          <Card>
+            <CardContent className="p-4">
               <div className="text-center">
-                <span className="text-sm text-muted-foreground">
-                  נותר: ₪{dailyStats.remainingToGoal.toLocaleString()}
-                </span>
+                <h1 className="text-2xl font-bold text-primary mb-2">Taxi Tracker</h1>
+                <p className="text-muted-foreground">Dashboard מרכזי</p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Trip Timer */}
-        <TripTimer onTripComplete={handleTripComplete} />
-
-        {/* Quick Amounts */}
-        <QuickAmounts onSelectAmount={handleQuickAmount} />
-
-        {/* Add Trip Button */}
-        <Button
-          onClick={() => setIsAddTripOpen(true)}
-          size="lg"
-          disabled={!currentWorkDay}
-          className="w-full h-20 text-lg font-semibold bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg touch-manipulation hover-scale disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Plus className="mr-2 h-7 w-7" />
-          הוספת נסיעה
-        </Button>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 gap-3">
-          <DailySummaryCard
-            title="הכנסות היום"
-            value={dailyStats.todayIncome}
-            icon={DollarSign}
-            variant="income"
-          />
-          <DailySummaryCard
-            title="רווח נקי"
-            value={dailyStats.todayNet}
-            icon={TrendingUp}
-            variant={dailyStats.todayNet >= 0 ? "profit" : "loss"}
-          />
+          <TripsList trips={trips} />
         </div>
-
-        {/* Today's Trips */}
-        <TripsList trips={dailyStats.todayTrips} />
-
-
-        {/* Add Trip Dialog */}
-        <AddTripDialog
-          isOpen={isAddTripOpen}
-          onClose={() => setIsAddTripOpen(false)}
-          onAddTrip={addTrip}
-        />
-
-        {/* Settings Dialog */}
-        <SettingsDialog
-          isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
-          goals={goals}
-          expenses={expenses}
-          trips={trips}
-          onUpdateGoals={setGoals}
-          onUpdateExpenses={setExpenses}
-          onUpdateTrips={setTrips}
-        />
       </div>
     </div>
   );
