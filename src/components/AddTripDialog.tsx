@@ -63,7 +63,7 @@ export const AddTripDialog = ({ isOpen, onClose, onAddTrip }: AddTripDialogProps
           <div className="space-y-3">
             <Label className="text-base">אמצעי תשלום</Label>
             <div className="grid grid-cols-2 gap-2">
-              {["מזומן", "ביט", "אשראי", "GetTaxi"].map((method) => (
+              {["מזומן", "ביט", "אשראי", "GetTaxi", "דהרי"].map((method) => (
                 <Button
                   key={method}
                   type="button"
