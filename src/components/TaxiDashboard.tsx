@@ -6,6 +6,8 @@ import { AddTripDialog } from "./AddTripDialog";
 import { DailySummaryCard } from "./DailySummaryCard";
 import { ProgressBar } from "./ProgressBar";
 import { TripsList } from "./TripsList";
+import { SettingsDialog } from "./SettingsDialog";
+import { useToast } from "@/hooks/use-toast";
 
 export interface Trip {
   id: string;
@@ -28,15 +30,17 @@ export interface DailyExpenses {
 export const TaxiDashboard = () => {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [isAddTripOpen, setIsAddTripOpen] = useState(false);
-  const [goals] = useState<DailyGoals>({
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [goals, setGoals] = useState<DailyGoals>({
     daily: 909,
     weekly: 4545,
     monthly: 20000
   });
-  const [expenses] = useState<DailyExpenses>({
+  const [expenses, setExpenses] = useState<DailyExpenses>({
     fixedDaily: 260,
     fuel: 150
   });
+  const { toast } = useToast();
 
   const today = new Date().toDateString();
   const todayTrips = trips.filter(trip => trip.date === today);
@@ -55,6 +59,15 @@ export const TaxiDashboard = () => {
     };
     setTrips(prev => [newTrip, ...prev]);
     setIsAddTripOpen(false);
+    
+    // Check if goal is reached
+    const newTotalIncome = todayIncome + amount;
+    if (newTotalIncome >= goals.daily) {
+      toast({
+        title: "יעד יומי הושג! 🎉",
+        description: `הכנסת ₪${newTotalIncome} היום`,
+      });
+    }
   };
 
   return (
@@ -126,8 +139,8 @@ export const TaxiDashboard = () => {
         {/* Settings Button */}
         <Button
           variant="outline"
-          className="w-full"
-          onClick={() => {/* TODO: Open settings */}}
+          className="w-full touch-manipulation"
+          onClick={() => setIsSettingsOpen(true)}
         >
           <Settings className="mr-2 h-4 w-4" />
           הגדרות
@@ -138,6 +151,18 @@ export const TaxiDashboard = () => {
           isOpen={isAddTripOpen}
           onClose={() => setIsAddTripOpen(false)}
           onAddTrip={addTrip}
+        />
+
+        {/* Settings Dialog */}
+        <SettingsDialog
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          goals={goals}
+          expenses={expenses}
+          trips={trips}
+          onUpdateGoals={setGoals}
+          onUpdateExpenses={setExpenses}
+          onUpdateTrips={setTrips}
         />
       </div>
     </div>
