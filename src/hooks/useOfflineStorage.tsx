@@ -12,7 +12,7 @@ const STORAGE_KEYS = {
 interface OfflineTrip {
   id: string;
   amount: number;
-  payment_method: 'cash' | 'card' | 'app';
+  payment_method: 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי';
   timestamp: string;
   location?: {
     latitude: number;

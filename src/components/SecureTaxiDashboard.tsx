@@ -82,7 +82,7 @@ export const SecureTaxiDashboard = () => {
     goalMet: dailyStats.goalMet
   });
 
-  const handleAddTrip = async (amount: number, paymentMethod: 'cash' | 'card' | 'app') => {
+  const handleAddTrip = async (amount: number, paymentMethod: 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי') => {
     // אם אופליין, שמור אופליין
     if (!isOnline) {
       const offlineTrip = {
@@ -226,13 +226,7 @@ export const SecureTaxiDashboard = () => {
           isOpen={isAddTripOpen}
           onClose={() => setIsAddTripOpen(false)}
           onAddTrip={(amount, method) => {
-            const paymentMap: Record<string, 'cash' | 'card' | 'app'> = {
-              'מזומן': 'cash',
-              'אשראי': 'card', 
-              'ביט': 'card',
-              'GetTaxi': 'app'
-            };
-            handleAddTrip(amount, paymentMap[method] || 'cash');
+            handleAddTrip(amount, method as 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי');
           }}
         />
       </div>
@@ -479,13 +473,7 @@ export const SecureTaxiDashboard = () => {
           isOpen={isAddTripOpen}
           onClose={() => setIsAddTripOpen(false)}
           onAddTrip={(amount, method) => {
-            const paymentMap: Record<string, 'cash' | 'card' | 'app'> = {
-              'מזומן': 'cash',
-              'אשראי': 'card', 
-              'ביט': 'card',
-              'GetTaxi': 'app'
-            };
-            handleAddTrip(amount, paymentMap[method] || 'cash');
+            handleAddTrip(amount, method as 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי');
           }}
         />
       </div>

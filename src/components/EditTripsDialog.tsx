@@ -14,7 +14,7 @@ interface EditTripsDialogProps {
   onClose: () => void;
   trips: Trip[];
   onDeleteTrip: (id: string) => void;
-  onUpdateTrip: (id: string, amount: number, paymentMethod: 'cash' | 'card' | 'app') => void;
+  onUpdateTrip: (id: string, amount: number, paymentMethod: 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי') => void;
   onAddTrip: () => void;
 }
 
@@ -28,7 +28,7 @@ export const EditTripsDialog = ({
 }: EditTripsDialogProps) => {
   const [editingTrip, setEditingTrip] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState("");
-  const [editPaymentMethod, setEditPaymentMethod] = useState<'cash' | 'card' | 'app'>('cash');
+  const [editPaymentMethod, setEditPaymentMethod] = useState<'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי'>('מזומן');
   const { toast } = useToast();
 
   const handleEditStart = (trip: Trip) => {
@@ -59,7 +59,7 @@ export const EditTripsDialog = ({
   const handleEditCancel = () => {
     setEditingTrip(null);
     setEditAmount("");
-    setEditPaymentMethod('cash');
+    setEditPaymentMethod('מזומן');
   };
 
   const handleDelete = (tripId: string) => {
@@ -72,9 +72,15 @@ export const EditTripsDialog = ({
 
   const getPaymentMethodText = (method: string) => {
     switch (method) {
-      case 'cash': return 'מזומן';
-      case 'card': return 'כרטיס';
-      case 'app': return 'אפליקציה';
+      case 'cash':
+      case 'מזומן': return 'מזומן';
+      case 'card':
+      case 'כרטיס':
+      case 'אשראי': return 'כרטיס';
+      case 'app':
+      case 'אפליקציה':
+      case 'GetTaxi': return 'אפליקציה';
+      case 'דהרי': return 'דהרי';
       default: return method;
     }
   };
@@ -124,14 +130,16 @@ export const EditTripsDialog = ({
                           </div>
                           <div>
                             <Label htmlFor="edit-payment">אמצעי תשלום</Label>
-                            <Select value={editPaymentMethod} onValueChange={(value: 'cash' | 'card' | 'app') => setEditPaymentMethod(value)}>
+                            <Select value={editPaymentMethod} onValueChange={(value: 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי') => setEditPaymentMethod(value)}>
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="cash">מזומן</SelectItem>
-                                <SelectItem value="card">כרטיס</SelectItem>
-                                <SelectItem value="app">אפליקציה</SelectItem>
+                                <SelectItem value="מזומן">מזומן</SelectItem>
+                                <SelectItem value="ביט">ביט</SelectItem>
+                                <SelectItem value="אשראי">אשראי</SelectItem>
+                                <SelectItem value="GetTaxi">GetTaxi</SelectItem>
+                                <SelectItem value="דהרי">דהרי</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -149,15 +157,42 @@ export const EditTripsDialog = ({
                       // מצב תצוגה
                       <div>
                         <div className="flex justify-between items-start mb-2">
-                          <div className="flex items-center gap-4">
-                            <div className="text-lg font-bold">₪{trip.amount}</div>
-                            <div className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {new Date(trip.timestamp).toLocaleTimeString('he-IL')}
-                            </div>
-                            <div className="text-xs bg-primary/10 px-2 py-1 rounded">
-                              {getPaymentMethodText(trip.payment_method)}
-                            </div>
+                          <div className="flex flex-col gap-2">
+                            {trip.payment_method === 'דהרי' ? (
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-4">
+                                  <span className="text-sm text-red-600 font-medium">
+                                    -10% עמלת סדרנים
+                                  </span>
+                                  <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    {new Date(trip.timestamp).toLocaleTimeString('he-IL')}
+                                  </div>
+                                  <div className="text-xs bg-primary/10 px-2 py-1 rounded">
+                                    {getPaymentMethodText(trip.payment_method)}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-base line-through text-muted-foreground">
+                                    ₪{trip.amount}
+                                  </span>
+                                  <span className="text-lg font-bold">
+                                    ₪{Math.round(trip.amount * 0.9)}
+                                  </span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-4">
+                                <div className="text-lg font-bold">₪{trip.amount}</div>
+                                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {new Date(trip.timestamp).toLocaleTimeString('he-IL')}
+                                </div>
+                                <div className="text-xs bg-primary/10 px-2 py-1 rounded">
+                                  {getPaymentMethodText(trip.payment_method)}
+                                </div>
+                              </div>
+                            )}
                           </div>
                           <div className="flex gap-2">
                             <Button 

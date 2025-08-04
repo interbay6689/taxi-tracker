@@ -31,12 +31,36 @@ export const TripsTab: React.FC<TripsTabProps> = ({ trips, onDeleteTrip, onEditT
         <Card key={trip.id}>
           <CardContent className="p-4">
             <div className="flex justify-between items-start mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold">₪{trip.amount.toLocaleString()}</span>
-                <Badge variant="outline">
-                  {trip.payment_method === 'cash' ? 'מזומן' : 
-                   trip.payment_method === 'card' ? 'כרטיס' : 'אפליקציה'}
-                </Badge>
+              <div className="flex flex-col gap-1">
+                {trip.payment_method === 'דהרי' ? (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-red-600 font-medium">
+                        -10% עמלת סדרנים
+                      </span>
+                      <Badge variant="outline">דהרי</Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-base line-through text-muted-foreground">
+                        ₪{trip.amount.toLocaleString()}
+                      </span>
+                      <span className="text-lg font-bold">
+                        ₪{Math.round(trip.amount * 0.9).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold">₪{trip.amount.toLocaleString()}</span>
+                    <Badge variant="outline">
+                      {trip.payment_method === 'cash' || trip.payment_method === 'מזומן' ? 'מזומן' : 
+                       trip.payment_method === 'card' || trip.payment_method === 'אשראי' ? 'כרטיס' : 
+                       trip.payment_method === 'ביט' ? 'ביט' :
+                       trip.payment_method === 'app' || trip.payment_method === 'GetTaxi' ? 'אפליקציה' : 
+                       trip.payment_method === 'דהרי' ? 'דהרי' : trip.payment_method}
+                    </Badge>
+                  </div>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button
@@ -90,7 +114,10 @@ export const TripsTab: React.FC<TripsTabProps> = ({ trips, onDeleteTrip, onEditT
           <div className="flex justify-between items-center">
             <span className="font-medium">סה"כ נסיעות היום:</span>
             <span className="text-lg font-bold">
-              ₪{todayTrips.reduce((sum, trip) => sum + trip.amount, 0).toLocaleString()}
+              ₪{todayTrips.reduce((sum, trip) => {
+                const amount = trip.payment_method === 'דהרי' ? trip.amount * 0.9 : trip.amount;
+                return sum + amount;
+              }, 0).toLocaleString()}
             </span>
           </div>
         </CardContent>

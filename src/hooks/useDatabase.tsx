@@ -6,7 +6,7 @@ import { useToast } from './use-toast';
 export interface Trip {
   id: string;
   amount: number;
-  payment_method: 'cash' | 'card' | 'app';
+  payment_method: 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי';
   timestamp: string;
   start_location_address?: string;
   start_location_city?: string;
@@ -134,7 +134,7 @@ export function useDatabase() {
       setTrips((tripsResponse.data || []).map(trip => ({
         id: trip.id,
         amount: Number(trip.amount),
-        payment_method: trip.payment_method as 'cash' | 'card' | 'app',
+        payment_method: trip.payment_method as 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי',
         timestamp: trip.timestamp,
         start_location_address: trip.start_location_address,
         start_location_city: trip.start_location_city,
@@ -187,7 +187,7 @@ export function useDatabase() {
     }
   };
 
-  const addTrip = async (amount: number, paymentMethod: 'cash' | 'card' | 'app') => {
+  const addTrip = async (amount: number, paymentMethod: 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי') => {
     if (!user) return false;
 
     try {
@@ -206,7 +206,7 @@ export function useDatabase() {
       setTrips(prev => [{
         id: data.id,
         amount: Number(data.amount),
-        payment_method: data.payment_method as 'cash' | 'card' | 'app',
+        payment_method: data.payment_method as 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי',
         timestamp: data.timestamp,
         start_location_address: data.start_location_address,
         start_location_city: data.start_location_city,
@@ -262,7 +262,7 @@ export function useDatabase() {
 
   const addTripWithLocation = async (tripData: {
     amount: number;
-    paymentMethod?: 'cash' | 'card' | 'app';
+    paymentMethod?: 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי';
     startLocation: {
       address: string;
       city: string;
@@ -306,7 +306,7 @@ export function useDatabase() {
       setTrips(prev => [{
         id: data.id,
         amount: Number(data.amount),
-        payment_method: data.payment_method as 'cash' | 'card' | 'app',
+        payment_method: data.payment_method as 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי',
         timestamp: data.timestamp,
         start_location_address: data.start_location_address,
         start_location_city: data.start_location_city,
