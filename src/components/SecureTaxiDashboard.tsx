@@ -16,6 +16,7 @@ import { DrivingModeHeader } from "./DrivingModeHeader";
 import { SimpleSettingsDialog } from "./SimpleSettingsDialog";
 import { EditTripsDialog } from "./EditTripsDialog";
 import { GoalsProgress } from "./GoalsProgress";
+import { TripTracker } from "./TripTracker";
 import { MobileStatus } from "./MobileStatus";
 import { useAuth } from "@/hooks/useAuth";
 import { useDatabase, Trip, WorkDay, DailyGoals, DailyExpenses } from "@/hooks/useDatabase";
@@ -26,19 +27,22 @@ import { useOfflineStorage } from "@/hooks/useOfflineStorage";
 
 export const TaxiDashboard = () => {
   const { user, signOut } = useAuth();
-  const {
-    trips,
-    currentWorkDay,
-    dailyGoals,
-    dailyExpenses,
+  const { 
+    trips, 
+    workDays, 
+    currentWorkDay, 
+    dailyGoals, 
+    dailyExpenses, 
     loading,
-    addTrip,
-    startWorkDay,
-    endWorkDay,
-    updateGoals,
+    addTrip, 
+    addTripWithLocation,
+    startWorkDay, 
+    endWorkDay, 
+    updateGoals, 
     updateExpenses,
     deleteTrip,
-    updateTrip
+    updateTrip,
+    loadUserData
   } = useDatabase();
 
   const [isAddTripOpen, setIsAddTripOpen] = useState(false);
@@ -119,6 +123,32 @@ export const TaxiDashboard = () => {
 
   const handleTripComplete = () => {
     setIsAddTripOpen(true);
+  };
+
+  const handleTripWithLocationComplete = async (tripData: {
+    amount: number;
+    startLocation: {
+      address: string;
+      city: string;
+      lat: number;
+      lng: number;
+    };
+    endLocation: {
+      address: string;
+      city: string;
+      lat: number;
+      lng: number;
+    };
+    duration: number;
+  }) => {
+    const success = await addTripWithLocation({
+      ...tripData,
+      paymentMethod: 'cash'
+    });
+
+    if (success) {
+      await loadUserData();
+    }
   };
 
   const handleUpdateTrips = (updatedTrips: Trip[]) => {
@@ -287,6 +317,34 @@ export const TaxiDashboard = () => {
               </Button>
             </CardContent>
           </Card>
+        )}
+
+        {/* כפתור התחל נסיעה - תמיד נראה */}
+        <Card className="mb-4 border-2 border-green-200 dark:border-green-800">
+          <CardContent className="p-4">
+            <Button 
+              onClick={() => {
+                // אם אין יום עבודה פעיל, התחל יום עבודה תחילה
+                if (!currentWorkDay) {
+                  startWorkDay().then(() => {
+                    console.log("יום עבודה התחיל");
+                  });
+                } else {
+                  console.log("מתחיל נסיעה");
+                }
+              }}
+              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg"
+              size="lg"
+            >
+              <Play className="h-5 w-5 mr-2" />
+              {currentWorkDay ? 'התחל נסיעה עם GPS' : 'התחל יום עבודה'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Trip Tracker - רק כשיום עבודה פעיל */}
+        {currentWorkDay && (
+          <TripTracker onTripComplete={handleTripWithLocationComplete} />
         )}
 
         {/* Summary Cards */}
