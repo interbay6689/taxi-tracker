@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,8 +10,6 @@ import { TripsList } from "./TripsList";
 import { SettingsDialog } from "./SettingsDialog";
 import { TripTimer } from "./TripTimer";
 import { QuickAmounts } from "./QuickAmounts";
-import { AnalyticsTab } from "./analytics/AnalyticsTab";
-import { ReportsExport } from "./ReportsExport";
 import { DrivingModeHeader } from "./DrivingModeHeader";
 import { SimpleSettingsDialog } from "./SimpleSettingsDialog";
 import { EditTripsDialog } from "./EditTripsDialog";
@@ -24,6 +22,10 @@ import { useAppMode } from "@/hooks/useAppMode";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useLocation } from "@/hooks/useLocation";
 import { useOfflineStorage } from "@/hooks/useOfflineStorage";
+
+// Lazy load heavy components for better performance
+const AnalyticsTab = lazy(() => import("./analytics/AnalyticsTab").then(module => ({ default: module.AnalyticsTab })));
+const ReportsExport = lazy(() => import("./ReportsExport").then(module => ({ default: module.ReportsExport })));
 
 export const SecureTaxiDashboard = () => {
   const { user, signOut } = useAuth();
@@ -410,11 +412,15 @@ export const SecureTaxiDashboard = () => {
           </TabsContent>
 
           <TabsContent value="analytics">
-            <AnalyticsTab trips={trips} />
+            <Suspense fallback={<div className="p-8 text-center">טוען ניתוחים...</div>}>
+              <AnalyticsTab trips={trips} />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="reports">
-            <ReportsExport trips={trips} />
+            <Suspense fallback={<div className="p-8 text-center">טוען דוחות...</div>}>
+              <ReportsExport trips={trips} />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="navigation">

@@ -156,9 +156,12 @@ export const useOfflineStorage = () => {
     }
   };
 
+  // Update pending sync count only when necessary to prevent re-renders
   useEffect(() => {
-    updatePendingSyncCount();
-  }, []);
+    if (isOnline) {
+      updatePendingSyncCount();
+    }
+  }, [isOnline]);
 
   return {
     isOnline,

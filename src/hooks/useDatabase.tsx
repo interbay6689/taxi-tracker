@@ -66,17 +66,59 @@ export function useDatabase() {
     try {
       setLoading(true);
 
-      // Load trips for today
+      // Load all data in parallel for much faster loading
       const today = new Date().toISOString().split('T')[0];
-      const { data: tripsData, error: tripsError } = await supabase
-        .from('trips')
-        .select('*')
-        .gte('timestamp', `${today}T00:00:00.000Z`)
-        .lt('timestamp', `${today}T23:59:59.999Z`)
-        .order('timestamp', { ascending: false });
+      
+      const [
+        tripsResponse,
+        activeWorkDayResponse,
+        workDaysHistoryResponse,
+        goalsResponse,
+        expensesResponse
+      ] = await Promise.all([
+        // Load trips for today
+        supabase
+          .from('trips')
+          .select('*')
+          .gte('timestamp', `${today}T00:00:00.000Z`)
+          .lt('timestamp', `${today}T23:59:59.999Z`)
+          .order('timestamp', { ascending: false }),
+        
+        // Load current active work day
+        supabase
+          .from('work_days')
+          .select('*')
+          .eq('is_active', true)
+          .maybeSingle(),
+        
+        // Load work days history
+        supabase
+          .from('work_days')
+          .select('*')
+          .eq('is_active', false)
+          .order('start_time', { ascending: false })
+          .limit(30),
+        
+        // Load daily goals
+        supabase
+          .from('daily_goals')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        
+        // Load daily expenses
+        supabase
+          .from('daily_expenses')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      ]);
 
-      if (tripsError) throw tripsError;
-      setTrips((tripsData || []).map(trip => ({
+      // Handle trips
+      if (tripsResponse.error) throw tripsResponse.error;
+      setTrips((tripsResponse.data || []).map(trip => ({
         id: trip.id,
         amount: Number(trip.amount),
         payment_method: trip.payment_method as 'cash' | 'card' | 'app',
@@ -94,57 +136,30 @@ export function useDatabase() {
         trip_end_time: trip.trip_end_time
       })));
 
-      // Load current active work day
-      const { data: activeWorkDay, error: workDayError } = await supabase
-        .from('work_days')
-        .select('*')
-        .eq('is_active', true)
-        .maybeSingle();
+      // Handle active work day
+      if (activeWorkDayResponse.error) throw activeWorkDayResponse.error;
+      setCurrentWorkDay(activeWorkDayResponse.data);
 
-      if (workDayError) throw workDayError;
-      setCurrentWorkDay(activeWorkDay);
+      // Handle work days history
+      if (workDaysHistoryResponse.error) throw workDaysHistoryResponse.error;
+      setWorkDays(workDaysHistoryResponse.data || []);
 
-      // Load work days history
-      const { data: workDaysData, error: workDaysHistoryError } = await supabase
-        .from('work_days')
-        .select('*')
-        .eq('is_active', false)
-        .order('start_time', { ascending: false })
-        .limit(30);
-
-      if (workDaysHistoryError) throw workDaysHistoryError;
-      setWorkDays(workDaysData || []);
-
-      // Load daily goals (get the latest one)
-      const { data: goalsData, error: goalsError } = await supabase
-        .from('daily_goals')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (goalsError) throw goalsError;
-      if (goalsData) {
+      // Handle goals
+      if (goalsResponse.error) throw goalsResponse.error;
+      if (goalsResponse.data) {
         setDailyGoals({
-          income_goal: Number(goalsData.income_goal),
-          trips_goal: goalsData.trips_goal
+          income_goal: Number(goalsResponse.data.income_goal),
+          trips_goal: goalsResponse.data.trips_goal
         });
       }
 
-      // Load daily expenses (get the latest one)
-      const { data: expensesData, error: expensesError } = await supabase
-        .from('daily_expenses')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (expensesError) throw expensesError;
-      if (expensesData) {
+      // Handle expenses
+      if (expensesResponse.error) throw expensesResponse.error;
+      if (expensesResponse.data) {
         setDailyExpenses({
-          fuel: Number(expensesData.fuel),
-          maintenance: Number(expensesData.maintenance),
-          other: Number(expensesData.other)
+          fuel: Number(expensesResponse.data.fuel),
+          maintenance: Number(expensesResponse.data.maintenance),
+          other: Number(expensesResponse.data.other)
         });
       }
     } catch (error: any) {
