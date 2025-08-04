@@ -372,10 +372,22 @@ export const SecureTaxiDashboard = () => {
                       <div key={trip.id} className="p-3 bg-muted/50 rounded-lg border border-muted-foreground/20">
                         <div className="flex justify-between items-start mb-2">
                           <div className="flex items-center gap-3">
-                            <span className="font-medium text-lg">₪{trip.amount.toLocaleString()}</span>
+                            {trip.payment_method === 'דהרי' ? (
+                              <div className="flex flex-col items-start">
+                                <span className="text-xs text-destructive">-10% עמלת סדרנים</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-lg">₪{(trip.amount * 0.9).toLocaleString()}</span>
+                                  <span className="text-sm text-muted-foreground line-through">₪{trip.amount.toLocaleString()}</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="font-medium text-lg">₪{trip.amount.toLocaleString()}</span>
+                            )}
                             <span className="text-xs bg-primary/10 px-2 py-1 rounded">
                               {trip.payment_method === 'cash' ? 'מזומן' : 
-                               trip.payment_method === 'card' ? 'כרטיס' : 'אפליקציה'}
+                               trip.payment_method === 'card' ? 'כרטיס' : 
+                               trip.payment_method === 'app' ? 'אפליקציה' :
+                               trip.payment_method}
                             </span>
                           </div>
                           <span className="text-sm text-muted-foreground">
