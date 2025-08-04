@@ -93,10 +93,12 @@ export function useDatabase() {
       if (workDaysHistoryError) throw workDaysHistoryError;
       setWorkDays(workDaysData || []);
 
-      // Load daily goals
+      // Load daily goals (get the latest one)
       const { data: goalsData, error: goalsError } = await supabase
         .from('daily_goals')
         .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (goalsError) throw goalsError;
@@ -107,10 +109,12 @@ export function useDatabase() {
         });
       }
 
-      // Load daily expenses
+      // Load daily expenses (get the latest one)
       const { data: expensesData, error: expensesError } = await supabase
         .from('daily_expenses')
         .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (expensesError) throw expensesError;
@@ -278,15 +282,38 @@ export function useDatabase() {
     if (!user) return false;
 
     try {
-      const { error } = await supabase
+      // Check if goals exist for this user
+      const { data: existingGoals } = await supabase
         .from('daily_goals')
-        .upsert({
-          user_id: user.id,
-          income_goal: newGoals.income_goal,
-          trips_goal: newGoals.trips_goal
-        });
+        .select('id')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (existingGoals) {
+        // Update existing goals
+        const { error } = await supabase
+          .from('daily_goals')
+          .update({
+            income_goal: newGoals.income_goal,
+            trips_goal: newGoals.trips_goal
+          })
+          .eq('id', existingGoals.id);
+
+        if (error) throw error;
+      } else {
+        // Create new goals
+        const { error } = await supabase
+          .from('daily_goals')
+          .insert({
+            user_id: user.id,
+            income_goal: newGoals.income_goal,
+            trips_goal: newGoals.trips_goal
+          });
+
+        if (error) throw error;
+      }
 
       setDailyGoals(newGoals);
 
@@ -311,16 +338,40 @@ export function useDatabase() {
     if (!user) return false;
 
     try {
-      const { error } = await supabase
+      // Check if expenses exist for this user
+      const { data: existingExpenses } = await supabase
         .from('daily_expenses')
-        .upsert({
-          user_id: user.id,
-          fuel: newExpenses.fuel,
-          maintenance: newExpenses.maintenance,
-          other: newExpenses.other
-        });
+        .select('id')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (existingExpenses) {
+        // Update existing expenses
+        const { error } = await supabase
+          .from('daily_expenses')
+          .update({
+            fuel: newExpenses.fuel,
+            maintenance: newExpenses.maintenance,
+            other: newExpenses.other
+          })
+          .eq('id', existingExpenses.id);
+
+        if (error) throw error;
+      } else {
+        // Create new expenses
+        const { error } = await supabase
+          .from('daily_expenses')
+          .insert({
+            user_id: user.id,
+            fuel: newExpenses.fuel,
+            maintenance: newExpenses.maintenance,
+            other: newExpenses.other
+          });
+
+        if (error) throw error;
+      }
 
       setDailyExpenses(newExpenses);
 
