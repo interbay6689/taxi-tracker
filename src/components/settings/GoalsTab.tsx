@@ -1,87 +1,93 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Target } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Target, DollarSign, Calendar, Car } from 'lucide-react';
 import { DailyGoals } from "@/hooks/useDatabase";
 
 interface GoalsTabProps {
   goals: DailyGoals;
-  onUpdateGoals: (goals: DailyGoals) => void;
+  setGoals: (goals: DailyGoals) => void;
 }
 
-export const GoalsTab = ({ goals, onUpdateGoals }: GoalsTabProps) => {
-  const [localGoals, setLocalGoals] = useState(goals);
-  const { toast } = useToast();
-
-  const handleSaveGoals = () => {
-    onUpdateGoals(localGoals);
-    toast({
-      title: "יעדים עודכנו",
-      description: "היעדים החדשים נשמרו בהצלחה",
-    });
-  };
-
+export const GoalsTab: React.FC<GoalsTabProps> = ({ goals, setGoals }) => {
   return (
-    <Card className="animate-fade-in">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Target className="h-4 w-4" />
-          יעדים כספיים
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="daily-goal">יעד יומי (₪)</Label>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5" />
+            יעד הכנסה יומי
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Label htmlFor="income_goal">יעד הכנסה (₪)</Label>
           <Input
-            id="daily-goal"
+            id="income_goal"
             type="number"
-            value={localGoals.daily}
-            onChange={(e) => setLocalGoals({
-              ...localGoals,
-              daily: parseInt(e.target.value) || 0
+            placeholder="הזן יעד הכנסה יומי"
+            value={goals.income_goal}
+            onChange={(e) => setGoals({
+              ...goals,
+              income_goal: Number(e.target.value) || 0
             })}
-            className="text-center"
-            dir="ltr"
           />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="weekly-goal">יעד שבועי (₪)</Label>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Car className="h-5 w-5" />
+            יעד נסיעות יומי
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Label htmlFor="trips_goal">מספר נסיעות</Label>
           <Input
-            id="weekly-goal"
+            id="trips_goal"
             type="number"
-            value={localGoals.weekly}
-            onChange={(e) => setLocalGoals({
-              ...localGoals,
-              weekly: parseInt(e.target.value) || 0
+            placeholder="הזן מספר נסיעות יומי"
+            value={goals.trips_goal}
+            onChange={(e) => setGoals({
+              ...goals,
+              trips_goal: Number(e.target.value) || 0
             })}
-            className="text-center"
-            dir="ltr"
           />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="monthly-goal">יעד חודשי (₪)</Label>
-          <Input
-            id="monthly-goal"
-            type="number"
-            value={localGoals.monthly}
-            onChange={(e) => setLocalGoals({
-              ...localGoals,
-              monthly: parseInt(e.target.value) || 0
-            })}
-            className="text-center"
-            dir="ltr"
-          />
-        </div>
-        <Button 
-          onClick={handleSaveGoals}
-          className="w-full touch-manipulation hover-scale"
-        >
-          שמור יעדים
-        </Button>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            יעדים נוספים
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="weekly_goal">יעד שבועי (בקרוב)</Label>
+            <Input
+              id="weekly_goal"
+              type="number"
+              disabled
+              value={0}
+              placeholder="לא זמין כרגע"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="monthly_goal">יעד חודשי (בקרוב)</Label>
+            <Input
+              id="monthly_goal"
+              type="number"
+              disabled
+              value={0}
+              placeholder="לא זמין כרגע"
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };

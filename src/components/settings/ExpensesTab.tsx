@@ -1,79 +1,95 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Fuel } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Fuel, Wrench, CreditCard } from 'lucide-react';
 import { DailyExpenses } from "@/hooks/useDatabase";
 
 interface ExpensesTabProps {
   expenses: DailyExpenses;
-  onUpdateExpenses: (expenses: DailyExpenses) => void;
+  setExpenses: (expenses: DailyExpenses) => void;
 }
 
-export const ExpensesTab = ({ expenses, onUpdateExpenses }: ExpensesTabProps) => {
-  const [localExpenses, setLocalExpenses] = useState(expenses);
-  const { toast } = useToast();
-
-  const handleSaveExpenses = () => {
-    onUpdateExpenses(localExpenses);
-    toast({
-      title: "הוצאות עודכנו", 
-      description: "הוצאות הדלק והפיקס עודכנו בהצלחה",
-    });
-  };
-
+export const ExpensesTab: React.FC<ExpensesTabProps> = ({ expenses, setExpenses }) => {
   return (
-    <Card className="animate-fade-in">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Fuel className="h-4 w-4" />
-          הוצאות יומיות
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="fixed-daily">פיקס יומי (₪)</Label>
-          <Input
-            id="fixed-daily"
-            type="number"
-            value={localExpenses.fixedDaily}
-            onChange={(e) => setLocalExpenses({
-              ...localExpenses,
-              fixedDaily: parseInt(e.target.value) || 0
-            })}
-            className="text-center"
-            dir="ltr"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="fuel">דלק יומי (₪)</Label>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Fuel className="h-5 w-5" />
+            דלק
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Label htmlFor="fuel">עלות דלק יומית (₪)</Label>
           <Input
             id="fuel"
             type="number"
-            value={localExpenses.fuel}
-            onChange={(e) => setLocalExpenses({
-              ...localExpenses,
-              fuel: parseInt(e.target.value) || 0
+            placeholder="הזן עלות דלק"
+            value={expenses.fuel}
+            onChange={(e) => setExpenses({
+              ...expenses,
+              fuel: Number(e.target.value) || 0
             })}
-            className="text-center"
-            dir="ltr"
           />
-        </div>
-        <div className="p-3 bg-muted rounded-lg">
-          <div className="text-sm text-muted-foreground">סה"כ הוצאות יומיות:</div>
-          <div className="text-lg font-bold text-foreground">
-            ₪{(localExpenses.fixedDaily + localExpenses.fuel).toLocaleString()}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wrench className="h-5 w-5" />
+            תחזוקה
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Label htmlFor="maintenance">עלות תחזוקה יומית (₪)</Label>
+          <Input
+            id="maintenance"
+            type="number"
+            placeholder="הזן עלות תחזוקה"
+            value={expenses.maintenance}
+            onChange={(e) => setExpenses({
+              ...expenses,
+              maintenance: Number(e.target.value) || 0
+            })}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            הוצאות אחרות
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Label htmlFor="other">הוצאות נוספות יומיות (₪)</Label>
+          <Input
+            id="other"
+            type="number"
+            placeholder="הזן הוצאות נוספות"
+            value={expenses.other}
+            onChange={(e) => setExpenses({
+              ...expenses,
+              other: Number(e.target.value) || 0
+            })}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>סיכום הוצאות</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-between items-center text-lg">
+            <span>סה"כ הוצאות יומיות:</span>
+            <span className="font-bold">₪{(expenses.fuel + expenses.maintenance + expenses.other).toLocaleString()}</span>
           </div>
-        </div>
-        <Button 
-          onClick={handleSaveExpenses}
-          className="w-full touch-manipulation hover-scale"
-        >
-          שמור הוצאות
-        </Button>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
