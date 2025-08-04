@@ -222,7 +222,9 @@ export const TaxiDashboard = () => {
         {/* Header */}
         <div className="flex items-center justify-between py-3 bg-card rounded-lg px-4 shadow-sm border">
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-foreground">מונית פרו</h1>
+            <h1 className="text-xl font-bold text-foreground leading-tight">
+              Taxi<br />Tracker
+            </h1>
             <p className="text-sm text-muted-foreground">מעקב הכנסות יומי</p>
             {currentWorkDay && (
               <div className="text-xs text-primary font-medium mt-1">
@@ -241,7 +243,7 @@ export const TaxiDashboard = () => {
               title={theme === "dark" ? "מצב יום" : "מצב לילה"}
             >
               {theme === "dark" ? 
-                <Sun className="h-5 w-5 text-foreground" /> : 
+                <Sun className="h-5 w-5 text-white dark:text-white" /> : 
                 <Moon className="h-5 w-5 text-foreground" />
               }
             </Button>
@@ -253,7 +255,7 @@ export const TaxiDashboard = () => {
               className="p-3 h-10 w-10 bg-secondary/50 hover:bg-secondary rounded-full"
               title="הגדרות"
             >
-              <Edit className="h-5 w-5 text-foreground" />
+              <Edit className="h-5 w-5 text-foreground dark:text-white" />
             </Button>
             
             <Button
@@ -263,7 +265,7 @@ export const TaxiDashboard = () => {
               className="p-3 h-10 w-10 bg-secondary/50 hover:bg-destructive/10 rounded-full"
               title="התנתק"
             >
-              <LogOut className="h-5 w-5 text-destructive" />
+              <LogOut className="h-5 w-5 text-destructive dark:text-white" />
             </Button>
           </div>
         </div>
