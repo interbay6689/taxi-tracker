@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Edit3, Plus } from "lucide-react";
+import { Trash2, Edit3, Plus, MapPin, ArrowLeft, Clock } from "lucide-react";
 import { Trip } from "@/hooks/useDatabase";
 import { useToast } from "@/hooks/use-toast";
 
@@ -147,32 +147,64 @@ export const EditTripsDialog = ({
                       </div>
                     ) : (
                       // מצב תצוגה
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-4">
-                          <div className="text-lg font-bold">₪{trip.amount}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {new Date(trip.timestamp).toLocaleTimeString('he-IL')}
+                      <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center gap-4">
+                            <div className="text-lg font-bold">₪{trip.amount}</div>
+                            <div className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {new Date(trip.timestamp).toLocaleTimeString('he-IL')}
+                            </div>
+                            <div className="text-xs bg-primary/10 px-2 py-1 rounded">
+                              {getPaymentMethodText(trip.payment_method)}
+                            </div>
                           </div>
-                          <div className="text-xs bg-primary/10 px-2 py-1 rounded">
-                            {getPaymentMethodText(trip.payment_method)}
+                          <div className="flex gap-2">
+                            <Button 
+                              onClick={() => handleEditStart(trip)}
+                              variant="outline" 
+                              size="sm"
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              onClick={() => handleDelete(trip.id)}
+                              variant="destructive" 
+                              size="sm"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={() => handleEditStart(trip)}
-                            variant="outline" 
-                            size="sm"
-                          >
-                            <Edit3 className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            onClick={() => handleDelete(trip.id)}
-                            variant="destructive" 
-                            size="sm"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+
+                        {/* תצוגת מיקומים */}
+                        {(trip.start_location_city || trip.end_location_city) && (
+                          <div className="space-y-1 text-sm text-muted-foreground">
+                            {trip.start_location_city && (
+                              <div className="flex items-center gap-2">
+                                <MapPin className="h-3 w-3 text-green-600" />
+                                <span className="font-medium">התחלה:</span>
+                                <span>{trip.start_location_city}</span>
+                              </div>
+                            )}
+                            
+                            {trip.end_location_city && (
+                              <div className="flex items-center gap-2">
+                                <MapPin className="h-3 w-3 text-red-600" />
+                                <span className="font-medium">סיום:</span>
+                                <span>{trip.end_location_city}</span>
+                              </div>
+                            )}
+
+                            {trip.start_location_city && trip.end_location_city && (
+                              <div className="flex items-center gap-1 text-primary font-medium mt-1">
+                                <span>{trip.start_location_city}</span>
+                                <ArrowLeft className="h-3 w-3" />
+                                <span>{trip.end_location_city}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </CardContent>
