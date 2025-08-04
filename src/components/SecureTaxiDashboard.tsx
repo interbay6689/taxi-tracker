@@ -201,11 +201,11 @@ export const TaxiDashboard = () => {
   return (
     <div className={`min-h-screen bg-gradient-to-br from-background to-muted/50 p-4 ${mode === 'night' ? 'dark' : ''}`}>
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header with User Info, Mode Controls and Logout */}
+        {/* Header with Mode Controls and Logout */}
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <User className="h-6 w-6 text-primary" />
-            <span className="text-lg font-medium">שלום, {user?.user_metadata?.display_name || user?.email}</span>
+            <Car className="h-6 w-6 text-primary" />
+            <span className="text-lg font-medium">מונית פרו</span>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => setIsSettingsOpen(true)} size="sm">

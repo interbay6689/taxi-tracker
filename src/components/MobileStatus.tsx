@@ -61,18 +61,14 @@ export const MobileStatus = () => {
 
           {/* מיקום */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium">מיקום GPS</span>
-              </div>
-              <Button 
-                variant={isTracking ? "destructive" : "outline"}
-                size="sm"
-                onClick={isTracking ? stopTracking : startTracking}
-              >
-                {isTracking ? "עצור מעקב" : "התחל מעקב"}
-              </Button>
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium">מיקום GPS</span>
+              {isTracking && (
+                <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                  פעיל
+                </Badge>
+              )}
             </div>
             
             {currentLocation && (
