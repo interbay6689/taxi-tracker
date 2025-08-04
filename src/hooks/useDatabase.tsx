@@ -61,21 +61,18 @@ export function useDatabase() {
   }, [user]);
 
   const loadUserData = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
 
-      // Load all data in parallel for much faster loading
+      // Load all data in parallel with timeout protection
       const today = new Date().toISOString().split('T')[0];
       
-      const [
-        tripsResponse,
-        activeWorkDayResponse,
-        workDaysHistoryResponse,
-        goalsResponse,
-        expensesResponse
-      ] = await Promise.all([
+      const loadPromises = [
         // Load trips for today
         supabase
           .from('trips')
@@ -114,7 +111,23 @@ export function useDatabase() {
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle()
-      ]);
+      ];
+
+      // Execute with timeout protection (5 seconds max)
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database timeout')), 5000)
+      );
+
+      const [
+        tripsResponse,
+        activeWorkDayResponse,
+        workDaysHistoryResponse,
+        goalsResponse,
+        expensesResponse
+      ] = await Promise.race([
+        Promise.all(loadPromises),
+        timeoutPromise
+      ]) as any;
 
       // Handle trips
       if (tripsResponse.error) throw tripsResponse.error;

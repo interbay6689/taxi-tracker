@@ -18,8 +18,7 @@ export const useLocation = () => {
   const { toast } = useToast();
 
   const requestPermissions = async () => {
-    // Only request permissions if geolocation is actually needed
-    // This prevents automatic permission requests on app load
+    // Lazy permission request - only when explicitly needed
     try {
       // בדיקה אם Capacitor זמין (אפליקציה מקורית)
       if (typeof Geolocation.checkPermissions === 'function') {
