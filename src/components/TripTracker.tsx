@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { MapPin, Play, Square, Clock } from 'lucide-react';
 import { useLocation } from '@/hooks/useLocation';
 import { useToast } from '@/hooks/use-toast';
+import { AddTripDialog } from './AddTripDialog';
 
 interface TripTrackerProps {
   onTripComplete: (tripData: {
@@ -36,6 +37,8 @@ export const TripTracker: React.FC<TripTrackerProps> = ({ onTripComplete }) => {
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [startLocation, setStartLocation] = useState<LocationInfo | null>(null);
   const [currentDuration, setCurrentDuration] = useState(0);
+  const [endLocation, setEndLocation] = useState<LocationInfo | null>(null);
+  const [showAddTripDialog, setShowAddTripDialog] = useState(false);
   const { getCurrentPosition } = useLocation();
   const { toast } = useToast();
 
@@ -170,37 +173,14 @@ export const TripTracker: React.FC<TripTrackerProps> = ({ onTripComplete }) => {
         sessionStorage.removeItem('tripInterval');
       }
 
-      // בקש מהמשתמש להזין סכום
-      const amount = prompt(`נסיעה הסתיימה!\n\nמ: ${startLocation.city}\nאל: ${endLocationData.city}\nמשך: ${formatDuration(duration)}\n\nהזן סכום הנסיעה (₪):`);
-      
-      if (amount && !isNaN(Number(amount))) {
-        onTripComplete({
-          amount: Number(amount),
-          startLocation,
-          endLocation: endLocationData,
-          duration
-        });
+      // שמור את מיקום הסיום ופתח את דיאלוג הוספת נסיעה
+      setEndLocation(endLocationData);
+      setShowAddTripDialog(true);
 
-        // איפוס המצב
-        setIsTracking(false);
-        setStartTime(null);
-        setStartLocation(null);
-        setCurrentDuration(0);
-
-        // נקה את מצב הנסיעה מהזיכרון
-        saveTripState(false, null, null);
-
-        toast({
-          title: "נסיעה הושלמה!",
-          description: `נסיעה של ${amount}₪ נוספה בהצלחה`,
-        });
-      } else {
-        toast({
-          title: "סכום לא תקין",
-          description: "הנסיעה לא נשמרה",
-          variant: "destructive"
-        });
-      }
+      toast({
+        title: "נסיעה הסתיימה!",
+        description: `מ: ${startLocation.city} אל: ${endLocationData.city}`,
+      });
     } catch (error) {
       console.error('Error ending trip:', error);
       toast({
@@ -222,7 +202,43 @@ export const TripTracker: React.FC<TripTrackerProps> = ({ onTripComplete }) => {
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleTripAdd = (amount: number, paymentMethod: string) => {
+    if (!startLocation || !endLocation || !startTime) return;
+
+    const duration = Math.floor((new Date().getTime() - startTime.getTime()) / 1000);
+
+    onTripComplete({
+      amount,
+      startLocation,
+      endLocation,
+      duration
+    });
+
+    // איפוס המצב
+    setIsTracking(false);
+    setStartTime(null);
+    setStartLocation(null);
+    setEndLocation(null);
+    setCurrentDuration(0);
+    setShowAddTripDialog(false);
+
+    // נקה את מצב הנסיעה מהזיכרון
+    saveTripState(false, null, null);
+  };
+
+  const handleDialogClose = () => {
+    setShowAddTripDialog(false);
+    // אם המשתמש סוגר את הדיאלוג בלי להוסיף נסיעה, נחזיר את המצב
+    setIsTracking(true);
+  };
+
   return (
+    <>
+      <AddTripDialog
+        isOpen={showAddTripDialog}
+        onClose={handleDialogClose}
+        onAddTrip={handleTripAdd}
+      />
     <Card className="mb-4">
       <CardContent className="p-4">
         <div className="text-center">
@@ -273,5 +289,6 @@ export const TripTracker: React.FC<TripTrackerProps> = ({ onTripComplete }) => {
         </div>
       </CardContent>
     </Card>
+    </>
   );
 };
