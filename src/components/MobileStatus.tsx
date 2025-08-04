@@ -44,9 +44,9 @@ export const MobileStatus = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {isOnline ? (
-                <Wifi className="h-4 w-4 text-green-600" />
+                <Wifi className="h-4 w-4 text-success" />
               ) : (
-                <WifiOff className="h-4 w-4 text-red-600" />
+                <WifiOff className="h-4 w-4 text-destructive" />
               )}
               <span className="text-sm font-medium">
                 {isOnline ? "מחובר" : "מצב אופליין"}
@@ -62,10 +62,10 @@ export const MobileStatus = () => {
           {/* מיקום */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-blue-600" />
+              <MapPin className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium">מיקום GPS</span>
               {isTracking && (
-                <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/20">
                   פעיל
                 </Badge>
               )}
@@ -85,7 +85,7 @@ export const MobileStatus = () => {
 
           {/* שעה נוכחית */}
           <div className="flex items-center gap-2 text-sm">
-            <Clock className="h-4 w-4 text-gray-600" />
+            <Clock className="h-4 w-4 text-muted-foreground" />
             <span>{currentTime.toLocaleTimeString('he-IL')}</span>
             <Smartphone className="h-4 w-4 text-primary ml-auto" />
           </div>

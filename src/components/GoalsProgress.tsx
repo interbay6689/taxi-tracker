@@ -32,7 +32,7 @@ export const GoalsProgress = ({
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-green-600" />
+              <DollarSign className="h-4 w-4 text-success" />
               <span className="font-medium">יעד הכנסות</span>
             </div>
             <div className="text-sm text-muted-foreground">
@@ -50,7 +50,7 @@ export const GoalsProgress = ({
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <Car className="h-4 w-4 text-blue-600" />
+              <Car className="h-4 w-4 text-primary" />
               <span className="font-medium">יעד נסיעות</span>
             </div>
             <div className="text-sm text-muted-foreground">
@@ -68,7 +68,7 @@ export const GoalsProgress = ({
         <div className="border-t pt-4">
           <div className="flex items-center justify-center gap-2">
             {incomeProgress >= 100 && tripsProgress >= 100 ? (
-              <div className="flex items-center gap-2 text-green-600 font-medium">
+              <div className="flex items-center gap-2 text-success font-medium">
                 <Target className="h-4 w-4" />
                 🎉 כל הכבוד! השגת את כל היעדים!
               </div>

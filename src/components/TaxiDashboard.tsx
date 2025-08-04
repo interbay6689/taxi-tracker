@@ -268,7 +268,7 @@ export const TaxiDashboard = () => {
             <Button
               onClick={startWorkDay}
               size="lg"
-              className="flex-1 h-14 bg-green-600 hover:bg-green-700 text-white font-semibold touch-manipulation hover-scale"
+              className="flex-1 h-14 bg-success hover:bg-success/90 text-success-foreground font-semibold touch-manipulation hover-scale"
             >
               🚖 התחל יום עבודה
             </Button>
@@ -323,7 +323,7 @@ export const TaxiDashboard = () => {
           onClick={() => setIsAddTripOpen(true)}
           size="lg"
           disabled={!currentWorkDay}
-          className="w-full h-20 text-lg font-semibold bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-500/90 shadow-lg touch-manipulation hover-scale disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full h-20 text-lg font-semibold bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg touch-manipulation hover-scale disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Plus className="mr-2 h-7 w-7" />
           הוספת נסיעה
