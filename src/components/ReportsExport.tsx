@@ -104,7 +104,9 @@ export const ReportsExport = ({ trips }: ReportsExportProps) => {
 
   const downloadReport = (data: string[], type: string, period: string) => {
     const content = data.join('\n');
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    // הוספת BOM (Byte Order Mark) לתמיכה נכונה בעברית באקסל
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + content], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     
     if (link.download !== undefined) {
