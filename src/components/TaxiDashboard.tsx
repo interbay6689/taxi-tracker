@@ -58,12 +58,12 @@ export const TaxiDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 rtl">
-      <div className="max-w-md mx-auto space-y-6">
+    <div className="min-h-screen bg-background p-3 rtl">
+      <div className="w-full max-w-sm mx-auto space-y-4">
         {/* Header */}
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-foreground mb-2">מונית פרו</h1>
-          <p className="text-muted-foreground">מעקב הכנסות יומי</p>
+        <div className="text-center py-2">
+          <h1 className="text-xl font-bold text-foreground">מונית פרו</h1>
+          <p className="text-sm text-muted-foreground">מעקב הכנסות יומי</p>
         </div>
 
         {/* Daily Progress */}
@@ -98,14 +98,14 @@ export const TaxiDashboard = () => {
         <Button
           onClick={() => setIsAddTripOpen(true)}
           size="lg"
-          className="w-full h-16 text-xl font-semibold bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-500/90 shadow-lg"
+          className="w-full h-20 text-lg font-semibold bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-500/90 shadow-lg touch-manipulation"
         >
-          <Plus className="mr-2 h-6 w-6" />
+          <Plus className="mr-2 h-7 w-7" />
           הוספת נסיעה
         </Button>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <DailySummaryCard
             title="הכנסות היום"
             value={todayIncome}

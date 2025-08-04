@@ -55,15 +55,15 @@ export const DailySummaryCard = ({ title, value, icon: Icon, variant }: DailySum
 
   return (
     <Card className={cn("shadow-md", getVariantStyles())}>
-      <CardContent className="p-4">
+      <CardContent className="p-3">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">{title}</p>
-            <p className={cn("text-lg font-bold", getValueColor())}>
+            <p className="text-xs text-muted-foreground">{title}</p>
+            <p className={cn("text-base font-bold", getValueColor())}>
               {formatValue(value)}
             </p>
           </div>
-          <Icon className={cn("h-6 w-6", getIconColor())} />
+          <Icon className={cn("h-5 w-5", getIconColor())} />
         </div>
       </CardContent>
     </Card>

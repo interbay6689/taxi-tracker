@@ -39,12 +39,12 @@ export const AddTripDialog = ({ isOpen, onClose, onAddTrip }: AddTripDialogProps
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md rtl">
+      <DialogContent className="w-[95vw] max-w-sm mx-auto rtl">
         <DialogHeader>
-          <DialogTitle className="text-center text-xl">הוספת נסיעה</DialogTitle>
+          <DialogTitle className="text-center text-lg">הוספת נסיעה</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
               סכום בשקלים
@@ -54,7 +54,7 @@ export const AddTripDialog = ({ isOpen, onClose, onAddTrip }: AddTripDialogProps
               placeholder="הזן סכום..."
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="text-lg text-center"
+              className="text-xl text-center h-14 touch-manipulation"
               dir="ltr"
               autoFocus
             />
@@ -65,7 +65,7 @@ export const AddTripDialog = ({ isOpen, onClose, onAddTrip }: AddTripDialogProps
             <label className="text-sm font-medium text-foreground">
               סכומים מהירים
             </label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {quickAmounts.map((quickAmount) => (
                 <Button
                   key={quickAmount}
@@ -73,7 +73,7 @@ export const AddTripDialog = ({ isOpen, onClose, onAddTrip }: AddTripDialogProps
                   variant="outline"
                   size="sm"
                   onClick={() => setAmount(quickAmount.toString())}
-                  className="h-10"
+                  className="h-12 touch-manipulation"
                 >
                   ₪{quickAmount}
                 </Button>
@@ -81,18 +81,18 @@ export const AddTripDialog = ({ isOpen, onClose, onAddTrip }: AddTripDialogProps
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-2 pt-2">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
-              className="flex-1"
+              className="flex-1 h-12 touch-manipulation"
             >
               ביטול
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-gradient-to-r from-primary to-blue-500"
+              className="flex-1 h-12 bg-gradient-to-r from-primary to-blue-500 touch-manipulation"
             >
               הוסף נסיעה
             </Button>
