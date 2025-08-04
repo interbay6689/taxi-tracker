@@ -244,7 +244,7 @@ export const TripTracker: React.FC<TripTrackerProps> = ({ onTripComplete }) => {
           {!isTracking ? (
             <Button 
               onClick={startTrip}
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              className="w-full bg-success hover:bg-success/90 text-success-foreground"
               size="lg"
             >
               <Play className="h-5 w-5 ml-2" />
