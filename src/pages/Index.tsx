@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,13 +8,14 @@ import { SecureTaxiDashboard } from "@/components/SecureTaxiDashboard";
 
 const Index = () => {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
 
   // Redirect to auth if not authenticated
   useEffect(() => {
     if (!loading && !user) {
-      window.location.href = '/auth';
+      navigate('/auth', { replace: true });
     }
-  }, [user, loading]);
+  }, [user, loading, navigate]);
 
   if (loading) {
     return (
@@ -42,7 +44,7 @@ const Index = () => {
           </CardHeader>
           <CardContent>
             <Button 
-              onClick={() => window.location.href = '/auth'} 
+              onClick={() => navigate('/auth')} 
               className="w-full"
               size="lg"
             >

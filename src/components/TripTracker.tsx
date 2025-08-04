@@ -45,14 +45,11 @@ export const TripTracker: React.FC<TripTrackerProps> = ({ onTripComplete }) => {
 
   // טען מצב נסיעה מהזיכרון כאשר הקומפוננט נטען
   useEffect(() => {
-    console.log('TripTracker mounted, checking for saved trip state...');
     const savedTripState = localStorage.getItem('activeTrip');
-    console.log('Saved trip state:', savedTripState);
     
     if (savedTripState) {
       try {
         const tripData = JSON.parse(savedTripState);
-        console.log('Parsed trip data:', tripData);
         
         setIsTracking(tripData.isTracking);
         setStartTime(new Date(tripData.startTime));
@@ -61,22 +58,17 @@ export const TripTracker: React.FC<TripTrackerProps> = ({ onTripComplete }) => {
         // חשב את משך הזמן מאז התחלת הנסיעה
         const elapsedSeconds = Math.floor((new Date().getTime() - new Date(tripData.startTime).getTime()) / 1000);
         setCurrentDuration(elapsedSeconds);
-        console.log('Trip restored, elapsed seconds:', elapsedSeconds);
 
         // התחל ספירת זמן מחדש
         if (tripData.isTracking) {
-          console.log('Starting interval timer...');
           const interval = setInterval(() => {
             setCurrentDuration(prev => prev + 1);
           }, 1000);
           sessionStorage.setItem('tripInterval', interval.toString());
         }
       } catch (error) {
-        console.error('Error loading trip state:', error);
         localStorage.removeItem('activeTrip');
       }
-    } else {
-      console.log('No saved trip state found');
     }
   }, []);
 

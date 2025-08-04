@@ -1,4 +1,4 @@
-import { useState, useMemo, lazy, Suspense } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,9 +23,9 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useLocation } from "@/hooks/useLocation";
 import { useOfflineStorage } from "@/hooks/useOfflineStorage";
 
-// Lazy load heavy components for better performance
-const AnalyticsTab = lazy(() => import("./analytics/AnalyticsTab").then(module => ({ default: module.AnalyticsTab })));
-const ReportsExport = lazy(() => import("./ReportsExport").then(module => ({ default: module.ReportsExport })));
+// Import heavy components normally for now to avoid loading issues
+import { AnalyticsTab } from "./analytics/AnalyticsTab";
+import { ReportsExport } from "./ReportsExport";
 
 export const SecureTaxiDashboard = () => {
   const { user, signOut } = useAuth();
@@ -412,15 +412,11 @@ export const SecureTaxiDashboard = () => {
           </TabsContent>
 
           <TabsContent value="analytics">
-            <Suspense fallback={<div className="p-8 text-center">טוען ניתוחים...</div>}>
-              <AnalyticsTab trips={trips} />
-            </Suspense>
+            <AnalyticsTab trips={trips} />
           </TabsContent>
 
           <TabsContent value="reports">
-            <Suspense fallback={<div className="p-8 text-center">טוען דוחות...</div>}>
-              <ReportsExport trips={trips} />
-            </Suspense>
+            <ReportsExport trips={trips} />
           </TabsContent>
 
           <TabsContent value="navigation">

@@ -37,7 +37,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (err) {
         // Ignore errors
       }
-      window.location.href = '/auth';
+      // Use window.location only for logout to ensure complete cleanup
+      window.location.replace('/auth');
     } catch (error) {
       console.error('Error signing out:', error);
     }
