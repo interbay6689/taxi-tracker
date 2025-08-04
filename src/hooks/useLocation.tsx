@@ -7,6 +7,8 @@ interface LocationData {
   longitude: number;
   accuracy: number;
   timestamp: number;
+  city?: string;
+  address?: string;
 }
 
 export const useLocation = () => {
@@ -78,6 +80,29 @@ export const useLocation = () => {
     }
   };
 
+  const getCityFromCoordinates = async (lat: number, lng: number): Promise<{ city: string; address: string }> => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=he,en`
+      );
+      const data = await response.json();
+      
+      const city = data.address?.city || 
+                   data.address?.town || 
+                   data.address?.village || 
+                   data.address?.municipality || 
+                   data.address?.county || 
+                   'מיקום לא ידוע';
+      
+      const address = data.display_name || 'כתובת לא זמינה';
+      
+      return { city, address };
+    } catch (error) {
+      console.error('Error getting city name:', error);
+      return { city: 'מיקום לא ידוע', address: 'כתובת לא זמינה' };
+    }
+  };
+
   const getCurrentPosition = async (): Promise<LocationData | null> => {
     try {
       const hasPermission = await requestPermissions();
@@ -121,6 +146,14 @@ export const useLocation = () => {
         timestamp: position.timestamp
       };
 
+      // קבלת שם העיר
+      const { city, address } = await getCityFromCoordinates(
+        position.coords.latitude, 
+        position.coords.longitude
+      );
+      locationData.city = city;
+      locationData.address = address;
+
       setCurrentLocation(locationData);
       return locationData;
     } catch (error) {
@@ -146,7 +179,7 @@ export const useLocation = () => {
         id = await Geolocation.watchPosition({
           enableHighAccuracy: true,
           timeout: 30000
-        }, (position, err) => {
+        }, async (position, err) => {
           if (err) {
             console.error('Error in location tracking:', err);
             return;
@@ -159,19 +192,45 @@ export const useLocation = () => {
               accuracy: position.coords.accuracy,
               timestamp: position.timestamp
             };
+            
+            // קבלת שם העיר
+            try {
+              const { city, address } = await getCityFromCoordinates(
+                position.coords.latitude, 
+                position.coords.longitude
+              );
+              locationData.city = city;
+              locationData.address = address;
+            } catch (error) {
+              console.error('Error getting city during tracking:', error);
+            }
+            
             setCurrentLocation(locationData);
           }
         });
       } catch (capacitorError) {
         // Fallback לדפדפן רגיל
         id = navigator.geolocation.watchPosition(
-          (browserPosition) => {
+          async (browserPosition) => {
             const locationData: LocationData = {
               latitude: browserPosition.coords.latitude,
               longitude: browserPosition.coords.longitude,
               accuracy: browserPosition.coords.accuracy,
               timestamp: browserPosition.timestamp
             };
+            
+            // קבלת שם העיר
+            try {
+              const { city, address } = await getCityFromCoordinates(
+                browserPosition.coords.latitude, 
+                browserPosition.coords.longitude
+              );
+              locationData.city = city;
+              locationData.address = address;
+            } catch (error) {
+              console.error('Error getting city during browser tracking:', error);
+            }
+            
             setCurrentLocation(locationData);
           },
           (error) => {

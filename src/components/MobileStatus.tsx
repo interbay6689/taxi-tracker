@@ -20,6 +20,11 @@ export const MobileStatus = () => {
 
   const formatLocation = () => {
     if (!currentLocation) return "מיקום לא זמין";
+    return currentLocation.city || "מיקום לא ידוע";
+  };
+
+  const getLocationDetails = () => {
+    if (!currentLocation) return "";
     return `${currentLocation.latitude.toFixed(4)}, ${currentLocation.longitude.toFixed(4)}`;
   };
 
@@ -72,7 +77,8 @@ export const MobileStatus = () => {
             
             {currentLocation && (
               <div className="text-xs text-muted-foreground space-y-1">
-                <div>קואורדינטות: {formatLocation()}</div>
+                <div>מיקום: {formatLocation()}</div>
+                <div className="text-xs opacity-75">קואורדינטות: {getLocationDetails()}</div>
                 <div className="flex justify-between">
                   <span>דיוק: {getLocationAccuracy()}</span>
                   <span>{Math.round(currentLocation.accuracy)}m</span>
