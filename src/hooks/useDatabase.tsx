@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
@@ -52,15 +52,7 @@ export function useDatabase() {
   const [loading, setLoading] = useState(true);
 
   // Load data when user is authenticated
-  useEffect(() => {
-    if (user) {
-      loadUserData();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
-
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     if (!user) {
       setLoading(false);
       return;
@@ -185,9 +177,18 @@ export function useDatabase() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, toast]);
 
-  const addTrip = async (amount: number, paymentMethod: 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי') => {
+  // Load data when user is authenticated
+  useEffect(() => {
+    if (user) {
+      loadUserData();
+    } else {
+      setLoading(false);
+    }
+  }, [user, loadUserData]);
+
+  const addTrip = useCallback(async (amount: number, paymentMethod: 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי') => {
     if (!user) return false;
 
     try {
@@ -258,9 +259,9 @@ export function useDatabase() {
       });
       return false;
     }
-  };
+  }, [user, currentWorkDay, toast]);
 
-  const addTripWithLocation = async (tripData: {
+  const addTripWithLocation = useCallback(async (tripData: {
     amount: number;
     paymentMethod?: 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי';
     startLocation: {
@@ -353,9 +354,9 @@ export function useDatabase() {
       });
       return false;
     }
-  };
+  }, [user, currentWorkDay, toast]);
 
-  const startWorkDay = async () => {
+  const startWorkDay = useCallback(async () => {
     if (!user) return false;
 
     try {
@@ -389,9 +390,9 @@ export function useDatabase() {
       });
       return false;
     }
-  };
+  }, [user, toast]);
 
-  const endWorkDay = async () => {
+  const endWorkDay = useCallback(async () => {
     if (!user || !currentWorkDay) return false;
 
     try {
@@ -432,9 +433,9 @@ export function useDatabase() {
       });
       return false;
     }
-  };
+  }, [user, currentWorkDay, toast]);
 
-  const updateGoals = async (newGoals: DailyGoals) => {
+  const updateGoals = useCallback(async (newGoals: DailyGoals) => {
     if (!user) return false;
 
     try {
@@ -488,9 +489,9 @@ export function useDatabase() {
       });
       return false;
     }
-  };
+  }, [user, toast]);
 
-  const updateExpenses = async (newExpenses: DailyExpenses) => {
+  const updateExpenses = useCallback(async (newExpenses: DailyExpenses) => {
     if (!user) return false;
 
     try {
@@ -546,9 +547,9 @@ export function useDatabase() {
       });
       return false;
     }
-  };
+  }, [user, toast]);
 
-  const deleteTrip = async (tripId: string) => {
+  const deleteTrip = useCallback(async (tripId: string) => {
     if (!user) return false;
 
     try {
@@ -576,9 +577,9 @@ export function useDatabase() {
       });
       return false;
     }
-  };
+  }, [user, toast]);
 
-  const updateTrip = async (tripId: string, amount: number) => {
+  const updateTrip = useCallback(async (tripId: string, amount: number) => {
     if (!user) return false;
 
     try {
@@ -608,7 +609,7 @@ export function useDatabase() {
       });
       return false;
     }
-  };
+  }, [user, toast]);
 
   return {
     trips,
