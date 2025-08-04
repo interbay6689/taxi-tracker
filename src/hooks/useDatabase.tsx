@@ -1,0 +1,422 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
+import { useToast } from './use-toast';
+
+export interface Trip {
+  id: string;
+  amount: number;
+  payment_method: 'cash' | 'card' | 'app';
+  timestamp: string;
+}
+
+export interface WorkDay {
+  id: string;
+  start_time: string;
+  end_time?: string;
+  total_income: number;
+  total_trips: number;
+  is_active: boolean;
+}
+
+export interface DailyGoals {
+  income_goal: number;
+  trips_goal: number;
+}
+
+export interface DailyExpenses {
+  fuel: number;
+  maintenance: number;
+  other: number;
+}
+
+export function useDatabase() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [workDays, setWorkDays] = useState<WorkDay[]>([]);
+  const [currentWorkDay, setCurrentWorkDay] = useState<WorkDay | null>(null);
+  const [dailyGoals, setDailyGoals] = useState<DailyGoals>({ income_goal: 500, trips_goal: 20 });
+  const [dailyExpenses, setDailyExpenses] = useState<DailyExpenses>({ fuel: 0, maintenance: 0, other: 0 });
+  const [loading, setLoading] = useState(true);
+
+  // Load data when user is authenticated
+  useEffect(() => {
+    if (user) {
+      loadUserData();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
+
+  const loadUserData = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+
+      // Load trips for today
+      const today = new Date().toISOString().split('T')[0];
+      const { data: tripsData, error: tripsError } = await supabase
+        .from('trips')
+        .select('*')
+        .gte('timestamp', `${today}T00:00:00.000Z`)
+        .lt('timestamp', `${today}T23:59:59.999Z`)
+        .order('timestamp', { ascending: false });
+
+      if (tripsError) throw tripsError;
+      setTrips((tripsData || []).map(trip => ({
+        id: trip.id,
+        amount: Number(trip.amount),
+        payment_method: trip.payment_method as 'cash' | 'card' | 'app',
+        timestamp: trip.timestamp
+      })));
+
+      // Load current active work day
+      const { data: activeWorkDay, error: workDayError } = await supabase
+        .from('work_days')
+        .select('*')
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (workDayError) throw workDayError;
+      setCurrentWorkDay(activeWorkDay);
+
+      // Load work days history
+      const { data: workDaysData, error: workDaysHistoryError } = await supabase
+        .from('work_days')
+        .select('*')
+        .eq('is_active', false)
+        .order('start_time', { ascending: false })
+        .limit(30);
+
+      if (workDaysHistoryError) throw workDaysHistoryError;
+      setWorkDays(workDaysData || []);
+
+      // Load daily goals
+      const { data: goalsData, error: goalsError } = await supabase
+        .from('daily_goals')
+        .select('*')
+        .maybeSingle();
+
+      if (goalsError) throw goalsError;
+      if (goalsData) {
+        setDailyGoals({
+          income_goal: Number(goalsData.income_goal),
+          trips_goal: goalsData.trips_goal
+        });
+      }
+
+      // Load daily expenses
+      const { data: expensesData, error: expensesError } = await supabase
+        .from('daily_expenses')
+        .select('*')
+        .maybeSingle();
+
+      if (expensesError) throw expensesError;
+      if (expensesData) {
+        setDailyExpenses({
+          fuel: Number(expensesData.fuel),
+          maintenance: Number(expensesData.maintenance),
+          other: Number(expensesData.other)
+        });
+      }
+    } catch (error: any) {
+      console.error('Error loading user data:', error);
+      toast({
+        title: "שגיאה בטעינת נתונים",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addTrip = async (amount: number, paymentMethod: 'cash' | 'card' | 'app') => {
+    if (!user) return false;
+
+    try {
+      const { data, error } = await supabase
+        .from('trips')
+        .insert({
+          amount,
+          payment_method: paymentMethod,
+          user_id: user.id
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setTrips(prev => [{
+        id: data.id,
+        amount: Number(data.amount),
+        payment_method: data.payment_method as 'cash' | 'card' | 'app',
+        timestamp: data.timestamp
+      }, ...prev]);
+
+      // Update current work day if active
+      if (currentWorkDay) {
+        const newTotalIncome = currentWorkDay.total_income + amount;
+        const newTotalTrips = currentWorkDay.total_trips + 1;
+
+        const { error: updateError } = await supabase
+          .from('work_days')
+          .update({
+            total_income: newTotalIncome,
+            total_trips: newTotalTrips
+          })
+          .eq('id', currentWorkDay.id);
+
+        if (updateError) throw updateError;
+
+        setCurrentWorkDay(prev => prev ? {
+          ...prev,
+          total_income: newTotalIncome,
+          total_trips: newTotalTrips
+        } : null);
+      }
+
+      toast({
+        title: "נסיעה נוספה!",
+        description: `נסיעה בסך ${amount} ₪ נוספה בהצלחה`,
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error('Error adding trip:', error);
+      toast({
+        title: "שגיאה בהוספת נסיעה",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const startWorkDay = async () => {
+    if (!user) return false;
+
+    try {
+      const { data, error } = await supabase
+        .from('work_days')
+        .insert({
+          start_time: new Date().toISOString(),
+          is_active: true,
+          user_id: user.id
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setCurrentWorkDay(data);
+      setTrips([]); // Reset trips for new work day
+
+      toast({
+        title: "יום עבודה החל!",
+        description: "יום עבודה חדש החל בהצלחה",
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error('Error starting work day:', error);
+      toast({
+        title: "שגיאה בתחילת יום עבודה",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const endWorkDay = async () => {
+    if (!user || !currentWorkDay) return false;
+
+    try {
+      const endTime = new Date().toISOString();
+
+      const { error } = await supabase
+        .from('work_days')
+        .update({
+          end_time: endTime,
+          is_active: false
+        })
+        .eq('id', currentWorkDay.id);
+
+      if (error) throw error;
+
+      const completedWorkDay = {
+        ...currentWorkDay,
+        end_time: endTime,
+        is_active: false
+      };
+
+      setWorkDays(prev => [completedWorkDay, ...prev]);
+      setCurrentWorkDay(null);
+      setTrips([]); // Reset for next work day
+
+      toast({
+        title: "יום עבודה הסתיים!",
+        description: `יום עבודה הסתיים עם ${currentWorkDay.total_trips} נסיעות ו-${currentWorkDay.total_income} ₪`,
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error('Error ending work day:', error);
+      toast({
+        title: "שגיאה בסיום יום עבודה",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const updateGoals = async (newGoals: DailyGoals) => {
+    if (!user) return false;
+
+    try {
+      const { error } = await supabase
+        .from('daily_goals')
+        .upsert({
+          user_id: user.id,
+          income_goal: newGoals.income_goal,
+          trips_goal: newGoals.trips_goal
+        });
+
+      if (error) throw error;
+
+      setDailyGoals(newGoals);
+
+      toast({
+        title: "יעדים עודכנו!",
+        description: "היעדים היומיים עודכנו בהצלחה",
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error('Error updating goals:', error);
+      toast({
+        title: "שגיאה בעדכון יעדים",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const updateExpenses = async (newExpenses: DailyExpenses) => {
+    if (!user) return false;
+
+    try {
+      const { error } = await supabase
+        .from('daily_expenses')
+        .upsert({
+          user_id: user.id,
+          fuel: newExpenses.fuel,
+          maintenance: newExpenses.maintenance,
+          other: newExpenses.other
+        });
+
+      if (error) throw error;
+
+      setDailyExpenses(newExpenses);
+
+      toast({
+        title: "הוצאות עודכנו!",
+        description: "ההוצאות היומיות עודכנו בהצלחה",
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error('Error updating expenses:', error);
+      toast({
+        title: "שגיאה בעדכון הוצאות",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const deleteTrip = async (tripId: string) => {
+    if (!user) return false;
+
+    try {
+      const { error } = await supabase
+        .from('trips')
+        .delete()
+        .eq('id', tripId);
+
+      if (error) throw error;
+
+      setTrips(prev => prev.filter(trip => trip.id !== tripId));
+
+      toast({
+        title: "נסיעה נמחקה!",
+        description: "הנסיעה נמחקה בהצלחה",
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error('Error deleting trip:', error);
+      toast({
+        title: "שגיאה במחיקת נסיעה",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const updateTrip = async (tripId: string, amount: number) => {
+    if (!user) return false;
+
+    try {
+      const { error } = await supabase
+        .from('trips')
+        .update({ amount })
+        .eq('id', tripId);
+
+      if (error) throw error;
+
+      setTrips(prev => prev.map(trip => 
+        trip.id === tripId ? { ...trip, amount } : trip
+      ));
+
+      toast({
+        title: "נסיעה עודכנה!",
+        description: "הנסיעה עודכנה בהצלחה",
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error('Error updating trip:', error);
+      toast({
+        title: "שגיאה בעדכון נסיעה",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  return {
+    trips,
+    workDays,
+    currentWorkDay,
+    dailyGoals,
+    dailyExpenses,
+    loading,
+    addTrip,
+    startWorkDay,
+    endWorkDay,
+    updateGoals,
+    updateExpenses,
+    deleteTrip,
+    updateTrip,
+    loadUserData
+  };
+}
