@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      custom_payment_types: {
+        Row: {
+          base_payment_method: string
+          commission_rate: number | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          base_payment_method: string
+          commission_rate?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          base_payment_method?: string
+          commission_rate?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_expenses: {
         Row: {
           created_at: string

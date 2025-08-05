@@ -22,6 +22,7 @@ import { useAppMode } from "@/hooks/useAppMode";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useLocation } from "@/hooks/useLocation";
 import { useOfflineStorage } from "@/hooks/useOfflineStorage";
+import { useCustomPaymentTypes } from "@/hooks/useCustomPaymentTypes";
 
 // Import heavy components normally for now to avoid loading issues
 import { AnalyticsTab } from "./analytics/AnalyticsTab";
@@ -54,9 +55,14 @@ export const SecureTaxiDashboard = () => {
   const { mode, toggleNightMode, toggleDrivingMode } = useAppMode();
   const { currentLocation } = useLocation();
   const { isOnline, saveOfflineTrip, vibrateSuccess, vibrateError } = useOfflineStorage();
+  const { getPaymentMethodDetails } = useCustomPaymentTypes();
 
   const dailyStats = useMemo(() => {
-    const totalIncome = trips.reduce((sum, trip) => sum + trip.amount, 0);
+    const totalIncome = trips.reduce((sum, trip) => {
+      const paymentDetails = getPaymentMethodDetails(trip.payment_method);
+      const finalAmount = trip.amount * (1 - paymentDetails.commissionRate);
+      return sum + finalAmount;
+    }, 0);
     const totalExpensesValue = dailyExpenses.fuel + dailyExpenses.maintenance + dailyExpenses.other;
     const netProfit = totalIncome - totalExpensesValue;
     const incomeProgress = Math.min((totalIncome / dailyGoals.income_goal) * 100, 100);
@@ -71,7 +77,7 @@ export const SecureTaxiDashboard = () => {
       tripsCount: trips.length,
       goalMet: totalIncome >= dailyGoals.income_goal && trips.length >= dailyGoals.trips_goal
     };
-  }, [trips, dailyGoals, dailyExpenses]);
+  }, [trips, dailyGoals, dailyExpenses, getPaymentMethodDetails]);
 
   // התראות
   useNotifications({
@@ -368,33 +374,50 @@ export const SecureTaxiDashboard = () => {
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    {trips.map((trip) => (
-                      <div key={trip.id} className="p-3 bg-muted/50 rounded-lg border border-muted-foreground/20">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex items-center gap-3">
-                            <span className="font-medium text-lg">₪{trip.amount.toLocaleString()}</span>
-                            <span className="text-xs bg-primary/10 px-2 py-1 rounded">
-                              {trip.payment_method === 'cash' ? 'מזומן' : 
-                               trip.payment_method === 'card' ? 'כרטיס' : 
-                               trip.payment_method === 'app' ? 'אפליקציה' :
-                               trip.payment_method}
-                            </span>
-                          </div>
-                          <span className="text-sm text-muted-foreground">
-                            {new Date(trip.timestamp).toLocaleTimeString('he-IL')}
-                          </span>
-                        </div>
-                        
-                        {/* תצוגת מיקומים */}
-                        {trip.start_location_city && trip.end_location_city && (
-                          <div className="text-sm text-muted-foreground">
-                            <span className="text-primary font-medium">
-                              {trip.start_location_city} → {trip.end_location_city}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                     {trips.map((trip) => {
+                       const paymentDetails = getPaymentMethodDetails(trip.payment_method);
+                       const finalAmount = trip.amount * (1 - paymentDetails.commissionRate);
+                       
+                       return (
+                         <div key={trip.id} className="p-3 bg-muted/50 rounded-lg border border-muted-foreground/20">
+                           <div className="flex justify-between items-start mb-2">
+                             <div className="flex items-center gap-3">
+                               {paymentDetails.commissionRate !== 0 ? (
+                                 <div className="flex flex-col items-start">
+                                   {paymentDetails.commissionRate > 0 && (
+                                     <span className="text-xs text-destructive">-{(paymentDetails.commissionRate * 100).toFixed(1)}% עמלה</span>
+                                   )}
+                                   {paymentDetails.commissionRate < 0 && (
+                                     <span className="text-xs text-green-600">+{Math.abs(paymentDetails.commissionRate * 100).toFixed(1)}% בונוס</span>
+                                   )}
+                                   <div className="flex items-center gap-2">
+                                     <span className="font-medium text-lg">₪{finalAmount.toLocaleString()}</span>
+                                     <span className="text-sm text-muted-foreground line-through">₪{trip.amount.toLocaleString()}</span>
+                                   </div>
+                                 </div>
+                               ) : (
+                                 <span className="font-medium text-lg">₪{trip.amount.toLocaleString()}</span>
+                               )}
+                               <span className="text-xs bg-primary/10 px-2 py-1 rounded">
+                                 {paymentDetails.displayName}
+                               </span>
+                             </div>
+                             <span className="text-sm text-muted-foreground">
+                               {new Date(trip.timestamp).toLocaleTimeString('he-IL')}
+                             </span>
+                           </div>
+                           
+                           {/* תצוגת מיקומים */}
+                           {trip.start_location_city && trip.end_location_city && (
+                             <div className="text-sm text-muted-foreground">
+                               <span className="text-primary font-medium">
+                                 {trip.start_location_city} → {trip.end_location_city}
+                               </span>
+                             </div>
+                           )}
+                         </div>
+                       );
+                     })}
                   </div>
                 )}
               </CardContent>

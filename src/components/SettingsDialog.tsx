@@ -7,6 +7,7 @@ import { ReportsExport } from "./ReportsExport";
 import { GoalsTab } from "./settings/GoalsTab";
 import { ExpensesTab } from "./settings/ExpensesTab";
 import { TripsTab } from "./settings/TripsTab";
+import { PaymentTypesTab } from "./settings/PaymentTypesTab";
 import { AnalyticsTab } from "./analytics/AnalyticsTab";
 import { useTheme } from "next-themes";
 
@@ -57,7 +58,7 @@ export const SettingsDialog = ({
         </div>
 
         <Tabs defaultValue="goals" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="goals" className="text-xs">
               <Target className="h-3 w-3 ml-1" />
               יעדים
@@ -65,6 +66,9 @@ export const SettingsDialog = ({
             <TabsTrigger value="expenses" className="text-xs">
               <Fuel className="h-3 w-3 ml-1" />
               הוצאות
+            </TabsTrigger>
+            <TabsTrigger value="payment-types" className="text-xs">
+              תיוגים
             </TabsTrigger>
             <TabsTrigger value="trips" className="text-xs">
               <List className="h-3 w-3 ml-1" />
@@ -86,6 +90,10 @@ export const SettingsDialog = ({
 
           <TabsContent value="expenses">
             <ExpensesTab expenses={expenses} setExpenses={onUpdateExpenses} />
+          </TabsContent>
+
+          <TabsContent value="payment-types">
+            <PaymentTypesTab />
           </TabsContent>
 
           <TabsContent value="trips">

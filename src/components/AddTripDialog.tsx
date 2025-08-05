@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useCustomPaymentTypes } from "@/hooks/useCustomPaymentTypes";
 
 interface AddTripDialogProps {
   isOpen: boolean;
@@ -13,8 +14,9 @@ interface AddTripDialogProps {
 
 export const AddTripDialog = ({ isOpen, onClose, onAddTrip }: AddTripDialogProps) => {
   const [amount, setAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("מזומן");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
   const { toast } = useToast();
+  const { allPaymentOptions } = useCustomPaymentTypes();
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -31,7 +33,7 @@ export const AddTripDialog = ({ isOpen, onClose, onAddTrip }: AddTripDialogProps
 
     onAddTrip(parsedAmount, paymentMethod);
     setAmount("");
-    setPaymentMethod("מזומן");
+    setPaymentMethod("cash");
     onClose();
     toast({
       title: "נסיעה נוספה",
@@ -63,15 +65,20 @@ export const AddTripDialog = ({ isOpen, onClose, onAddTrip }: AddTripDialogProps
           <div className="space-y-3">
             <Label className="text-base">אמצעי תשלום</Label>
             <div className="grid grid-cols-2 gap-2">
-              {["מזומן", "ביט", "אשראי", "GetTaxi", "דהרי"].map((method) => (
+              {allPaymentOptions.map((option) => (
                 <Button
-                  key={method}
+                  key={option.value}
                   type="button"
-                  variant={paymentMethod === method ? "default" : "outline"}
-                  onClick={() => setPaymentMethod(method)}
+                  variant={paymentMethod === option.value ? "default" : "outline"}
+                  onClick={() => setPaymentMethod(option.value)}
                   className="text-sm h-10"
                 >
-                  {method}
+                  {option.label}
+                  {option.isCustom && 'commissionRate' in option && typeof option.commissionRate === 'number' && option.commissionRate !== 0 && (
+                    <span className="mr-1 text-xs">
+                      {option.commissionRate > 0 ? `(-${option.commissionRate * 100}%)` : `(+${Math.abs(option.commissionRate) * 100}%)`}
+                    </span>
+                  )}
                 </Button>
               ))}
             </div>
@@ -88,7 +95,7 @@ export const AddTripDialog = ({ isOpen, onClose, onAddTrip }: AddTripDialogProps
                   onClick={() => {
                     onAddTrip(quickAmount, paymentMethod);
                     setAmount("");
-                    setPaymentMethod("מזומן");
+                    setPaymentMethod("cash");
                     onClose();
                     toast({
                       title: "נסיעה נוספה",
