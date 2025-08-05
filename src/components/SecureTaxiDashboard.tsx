@@ -291,18 +291,18 @@ export const SecureTaxiDashboard = () => {
                     יום עבודה {currentWorkDay.is_active ? 'פעיל' : 'מושהה'} מאז: {new Date(currentWorkDay.start_time).toLocaleTimeString('he-IL')}
                   </div>
                   {currentWorkDay.is_active ? (
-                    <Button onClick={pauseWorkDay} variant="outline" className="flex items-center gap-2">
-                      <Square className="h-4 w-4" />
+                    <Button onClick={pauseWorkDay} variant="outline" size="sm" className="flex items-center gap-2">
+                      <Square className="h-3 w-3" />
                       הפסק עבודה
                     </Button>
                   ) : (
-                    <Button onClick={resumeWorkDay} variant="default" className="flex items-center gap-2">
-                      <Play className="h-4 w-4" />
+                    <Button onClick={resumeWorkDay} variant="default" size="sm" className="flex items-center gap-2">
+                      <Play className="h-3 w-3" />
                       המשך עבודה
                     </Button>
                   )}
-                  <Button onClick={endWorkDay} variant="destructive" className="flex items-center gap-2">
-                    <Square className="h-4 w-4" />
+                  <Button onClick={endWorkDay} variant="destructive" size="sm" className="flex items-center gap-2">
+                    <Square className="h-3 w-3" />
                     סיים יום עבודה
                   </Button>
                 </div>
@@ -431,6 +431,19 @@ export const SecureTaxiDashboard = () => {
                          </div>
                        );
                      })}
+                     
+                     {/* שורת סיכום */}
+                     <div className="p-4 bg-primary/10 rounded-lg border-2 border-primary/30 mt-4">
+                       <div className="flex justify-between items-center">
+                         <span className="font-bold text-lg text-primary">סכום כולל:</span>
+                         <span className="font-bold text-xl text-primary">
+                           ₪{dailyStats.totalIncome.toLocaleString()}
+                         </span>
+                       </div>
+                       <div className="text-sm text-muted-foreground mt-1">
+                         {trips.length} נסיעות • ממוצע: ₪{trips.length > 0 ? (dailyStats.totalIncome / trips.length).toFixed(0) : '0'}
+                       </div>
+                     </div>
                   </div>
                 )}
               </CardContent>
