@@ -478,13 +478,15 @@ export const SecureTaxiDashboard = () => {
         </Tabs>
 
         {/* Settings Dialog */}
-        <SimpleSettingsDialog
+        <SettingsDialog
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
           goals={dailyGoals}
           expenses={dailyExpenses}
+          trips={trips}
           onUpdateGoals={handleUpdateGoals}
           onUpdateExpenses={handleUpdateExpenses}
+          onUpdateTrips={handleUpdateTrips}
         />
 
         {/* Edit Trips Dialog */}
