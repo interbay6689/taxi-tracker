@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Target, Fuel, List, FileText, BarChart3, Moon, Sun } from "lucide-react";
+import { Target, Fuel, List, FileText, BarChart3, Moon, Sun, Tag } from "lucide-react";
 import { Trip, DailyGoals, DailyExpenses } from "@/hooks/useDatabase";
 import { ReportsExport } from "./ReportsExport";
 import { GoalsTab } from "./settings/GoalsTab";
@@ -68,6 +68,7 @@ export const SettingsDialog = ({
               הוצאות
             </TabsTrigger>
             <TabsTrigger value="payment-types" className="text-xs">
+              <Tag className="h-3 w-3 ml-1" />
               תיוגים
             </TabsTrigger>
             <TabsTrigger value="trips" className="text-xs">
