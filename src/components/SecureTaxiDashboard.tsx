@@ -40,7 +40,9 @@ export const SecureTaxiDashboard = () => {
     addTrip, 
     addTripWithLocation,
     startWorkDay, 
-    endWorkDay, 
+    endWorkDay,
+    pauseWorkDay,
+    resumeWorkDay,
     updateGoals, 
     updateExpenses,
     deleteTrip,
@@ -286,8 +288,19 @@ export const SecureTaxiDashboard = () => {
               ) : (
                 <div className="flex items-center gap-4">
                   <div className="text-sm text-muted-foreground">
-                    יום עבודה פעיל מאז: {new Date(currentWorkDay.start_time).toLocaleTimeString('he-IL')}
+                    יום עבודה {currentWorkDay.is_active ? 'פעיל' : 'מושהה'} מאז: {new Date(currentWorkDay.start_time).toLocaleTimeString('he-IL')}
                   </div>
+                  {currentWorkDay.is_active ? (
+                    <Button onClick={pauseWorkDay} variant="outline" className="flex items-center gap-2">
+                      <Square className="h-4 w-4" />
+                      הפסק עבודה
+                    </Button>
+                  ) : (
+                    <Button onClick={resumeWorkDay} variant="default" className="flex items-center gap-2">
+                      <Play className="h-4 w-4" />
+                      המשך עבודה
+                    </Button>
+                  )}
                   <Button onClick={endWorkDay} variant="destructive" className="flex items-center gap-2">
                     <Square className="h-4 w-4" />
                     סיים יום עבודה

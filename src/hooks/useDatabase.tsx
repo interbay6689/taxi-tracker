@@ -435,6 +435,76 @@ export function useDatabase() {
     }
   }, [user, currentWorkDay, toast]);
 
+  const pauseWorkDay = useCallback(async () => {
+    if (!user || !currentWorkDay) return false;
+
+    try {
+      const { error } = await supabase
+        .from('work_days')
+        .update({
+          is_active: false
+        })
+        .eq('id', currentWorkDay.id);
+
+      if (error) throw error;
+
+      setCurrentWorkDay({
+        ...currentWorkDay,
+        is_active: false
+      });
+
+      toast({
+        title: "עבודה הופסקה",
+        description: "ניתן לחזור ולהמשיך לעבוד מאוחר יותר",
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error('Error pausing work day:', error);
+      toast({
+        title: "שגיאה בהפסקת עבודה",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  }, [user, currentWorkDay, toast]);
+
+  const resumeWorkDay = useCallback(async () => {
+    if (!user || !currentWorkDay) return false;
+
+    try {
+      const { error } = await supabase
+        .from('work_days')
+        .update({
+          is_active: true
+        })
+        .eq('id', currentWorkDay.id);
+
+      if (error) throw error;
+
+      setCurrentWorkDay({
+        ...currentWorkDay,
+        is_active: true
+      });
+
+      toast({
+        title: "עבודה חודשה",
+        description: "המשך יום עבודה טוב!",
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error('Error resuming work day:', error);
+      toast({
+        title: "שגיאה בחידוש עבודה",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  }, [user, currentWorkDay, toast]);
+
   const updateGoals = useCallback(async (newGoals: DailyGoals) => {
     if (!user) return false;
 
@@ -622,6 +692,8 @@ export function useDatabase() {
     addTripWithLocation,
     startWorkDay,
     endWorkDay,
+    pauseWorkDay,
+    resumeWorkDay,
     updateGoals,
     updateExpenses,
     deleteTrip,
