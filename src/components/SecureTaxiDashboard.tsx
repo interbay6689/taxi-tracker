@@ -242,25 +242,25 @@ export const SecureTaxiDashboard = () => {
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Car className="h-6 w-6 text-primary" />
-            <span className="text-lg font-medium leading-tight text-right">
+            <span className={`text-lg font-medium leading-tight text-right ${mode === 'night' ? 'text-primary-foreground' : 'text-foreground'}`}>
               Taxi<br />Tracker
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setIsSettingsOpen(true)} size="sm" className="bg-secondary/50 hover:bg-secondary">
+            <Button variant="outline" onClick={() => setIsSettingsOpen(true)} size="sm" className={`${mode === 'night' ? 'bg-secondary/50 hover:bg-secondary border-secondary text-primary-foreground' : 'bg-secondary/50 hover:bg-secondary'}`}>
               <Settings className={`h-4 w-4 mr-1 ${mode === 'night' ? 'text-primary-foreground' : 'text-foreground'}`} />
               <span className={mode === 'night' ? 'text-primary-foreground' : 'text-foreground'}>הגדרות</span>
             </Button>
-            <Button variant="outline" onClick={toggleNightMode} size="sm" className="bg-secondary/50 hover:bg-secondary">
+            <Button variant="outline" onClick={toggleNightMode} size="sm" className={`${mode === 'night' ? 'bg-secondary/50 hover:bg-secondary border-secondary text-primary-foreground' : 'bg-secondary/50 hover:bg-secondary'}`}>
               {mode === 'night' ? 
                 <Sun className="h-4 w-4 text-primary-foreground" /> : 
                 <Moon className="h-4 w-4 text-foreground" />
               }
             </Button>
-            <Button variant="outline" onClick={() => setIsEditTripsOpen(true)} size="sm" className="bg-secondary/50 hover:bg-secondary">
+            <Button variant="outline" onClick={() => setIsEditTripsOpen(true)} size="sm" className={`${mode === 'night' ? 'bg-secondary/50 hover:bg-secondary border-secondary text-primary-foreground' : 'bg-secondary/50 hover:bg-secondary'}`}>
               <Car className={`h-4 w-4 ${mode === 'night' ? 'text-primary-foreground' : 'text-foreground'}`} />
             </Button>
-            <Button variant="outline" onClick={signOut} size="sm" className="bg-secondary/50 hover:bg-destructive/10">
+            <Button variant="outline" onClick={signOut} size="sm" className={`${mode === 'night' ? 'bg-secondary/50 hover:bg-destructive/10 border-secondary text-destructive-foreground' : 'bg-secondary/50 hover:bg-destructive/10'}`}>
               <LogOut className={`h-4 w-4 mr-2 ${mode === 'night' ? 'text-destructive-foreground' : 'text-destructive'}`} />
               <span className={mode === 'night' ? 'text-destructive-foreground' : 'text-foreground'}>התנתק</span>
             </Button>
