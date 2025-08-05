@@ -1,13 +1,16 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, DollarSign, Clock, MapPin, Target, BarChart3 } from "lucide-react";
+import { TrendingUp, DollarSign, Clock, MapPin, Target, BarChart3, Tag, Zap } from "lucide-react";
 import { Trip } from "@/hooks/useDatabase";
+import { useCustomPaymentTypes } from "@/hooks/useCustomPaymentTypes";
 
 interface AnalyticsTabProps {
   trips: Trip[];
 }
 
 export const AnalyticsTab = ({ trips }: AnalyticsTabProps) => {
+  const { getPaymentMethodDetails, allPaymentOptions } = useCustomPaymentTypes();
+  
   const analytics = useMemo(() => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -18,33 +21,51 @@ export const AnalyticsTab = ({ trips }: AnalyticsTabProps) => {
     const weekTrips = trips.filter(trip => new Date(trip.timestamp) >= weekAgo);
     const monthTrips = trips.filter(trip => new Date(trip.timestamp) >= monthAgo);
 
-    const todayIncome = todayTrips.reduce((sum, trip) => sum + trip.amount, 0);
-    const weekIncome = weekTrips.reduce((sum, trip) => sum + trip.amount, 0);
-    const monthIncome = monthTrips.reduce((sum, trip) => sum + trip.amount, 0);
+    const todayIncome = todayTrips.reduce((sum, trip) => {
+      const paymentDetails = getPaymentMethodDetails(trip.payment_method);
+      return sum + (trip.amount * (1 - paymentDetails.commissionRate));
+    }, 0);
+    const weekIncome = weekTrips.reduce((sum, trip) => {
+      const paymentDetails = getPaymentMethodDetails(trip.payment_method);
+      return sum + (trip.amount * (1 - paymentDetails.commissionRate));
+    }, 0);
+    const monthIncome = monthTrips.reduce((sum, trip) => {
+      const paymentDetails = getPaymentMethodDetails(trip.payment_method);
+      return sum + (trip.amount * (1 - paymentDetails.commissionRate));
+    }, 0);
 
-    const avgTripValue = todayTrips.length > 0 ? todayIncome / todayTrips.length : 0;
-    const avgDailyIncome = weekTrips.length > 0 ? weekIncome / 7 : 0;
-    const avgWeeklyIncome = monthTrips.length > 0 ? monthIncome / 4 : 0;
-
-    // ניתוח תשלומים
-    const paymentStats = ['cash', 'card', 'app'].map(method => {
-      const methodTrips = todayTrips.filter(trip => trip.payment_method === method);
+    // ניתוח תשלומים מתקדם - כולל כל התיוגים
+    const paymentStats = allPaymentOptions.map(option => {
+      const methodTrips = todayTrips.filter(trip => trip.payment_method === option.value);
+      const income = methodTrips.reduce((sum, trip) => {
+        const paymentDetails = getPaymentMethodDetails(trip.payment_method);
+        return sum + (trip.amount * (1 - paymentDetails.commissionRate));
+      }, 0);
+      const rawIncome = methodTrips.reduce((sum, trip) => sum + trip.amount, 0);
+      const paymentDetails = getPaymentMethodDetails(option.value);
       return {
-        method: method === 'cash' ? 'מזומן' : method === 'card' ? 'כרטיס' : 'אפליקציה',
-        income: methodTrips.reduce((sum, trip) => sum + trip.amount, 0),
-        count: methodTrips.length
+        method: option.label,
+        income,
+        rawIncome,
+        count: methodTrips.length,
+        commissionRate: paymentDetails.commissionRate,
+        isCustom: option.isCustom
       };
-    });
+    }).filter(stat => stat.count > 0); // הצג רק תשלומים שיש בהם נסיעות
 
     // ניתוח שעות
     const hourlyStats = Array.from({ length: 24 }, (_, hour) => {
       const hourTrips = todayTrips.filter(trip => 
         new Date(trip.timestamp).getHours() === hour
       );
+      const income = hourTrips.reduce((sum, trip) => {
+        const paymentDetails = getPaymentMethodDetails(trip.payment_method);
+        return sum + (trip.amount * (1 - paymentDetails.commissionRate));
+      }, 0);
       return {
         hour,
         trips: hourTrips.length,
-        income: hourTrips.reduce((sum, trip) => sum + trip.amount, 0)
+        income
       };
     });
 
@@ -53,13 +74,24 @@ export const AnalyticsTab = ({ trips }: AnalyticsTabProps) => {
       { hour: 0, income: 0, trips: 0 }
     );
 
+    // פיצ'ר חדש: נתונים מתקדמים
+    const avgTripValueToday = todayTrips.length > 0 ? todayIncome / todayTrips.length : 0;
+    const totalCommissionLost = todayTrips.reduce((sum, trip) => {
+      const paymentDetails = getPaymentMethodDetails(trip.payment_method);
+      return sum + (trip.amount * paymentDetails.commissionRate);
+    }, 0);
+    
+    const busyHours = hourlyStats.filter(h => h.trips > 0).length;
+    const efficiency = todayTrips.length > 0 ? (todayIncome / todayTrips.length) : 0;
+
     return {
       todayIncome,
       weekIncome,
       monthIncome,
-      avgTripValue,
-      avgDailyIncome,
-      avgWeeklyIncome,
+      avgTripValueToday,
+      totalCommissionLost,
+      busyHours,
+      efficiency,
       paymentStats,
       hourlyStats,
       bestHour,
@@ -67,59 +99,99 @@ export const AnalyticsTab = ({ trips }: AnalyticsTabProps) => {
       weekTrips: weekTrips.length,
       monthTrips: monthTrips.length
     };
-  }, [trips]);
+  }, [trips, getPaymentMethodDetails, allPaymentOptions]);
 
   return (
     <div className="space-y-6">
-      {/* ממוצעים */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* נתונים מתקדמים */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">ממוצע לנסיעה</CardTitle>
+            <CardTitle className="text-sm font-medium">ממוצע לנסיעה היום</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₪{analytics.avgTripValue.toFixed(0)}</div>
+            <div className="text-2xl font-bold">₪{analytics.avgTripValueToday.toFixed(0)}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">ממוצע יומי</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">עמלות שנגזרו</CardTitle>
+            <DollarSign className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₪{analytics.avgDailyIncome.toFixed(0)}</div>
+            <div className="text-2xl font-bold text-destructive">₪{analytics.totalCommissionLost.toFixed(0)}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">ממוצע שבועי</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">שעות פעילות</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₪{analytics.avgWeeklyIncome.toFixed(0)}</div>
+            <div className="text-2xl font-bold">{analytics.busyHours}</div>
+            <div className="text-xs text-muted-foreground">מתוך 24 שעות</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">יעילות</CardTitle>
+            <Zap className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₪{analytics.efficiency.toFixed(0)}</div>
+            <div className="text-xs text-muted-foreground">לנסיעה נטו</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* ניתוח תשלומים */}
+      {/* ניתוח תיוגי תשלומים */}
       <Card>
         <CardHeader>
-          <CardTitle>התפלגות תשלומים היום</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Tag className="h-5 w-5" />
+            התפלגות תיוגי תשלומים היום
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {analytics.paymentStats.map((stat) => (
-              <div key={stat.method} className="flex justify-between items-center">
-                <span className="font-medium">{stat.method}</span>
-                <div className="text-right">
-                  <div className="font-bold">₪{stat.income}</div>
-                  <div className="text-sm text-muted-foreground">{stat.count} נסיעות</div>
+          <div className="space-y-4">
+            {analytics.paymentStats.length === 0 ? (
+              <p className="text-center text-muted-foreground py-4">אין נסיעות היום</p>
+            ) : (
+              analytics.paymentStats.map((stat, index) => (
+                <div key={index} className={`p-3 rounded-lg border ${stat.isCustom ? 'bg-primary/5 border-primary/20' : 'bg-muted/30'}`}>
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`font-medium ${stat.isCustom ? 'text-primary' : ''}`}>
+                          {stat.method}
+                        </span>
+                        {stat.isCustom && <Tag className="h-3 w-3 text-primary" />}
+                      </div>
+                      {stat.commissionRate !== 0 && (
+                        <div className="text-xs mt-1">
+                          {stat.commissionRate > 0 ? (
+                            <span className="text-destructive">עמלה: {(stat.commissionRate * 100).toFixed(1)}%</span>
+                          ) : (
+                            <span className="text-green-600">בונוס: +{Math.abs(stat.commissionRate * 100).toFixed(1)}%</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold">₪{stat.income.toLocaleString()}</div>
+                      {stat.commissionRate !== 0 && (
+                        <div className="text-xs text-muted-foreground line-through">₪{stat.rawIncome.toLocaleString()}</div>
+                      )}
+                      <div className="text-sm text-muted-foreground">{stat.count} נסיעות</div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
