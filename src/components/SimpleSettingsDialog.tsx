@@ -26,7 +26,7 @@ export const SimpleSettingsDialog = ({
 }: SimpleSettingsDialogProps) => {
   const [incomeGoal, setIncomeGoal] = useState(goals.income_goal.toString());
   const [tripsGoal, setTripsGoal] = useState(goals.trips_goal.toString());
-  const [fuel, setFuel] = useState(expenses.fuel.toString());
+  
   const [maintenance, setMaintenance] = useState(expenses.maintenance.toString());
   const [other, setOther] = useState(expenses.other.toString());
 
@@ -39,7 +39,6 @@ export const SimpleSettingsDialog = ({
 
     onUpdateExpenses({
       ...expenses,
-      fuel: Number(fuel) || 0,
       maintenance: Number(maintenance) || 0,
       other: Number(other) || 0
     });
@@ -96,19 +95,6 @@ export const SimpleSettingsDialog = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="fuel" className="flex items-center gap-2">
-                  <Fuel className="h-4 w-4" />
-                  דלק (₪)
-                </Label>
-                <Input
-                  id="fuel"
-                  type="number"
-                  value={fuel}
-                  onChange={(e) => setFuel(e.target.value)}
-                  placeholder="0"
-                />
-              </div>
               <div>
                 <Label htmlFor="maintenance" className="flex items-center gap-2">
                   <Wrench className="h-4 w-4" />

@@ -13,27 +13,6 @@ interface ExpensesTabProps {
 export const ExpensesTab: React.FC<ExpensesTabProps> = ({ expenses, setExpenses }) => {
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Fuel className="h-5 w-5" />
-            דלק
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Label htmlFor="fuel">עלות דלק יומית (₪)</Label>
-          <Input
-            id="fuel"
-            type="number"
-            placeholder="הזן עלות דלק"
-            value={expenses.fuel}
-            onChange={(e) => setExpenses({
-              ...expenses,
-              fuel: Number(e.target.value) || 0
-            })}
-          />
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>
@@ -86,7 +65,7 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({ expenses, setExpenses 
         <CardContent>
           <div className="flex justify-between items-center text-lg">
             <span>סה"כ הוצאות יומיות:</span>
-            <span className="font-bold">₪{(expenses.fuel + expenses.maintenance + expenses.other).toLocaleString()}</span>
+            <span className="font-bold">₪{(expenses.maintenance + expenses.other).toLocaleString()}</span>
           </div>
         </CardContent>
       </Card>

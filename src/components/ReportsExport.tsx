@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Download, FileText, Calendar, TrendingUp } from "lucide-react";
 import { Trip } from "@/hooks/useDatabase";
 import { useToast } from "@/hooks/use-toast";
+import { useCustomPaymentTypes } from "@/hooks/useCustomPaymentTypes";
 
 interface ReportsExportProps {
   trips: Trip[];
@@ -14,6 +15,7 @@ export const ReportsExport = ({ trips }: ReportsExportProps) => {
   const [reportType, setReportType] = useState<string>("");
   const [period, setPeriod] = useState<string>("");
   const { toast } = useToast();
+  const { getPaymentMethodDetails } = useCustomPaymentTypes();
 
   const generateReport = () => {
     if (!reportType || !period) {
@@ -25,134 +27,193 @@ export const ReportsExport = ({ trips }: ReportsExportProps) => {
       return;
     }
 
-    const now = new Date();
-    let filteredTrips: Trip[] = [];
-
-    // סינון לפי תקופה
-    switch (period) {
-      case "week":
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        filteredTrips = trips.filter(trip => new Date(trip.timestamp) >= weekAgo);
-        break;
-      case "month":
-        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        filteredTrips = trips.filter(trip => new Date(trip.timestamp) >= monthAgo);
-        break;
-      case "year":
-        const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-        filteredTrips = trips.filter(trip => new Date(trip.timestamp) >= yearAgo);
-        break;
-      default:
-        filteredTrips = trips;
-    }
-
-    // יצירת הדוח
+    const filteredTrips = getFilteredTrips();
     const reportData = generateReportData(filteredTrips, reportType);
     downloadReport(reportData, reportType, period);
   };
 
+  const getFilteredTrips = (): Trip[] => {
+    const now = new Date();
+    
+    switch (period) {
+      case "today":
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+        return trips.filter(trip => {
+          const tripDate = new Date(trip.timestamp);
+          return tripDate >= today && tripDate < tomorrow;
+        });
+      
+      case "week":
+        const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        return trips.filter(trip => new Date(trip.timestamp) >= weekStart);
+      
+      case "month":
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        return trips.filter(trip => new Date(trip.timestamp) >= monthStart);
+      
+      case "year":
+        const yearStart = new Date(now.getFullYear(), 0, 1);
+        return trips.filter(trip => new Date(trip.timestamp) >= yearStart);
+      
+      default:
+        return trips;
+    }
+  };
+
   const generateReportData = (trips: Trip[], type: string) => {
-    const totalIncome = trips.reduce((sum, trip) => sum + trip.amount, 0);
+    const totalIncome = trips.reduce((sum, trip) => {
+      const details = getPaymentMethodDetails(trip.payment_method);
+      return sum + (trip.amount * (1 - details.commissionRate));
+    }, 0);
     const totalTrips = trips.length;
     const avgTripValue = totalTrips > 0 ? totalIncome / totalTrips : 0;
 
+    // Header with BOM for proper Hebrew encoding
     const header = [
-      "דוח נסיעות מונית",
-      `תקופה: ${getPeriodText(period)}`,
+      `דוח נסיעות מונית - ${getPeriodText(period)}`,
       `תאריך יצירה: ${new Date().toLocaleDateString('he-IL')}`,
       "",
       "סיכום כללי:",
-      `סה״כ הכנסות: ₪${totalIncome}`,
+      `סה״כ הכנסות: ₪${totalIncome.toFixed(2)}`,
       `מספר נסיעות: ${totalTrips}`,
       `ממוצע לנסיעה: ₪${avgTripValue.toFixed(2)}`,
       "",
     ];
 
-    if (type === "tax") {
-      return [
-        ...header,
-        "דוח לרשויות המס:",
-        "תאריך,שעה,סכום,אמצעי תשלום",
-        ...trips.map(trip => 
-          `${new Date(trip.timestamp).toLocaleDateString('he-IL')},${new Date(trip.timestamp).toLocaleTimeString('he-IL')},${trip.amount},${getPaymentMethodText(trip.payment_method)}`
-        )
-      ];
-    }
-
     if (type === "detailed") {
-      const paymentBreakdown = ['cash', 'card', 'app'].map(method => {
-        const methodTrips = trips.filter(trip => trip.payment_method === method);
-        const methodIncome = methodTrips.reduce((sum, trip) => sum + trip.amount, 0);
-        return `${getPaymentMethodText(method)}: ₪${methodIncome} (${methodTrips.length} נסיעות)`;
+      const csvHeader = "תאריך,שעת התחלה,שעת סיום,תיוג תשלום,סכום נטו,סכום גולמי,עמלה";
+      const csvRows = trips.map(trip => {
+        const tripDate = new Date(trip.timestamp);
+        const details = getPaymentMethodDetails(trip.payment_method);
+        const grossAmount = trip.amount;
+        const netAmount = grossAmount * (1 - details.commissionRate);
+        const commission = grossAmount - netAmount;
+        
+        return [
+          tripDate.toLocaleDateString('he-IL'),
+          trip.trip_start_time ? new Date(trip.trip_start_time).toLocaleTimeString('he-IL') : tripDate.toLocaleTimeString('he-IL'),
+          trip.trip_end_time ? new Date(trip.trip_end_time).toLocaleTimeString('he-IL') : "",
+          details.displayName,
+          netAmount.toFixed(2),
+          grossAmount.toFixed(2),
+          commission.toFixed(2)
+        ].join(',');
       });
 
       return [
         ...header,
-        "פירוט לפי אמצעי תשלום:",
-        ...paymentBreakdown,
-        "",
-        "רשימת נסיעות:",
-        "תאריך,שעה,סכום,אמצעי תשלום",
-        ...trips.map(trip => 
-          `${new Date(trip.timestamp).toLocaleDateString('he-IL')},${new Date(trip.timestamp).toLocaleTimeString('he-IL')},${trip.amount},${getPaymentMethodText(trip.payment_method)}`
-        )
+        csvHeader,
+        ...csvRows
       ];
     }
 
-    return header;
+    if (type === "summary") {
+      const paymentBreakdown: Record<string, { count: number; total: number; commission: number }> = {};
+      trips.forEach(trip => {
+        const details = getPaymentMethodDetails(trip.payment_method);
+        const key = details.displayName;
+        if (!paymentBreakdown[key]) {
+          paymentBreakdown[key] = { count: 0, total: 0, commission: 0 };
+        }
+        paymentBreakdown[key].count++;
+        paymentBreakdown[key].total += trip.amount;
+        paymentBreakdown[key].commission += trip.amount * details.commissionRate;
+      });
+
+      const breakdown = Object.entries(paymentBreakdown).map(([method, data]) => 
+        `${method}: ₪${data.total.toFixed(2)} (${data.count} נסיעות, עמלה: ₪${data.commission.toFixed(2)})`
+      );
+
+      return [
+        ...header,
+        "פירוט לפי אמצעי תשלום:",
+        ...breakdown,
+      ];
+    }
+
+    // Default tax report
+    const csvHeader = "תאריך,שעה,סכום,אמצעי תשלום";
+    const csvRows = trips.map(trip => {
+      const tripDate = new Date(trip.timestamp);
+      const details = getPaymentMethodDetails(trip.payment_method);
+      return [
+        tripDate.toLocaleDateString('he-IL'),
+        tripDate.toLocaleTimeString('he-IL'),
+        trip.amount.toFixed(2),
+        details.displayName
+      ].join(',');
+    });
+
+    return [
+      ...header,
+      "דוח לרשויות המס:",
+      csvHeader,
+      ...csvRows
+    ];
   };
 
   const downloadReport = (data: string[], type: string, period: string) => {
     const content = data.join('\n');
-    // הוספת BOM (Byte Order Mark) לתמיכה נכונה בעברית באקסל
-    const BOM = '\uFEFF';
-    const blob = new Blob([BOM + content], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
     
-    if (link.download !== undefined) {
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `דוח_נסיעות_${type}_${period}_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
+    const fileName = `דוח_נסיעות_${getReportTypeText(type)}_${getPeriodText(period)}_${new Date().toLocaleDateString('he-IL').replace(/\//g, '_')}.csv`;
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', fileName);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
     toast({
-      title: "הדוח נוצר בהצלחה!",
-      description: "הקובץ הורד למכשיר שלך",
+      title: "הצלחה",
+      description: `הדוח הורד בהצלחה: ${fileName}`,
     });
   };
 
   const getPeriodText = (period: string) => {
-    switch (period) {
-      case "week": return "שבוע אחרון";
-      case "month": return "חודש אחרון";
-      case "year": return "שנה אחרונה";
-      default: return "כל הנתונים";
-    }
+    const texts = {
+      'today': 'היום',
+      'week': 'שבוע_אחרון',
+      'month': 'חודש_נוכחי',
+      'year': 'שנה_נוכחית',
+      'all': 'כל_התקופות'
+    };
+    return texts[period] || period;
   };
 
-  const getPaymentMethodText = (method: string) => {
-    switch (method) {
-      case "cash": return "מזומן";
-      case "card": return "כרטיס";
-      case "app": return "אפליקציה";
-      default: return method;
-    }
+  const getReportTypeText = (type: string) => {
+    const texts = {
+      'detailed': 'מפורט',
+      'summary': 'סיכום',
+      'tax': 'מס'
+    };
+    return texts[type] || type;
   };
+
+  const filteredTrips = getFilteredTrips();
+  const weeklyTrips = trips.filter(trip => {
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    return new Date(trip.timestamp) >= weekAgo;
+  });
+  const weeklyIncome = weeklyTrips.reduce((sum, trip) => {
+    const details = getPaymentMethodDetails(trip.payment_method);
+    return sum + (trip.amount * (1 - details.commissionRate));
+  }, 0);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5" />
-          ייצוא דוחות
+          ייצא דוחות
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium mb-2 block">סוג דוח</label>
             <Select value={reportType} onValueChange={setReportType}>
@@ -160,13 +221,13 @@ export const ReportsExport = ({ trips }: ReportsExportProps) => {
                 <SelectValue placeholder="בחר סוג דוח" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="summary">סיכום כללי</SelectItem>
                 <SelectItem value="detailed">דוח מפורט</SelectItem>
-                <SelectItem value="tax">דוח לרשויות מס</SelectItem>
+                <SelectItem value="summary">דוח סיכום</SelectItem>
+                <SelectItem value="tax">דוח לרשויות המס</SelectItem>
               </SelectContent>
             </Select>
           </div>
-
+          
           <div>
             <label className="text-sm font-medium mb-2 block">תקופה</label>
             <Select value={period} onValueChange={setPeriod}>
@@ -174,58 +235,44 @@ export const ReportsExport = ({ trips }: ReportsExportProps) => {
                 <SelectValue placeholder="בחר תקופה" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="today">היום</SelectItem>
                 <SelectItem value="week">שבוע אחרון</SelectItem>
-                <SelectItem value="month">חודש אחרון</SelectItem>
-                <SelectItem value="year">שנה אחרונה</SelectItem>
-                <SelectItem value="all">כל הנתונים</SelectItem>
+                <SelectItem value="month">החודש הנוכחי</SelectItem>
+                <SelectItem value="year">השנה הנוכחית</SelectItem>
+                <SelectItem value="all">כל התקופות</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
         <Button 
-          onClick={generateReport}
-          className="w-full"
+          onClick={generateReport} 
           disabled={!reportType || !period}
+          className="w-full"
         >
-          <Download className="mr-2 h-4 w-4" />
-          הורד דוח
+          <Download className="w-4 h-4 mr-2" />
+          הורד דוח ({filteredTrips.length} נסיעות)
         </Button>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <Calendar className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-              <div className="text-sm text-muted-foreground">נסיעות השבוע</div>
-              <div className="text-2xl font-bold">
-                {trips.filter(trip => 
-                  new Date(trip.timestamp) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-                ).length}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4 text-center">
-              <TrendingUp className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-              <div className="text-sm text-muted-foreground">הכנסות השבוע</div>
-              <div className="text-2xl font-bold">
-                ₪{trips
-                  .filter(trip => 
-                    new Date(trip.timestamp) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-                  )
-                  .reduce((sum, trip) => sum + trip.amount, 0)}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4 text-center">
-              <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-              <div className="text-sm text-muted-foreground">סה״כ נסיעות</div>
-              <div className="text-2xl font-bold">{trips.length}</div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-primary">
+              {weeklyTrips.length}
+            </div>
+            <div className="text-sm text-muted-foreground">נסיעות השבוע</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-primary">
+              ₪{weeklyIncome.toFixed(0)}
+            </div>
+            <div className="text-sm text-muted-foreground">הכנסות השבוע</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-primary">
+              {trips.length}
+            </div>
+            <div className="text-sm text-muted-foreground">סה״כ נסיעות</div>
+          </div>
         </div>
       </CardContent>
     </Card>

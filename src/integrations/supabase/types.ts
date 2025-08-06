@@ -50,7 +50,6 @@ export type Database = {
       daily_expenses: {
         Row: {
           created_at: string
-          fuel: number | null
           id: string
           maintenance: number | null
           other: number | null
@@ -59,7 +58,6 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          fuel?: number | null
           id?: string
           maintenance?: number | null
           other?: number | null
@@ -68,7 +66,6 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          fuel?: number | null
           id?: string
           maintenance?: number | null
           other?: number | null
@@ -80,27 +77,36 @@ export type Database = {
       daily_goals: {
         Row: {
           created_at: string
+          goal_type: string | null
           id: string
           income_goal: number
+          monthly_income_goal: number | null
           trips_goal: number
           updated_at: string
           user_id: string
+          weekly_income_goal: number | null
         }
         Insert: {
           created_at?: string
+          goal_type?: string | null
           id?: string
           income_goal?: number
+          monthly_income_goal?: number | null
           trips_goal?: number
           updated_at?: string
           user_id: string
+          weekly_income_goal?: number | null
         }
         Update: {
           created_at?: string
+          goal_type?: string | null
           id?: string
           income_goal?: number
+          monthly_income_goal?: number | null
           trips_goal?: number
           updated_at?: string
           user_id?: string
+          weekly_income_goal?: number | null
         }
         Relationships: []
       }
@@ -125,6 +131,39 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      shift_expenses: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          payment_method: string
+          updated_at: string
+          user_id: string
+          work_day_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          payment_method: string
+          updated_at?: string
+          user_id: string
+          work_day_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          payment_method?: string
+          updated_at?: string
+          user_id?: string
+          work_day_id?: string
         }
         Relationships: []
       }

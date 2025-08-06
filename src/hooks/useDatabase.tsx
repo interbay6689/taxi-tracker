@@ -33,12 +33,23 @@ export interface WorkDay {
 export interface DailyGoals {
   income_goal: number;
   trips_goal: number;
+  goal_type?: 'daily' | 'shift';
+  weekly_income_goal?: number;
+  monthly_income_goal?: number;
 }
 
 export interface DailyExpenses {
-  fuel: number;
   maintenance: number;
   other: number;
+}
+
+export interface ShiftExpense {
+  id: string;
+  work_day_id: string;
+  payment_method: string;
+  amount: number;
+  description?: string;
+  created_at: string;
 }
 
 export function useDatabase() {
@@ -48,7 +59,8 @@ export function useDatabase() {
   const [workDays, setWorkDays] = useState<WorkDay[]>([]);
   const [currentWorkDay, setCurrentWorkDay] = useState<WorkDay | null>(null);
   const [dailyGoals, setDailyGoals] = useState<DailyGoals>({ income_goal: 500, trips_goal: 20 });
-  const [dailyExpenses, setDailyExpenses] = useState<DailyExpenses>({ fuel: 0, maintenance: 0, other: 0 });
+  const [dailyExpenses, setDailyExpenses] = useState<DailyExpenses>({ maintenance: 0, other: 0 });
+  const [shiftExpenses, setShiftExpenses] = useState<ShiftExpense[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Load data when user is authenticated
@@ -162,9 +174,8 @@ export function useDatabase() {
       if (expensesResponse.error) throw expensesResponse.error;
       if (expensesResponse.data) {
         setDailyExpenses({
-          fuel: Number(expensesResponse.data.fuel),
-          maintenance: Number(expensesResponse.data.maintenance),
-          other: Number(expensesResponse.data.other)
+          maintenance: Number(expensesResponse.data.maintenance || 0),
+          other: Number(expensesResponse.data.other || 0)
         });
       }
     } catch (error: any) {
@@ -579,7 +590,6 @@ export function useDatabase() {
         const { error } = await supabase
           .from('daily_expenses')
           .update({
-            fuel: newExpenses.fuel,
             maintenance: newExpenses.maintenance,
             other: newExpenses.other
           })
@@ -592,7 +602,6 @@ export function useDatabase() {
           .from('daily_expenses')
           .insert({
             user_id: user.id,
-            fuel: newExpenses.fuel,
             maintenance: newExpenses.maintenance,
             other: newExpenses.other
           });

@@ -65,7 +65,7 @@ export const SecureTaxiDashboard = () => {
       const finalAmount = trip.amount * (1 - paymentDetails.commissionRate);
       return sum + finalAmount;
     }, 0);
-    const totalExpensesValue = dailyExpenses.fuel + dailyExpenses.maintenance + dailyExpenses.other;
+    const totalExpensesValue = dailyExpenses.maintenance + dailyExpenses.other;
     const netProfit = totalIncome - totalExpensesValue;
     const incomeProgress = Math.min((totalIncome / dailyGoals.income_goal) * 100, 100);
     const tripsProgress = Math.min((trips.length / dailyGoals.trips_goal) * 100, 100);
