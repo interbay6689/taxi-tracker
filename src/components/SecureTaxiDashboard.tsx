@@ -283,7 +283,7 @@ export const SecureTaxiDashboard = () => {
               {!currentWorkDay ? (
                 <Button onClick={startWorkDay} className="flex items-center gap-2" size="lg">
                   <Play className="h-5 w-5" />
-                  התחל יום עבודה
+                  התחל משמרת
                 </Button>
               ) : (
                 <div className="flex items-center gap-4">
@@ -293,17 +293,17 @@ export const SecureTaxiDashboard = () => {
                   {currentWorkDay.is_active ? (
                     <Button onClick={pauseWorkDay} variant="outline" size="sm" className="flex items-center gap-2">
                       <Square className="h-3 w-3" />
-                      הפסק עבודה
+                      הפסקה
                     </Button>
                   ) : (
                     <Button onClick={resumeWorkDay} variant="default" size="sm" className="flex items-center gap-2">
                       <Play className="h-3 w-3" />
-                      המשך עבודה
+                      סיים הפסקה
                     </Button>
                   )}
                   <Button onClick={endWorkDay} variant="destructive" size="sm" className="flex items-center gap-2">
                     <Square className="h-3 w-3" />
-                    סיים יום עבודה
+                    סיים משמרת
                   </Button>
                 </div>
               )}
@@ -331,7 +331,7 @@ export const SecureTaxiDashboard = () => {
                 size="lg"
               >
                 <Plus className="mr-2 h-6 w-6" />
-                הוסף נסיעה מאובטחת
+                הוסף נסיעה
               </Button>
             </CardContent>
           </Card>
