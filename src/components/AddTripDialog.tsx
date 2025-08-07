@@ -45,7 +45,13 @@ interface AddTripDialogProps {
    * based on recently entered values.  Pass an empty array if
    * unavailable.
    */
-  tripsToday: Trip[];
+  /**
+   * A list of today's trips.  If omitted the component will assume an
+   * empty array and display the default quick amounts.  Optional to
+   * preserve backwards compatibility with call sites that have not
+   * been updated to supply this prop.
+   */
+  tripsToday?: Trip[];
   /**
    * A list of tags the user can choose from.  If not provided a
    * sensible default is used.  Tags allow the user to categorise
@@ -58,7 +64,7 @@ export const AddTripDialog = ({
   isOpen,
   onClose,
   onAddTrip,
-  tripsToday,
+  tripsToday = [],
   tags = ["שדה", "תחנה", "הזמנה", "אחר"],
 }: AddTripDialogProps) => {
   const { toast } = useToast();
@@ -76,9 +82,8 @@ export const AddTripDialog = ({
    * greater than zero are kept and sorted in descending order.
    */
   const quickAmounts = useMemo(() => {
-    const uniqueAmounts = Array.from(
-      new Set(tripsToday.map((trip) => trip.amount))
-    )
+    const source = Array.isArray(tripsToday) ? tripsToday : [];
+    const uniqueAmounts = Array.from(new Set(source.map((trip) => trip.amount)))
       .filter((val) => val > 0)
       .sort((a, b) => b - a);
     const amounts = uniqueAmounts.slice(0, 6);
