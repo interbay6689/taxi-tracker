@@ -100,35 +100,6 @@ export const AddTripDialog = ({
     setSelectedTag("");
   };
 
-  /**
-   * Derive a list of quick amount values based on the unique amounts
-   * recorded in today’s trips. When there are no trips yet, a default
-   * list of values is returned. Only positive amounts are considered and
-   * values are sorted descending to surface the largest values first.
-   */
-  const quickAmounts = useMemo(() => {
-    // Ensure tripsToday is an array before mapping. If the prop is
-    // undefined the default argument ensures it will be an empty array.
-    const source = Array.isArray(tripsToday) ? tripsToday : [];
-    const unique = Array.from(new Set(source.map((trip) => trip.amount)));
-    const positive = unique.filter((val) => val > 0);
-    // Sort descending and take the top 6 values. Fallback to a set of
-    // predefined amounts if none are available.
-    const sorted = positive.sort((a, b) => b - a).slice(0, 6);
-    const defaults = [20, 30, 40, 50, 60, 80];
-    return sorted.length > 0 ? sorted : defaults;
-  }, [tripsToday]);
-
-  /**
-   * Resets the local state of the form to its initial values. This
-   * function is called after a successful submission or when the user
-   * cancels the dialog.
-   */
-  const resetState = () => {
-    setAmount("");
-    setPaymentMethod("cash");
-    setSelectedTag("");
-  };
 
   /**
    * Validates the amount input and, if valid, invokes the `onAddTrip`
