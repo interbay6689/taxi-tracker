@@ -198,10 +198,15 @@ export const SecureTaxiDashboard = () => {
   // התראות
   useNotifications({
     dailyGoals,
-    totalIncome: dailyStats.totalIncome,
+    // Use gross income for notifications since the net value includes
+    // commissions and expenses.  The previous property `totalIncome`
+    // no longer exists on dailyStats.
+    totalIncome: dailyStats.totalIncomeGross,
     tripsCount: dailyStats.tripsCount,
     workDayStartTime: currentWorkDay?.start_time,
-    goalMet: dailyStats.goalMet
+    // Do not include goalMet because the new dailyStats no longer
+    // computes this boolean. Notifications will handle goal logic
+    // internally based on the provided income and goals.
   });
 
   const handleAddTrip = async (
@@ -215,9 +220,9 @@ export const SecureTaxiDashboard = () => {
       | 'אשראי'
       | 'GetTaxi'
       | 'דהרי',
-    tag?: string
+    tag?: string,
   ) => {
-    console.log('handleAddTrip called with:', { amount, paymentMethod });
+    console.log('handleAddTrip called with:', { amount, paymentMethod, tag });
     // אם אופליין, שמור אופליין
     if (!isOnline) {
       const offlineTrip = {
@@ -616,20 +621,26 @@ export const SecureTaxiDashboard = () => {
                          )}
                        </div>
                      ))}
-                     {/* שורת סיכום: סכום הכנסות אחרי קיזוז הוצאות דלק */}
+                     {/* Summary row: show net profit after all expenses and the average per trip */}
                      <div className="p-4 bg-primary/10 rounded-lg border-2 border-primary/30 mt-4">
                        <div className="flex justify-between items-center">
                          <span className="font-bold text-lg text-primary">סכום כולל:</span>
                          <span className="font-bold text-xl text-primary">
                            {(() => {
-                             const fuelTotal = shiftExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
-                             const net = dailyStats.totalIncome - fuelTotal;
+                             // Use the net profit from dailyStats which already
+                             // subtracts maintenance, other expenses and fuel
+                             // expenses from the gross income.
+                             const net = dailyStats.netProfit;
                              return `₪${net.toLocaleString()}`;
                            })()}
                          </span>
                        </div>
                        <div className="text-sm text-muted-foreground mt-1">
-                         {trips.length} נסיעות • ממוצע: ₪{trips.length > 0 ? ((dailyStats.totalIncome - shiftExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0)) / trips.length).toFixed(0) : '0'}
+                         {trips.length} נסיעות • ממוצע: ₪{
+                           trips.length > 0
+                             ? (dailyStats.netProfit / trips.length).toFixed(0)
+                             : '0'
+                         }
                        </div>
                      </div>
                   </div>
@@ -711,8 +722,8 @@ export const SecureTaxiDashboard = () => {
           isOpen={isAddTripOpen}
           onClose={() => setIsAddTripOpen(false)}
           // Pass today's trips so the dialog can derive quick amount
-          // buttons from recent values.  Tags can optionally be passed
-          // via props; we rely on the default list in the component.
+          // buttons from recent values.  Tags use the default list defined
+          // in the component unless explicitly provided.
           tripsToday={trips}
           onAddTrip={(amount, method, tag) => {
             handleAddTrip(
