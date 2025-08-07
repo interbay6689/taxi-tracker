@@ -107,13 +107,17 @@ export function useDatabase() {
       // Load all data in parallel with timeout protection
       const today = new Date().toISOString().split('T')[0];
       
+      // Calculate dates for historical data
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      
       const loadPromises = [
-        // Load trips for today
+        // Load ALL trips (not just today) for proper analytics calculations
         supabase
           .from('trips')
           .select('*')
-          .gte('timestamp', `${today}T00:00:00.000Z`)
-          .lt('timestamp', `${today}T23:59:59.999Z`)
+          .gte('timestamp', startOfYear.toISOString())
           .order('timestamp', { ascending: false }),
         
         // Load current active work day
