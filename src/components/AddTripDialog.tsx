@@ -118,7 +118,7 @@ export const AddTripDialog = ({
       });
       return;
     }
-    onAddTrip(parsedAmount, paymentMethod, selectedTag || undefined);
+    onAddTrip(parsedAmount, paymentMethod, selectedTag === "none" ? undefined : selectedTag || undefined);
     resetState();
     onClose();
     toast({
@@ -134,7 +134,7 @@ export const AddTripDialog = ({
    * component resets its state.
    */
   const handleQuickClick = (value: number) => {
-    onAddTrip(value, paymentMethod, selectedTag || undefined);
+    onAddTrip(value, paymentMethod, selectedTag === "none" ? undefined : selectedTag || undefined);
     resetState();
     onClose();
     toast({
@@ -205,7 +205,7 @@ export const AddTripDialog = ({
                 <SelectValue placeholder="ללא תיוג" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">ללא תיוג</SelectItem>
+                <SelectItem value="none">ללא תיוג</SelectItem>
                 {tagOptions.map((tag) => (
                   <SelectItem key={tag} value={tag}>
                     {tag}

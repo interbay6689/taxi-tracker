@@ -198,15 +198,10 @@ export const SecureTaxiDashboard = () => {
   // התראות
   useNotifications({
     dailyGoals,
-    // Use gross income for notifications since the net value includes
-    // commissions and expenses.  The previous property `totalIncome`
-    // no longer exists on dailyStats.
     totalIncome: dailyStats.totalIncomeGross,
     tripsCount: dailyStats.tripsCount,
     workDayStartTime: currentWorkDay?.start_time,
-    // Do not include goalMet because the new dailyStats no longer
-    // computes this boolean. Notifications will handle goal logic
-    // internally based on the provided income and goals.
+    goalMet: dailyStats.incomeProgress >= 100 && dailyStats.tripsProgress >= 100,
   });
 
   const handleAddTrip = async (
@@ -351,7 +346,7 @@ export const SecureTaxiDashboard = () => {
     return (
       <div className="min-h-screen">{/* מצב נהיגה */}
         <DrivingModeHeader
-          totalIncome={dailyStats.totalIncome}
+          totalIncome={dailyStats.totalIncomeGross}
           tripsCount={dailyStats.tripsCount}
           dailyGoal={dailyGoals.income_goal}
           onAddTrip={() => setIsAddTripOpen(true)}
