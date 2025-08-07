@@ -70,39 +70,130 @@ export const SecureTaxiDashboard = () => {
   const dailyStats = useMemo(() => {
     // Filter trips to only include those that fall within the current shift
     // boundaries. If no work day is active, consider all trips for the day.
-    const filteredTrips = trips.filter(trip => {
+    const filteredTrips = trips.filter((trip) => {
       const ts = new Date(trip.timestamp).getTime();
-      const start = currentWorkDay?.start_time ? new Date(currentWorkDay.start_time).getTime() : null;
-      const end = currentWorkDay?.end_time ? new Date(currentWorkDay.end_time).getTime() : null;
+      const start = currentWorkDay?.start_time
+        ? new Date(currentWorkDay.start_time).getTime()
+        : null;
+      const end = currentWorkDay?.end_time
+        ? new Date(currentWorkDay.end_time).getTime()
+        : null;
       if (start && ts < start) return false;
       if (end && ts > end) return false;
       return true;
     });
-
-    const totalIncome = filteredTrips.reduce((sum, trip) => {
-      const paymentDetails = getPaymentMethodDetails(trip.payment_method);
-      const finalAmount = trip.amount * (1 - paymentDetails.commissionRate);
-      return sum + finalAmount;
-    }, 0);
-    // Calculate expenses: include daily expenses (maintenance + other) and any
-    // shift-level expenses such as fuel. Each shift expense record has an
-    // amount field representing its shekel value.
-    const fuelExpensesTotal = shiftExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
-    const totalExpensesValue = dailyExpenses.maintenance + dailyExpenses.other + fuelExpensesTotal;
-    const netProfit = totalIncome - totalExpensesValue;
-    const incomeProgress = Math.min((totalIncome / dailyGoals.income_goal) * 100, 100);
-    const tripsProgress = Math.min((filteredTrips.length / dailyGoals.trips_goal) * 100, 100);
-    
+    // Gross income (before commissions) is simply the sum of all trip
+    // amounts for the filtered set.  Net income takes into account
+    // commission rates defined by the payment method.  We compute both
+    // because the UI displays gross income while net values are
+    // informative for profit calculations.
+    const totals = filteredTrips.reduce(
+      (acc, trip) => {
+        const paymentDetails = getPaymentMethodDetails(trip.payment_method);
+        const netAmount = trip.amount * (1 - paymentDetails.commissionRate);
+        acc.gross += trip.amount;
+        acc.net += netAmount;
+        return acc;
+      },
+      { gross: 0, net: 0 }
+    );
+    // Calculate expenses: include daily expenses (maintenance + other) and
+    // any shift-level expenses such as fuel. Each shift expense record
+    // has an amount field representing its shekel value.
+    const fuelExpensesTotal = shiftExpenses.reduce(
+      (sum, expense) => sum + (expense.amount || 0),
+      0
+    );
+    const totalExpensesValue =
+      dailyExpenses.maintenance + dailyExpenses.other + fuelExpensesTotal;
+    // Net profit is based on gross income minus total expenses.
+    const netProfit = totals.gross - totalExpensesValue;
+    // Progress metrics for daily income and monthly trips (tripsProgress
+    // will be overridden later when computing monthly progress).  The
+    // income goal is dailyGoals.income_goal.  Guard against division
+    // by zero.
+    const incomeProgress =
+      dailyGoals.income_goal > 0
+        ? Math.min((totals.gross / dailyGoals.income_goal) * 100, 100)
+        : 0;
+    const tripsProgress =
+      dailyGoals.trips_goal > 0
+        ? Math.min((filteredTrips.length / dailyGoals.trips_goal) * 100, 100)
+        : 0;
     return {
-      totalIncome,
+      totalIncomeGross: totals.gross,
+      totalIncomeNet: totals.net,
       totalExpenses: totalExpensesValue,
       netProfit,
       incomeProgress,
       tripsProgress,
       tripsCount: filteredTrips.length,
-      goalMet: totalIncome >= dailyGoals.income_goal && filteredTrips.length >= dailyGoals.trips_goal,
     };
   }, [trips, dailyGoals, dailyExpenses, shiftExpenses, currentWorkDay, getPaymentMethodDetails]);
+
+  /**
+   * Compute weekly and monthly aggregates for income and trips.  These
+   * values are used by the goals progress component to display
+   * progress for different periods.  Weekly aggregates sum up all
+   * work days starting from the first day of the week (Monday) plus
+   * the current day's gross income and trip count.  Monthly
+   * aggregates sum all work days from the first day of the month.
+   */
+  const weeklyMonthlyStats = useMemo(() => {
+    // Determine the start of the current week (Monday at 00:00) and
+    // the start of the current month.
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    // Set to Monday.  In JavaScript getDay returns 0 for Sunday.
+    const dayOfWeek = now.getDay();
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    startOfWeek.setDate(now.getDate() + diffToMonday);
+    startOfWeek.setHours(0, 0, 0, 0);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    let weeklyIncome = dailyStats.totalIncomeGross;
+    let monthlyIncome = dailyStats.totalIncomeGross;
+    let monthlyTrips = dailyStats.tripsCount;
+
+    workDays.forEach((day) => {
+      const dayStart = new Date(day.start_time);
+      if (dayStart >= startOfWeek) {
+        weeklyIncome += day.total_income;
+      }
+      if (dayStart >= startOfMonth) {
+        monthlyIncome += day.total_income;
+        monthlyTrips += day.total_trips;
+      }
+    });
+
+    // Determine goals.  If weekly or monthly goals are not provided
+    // explicitly (via dailyGoals.weekly_income_goal / monthly_income_goal)
+    // compute them as dailyGoal * number of days.
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const weeklyGoalIncome =
+      dailyGoals.weekly_income_goal ?? dailyGoals.income_goal * 7;
+    const monthlyGoalIncome =
+      dailyGoals.monthly_income_goal ?? dailyGoals.income_goal * daysInMonth;
+
+    // Monthly trips goal is defined by dailyGoals.trips_goal.  We treat
+    // this value as the goal for the entire month (i.e. the number
+    // supplied in settings represents the desired total trips for the
+    // month).
+    const tripsGoalMonthly = dailyGoals.trips_goal;
+    const tripsProgressMonthly =
+      tripsGoalMonthly > 0
+        ? Math.min((monthlyTrips / tripsGoalMonthly) * 100, 100)
+        : 0;
+    return {
+      weeklyIncome,
+      monthlyIncome,
+      weeklyGoalIncome,
+      monthlyGoalIncome,
+      monthlyTrips,
+      tripsGoalMonthly,
+      tripsProgressMonthly,
+    };
+  }, [workDays, dailyStats.totalIncomeGross, dailyStats.tripsCount, dailyGoals]);
 
   // התראות
   useNotifications({
@@ -113,7 +204,19 @@ export const SecureTaxiDashboard = () => {
     goalMet: dailyStats.goalMet
   });
 
-  const handleAddTrip = async (amount: number, paymentMethod: 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי') => {
+  const handleAddTrip = async (
+    amount: number,
+    paymentMethod:
+      | 'cash'
+      | 'card'
+      | 'app'
+      | 'מזומן'
+      | 'ביט'
+      | 'אשראי'
+      | 'GetTaxi'
+      | 'דהרי',
+    tag?: string
+  ) => {
     console.log('handleAddTrip called with:', { amount, paymentMethod });
     // אם אופליין, שמור אופליין
     if (!isOnline) {
@@ -140,7 +243,7 @@ export const SecureTaxiDashboard = () => {
     }
 
     // אם מחובר, שמור בדרך הרגילה
-    const success = await addTrip(amount, paymentMethod);
+    const success = await addTrip(amount, paymentMethod, tag);
     if (success) {
       setIsAddTripOpen(false);
       setQuickAmount(null);
@@ -193,6 +296,7 @@ export const SecureTaxiDashboard = () => {
     };
     duration: number;
     paymentMethod: string;
+    tag?: string;
   }) => {
     // מיפוי אמצעי תשלום עבריים לאנגליים
     const paymentMethodMap: { [key: string]: 'cash' | 'card' | 'app' } = {
@@ -204,7 +308,8 @@ export const SecureTaxiDashboard = () => {
 
     const success = await addTripWithLocation({
       ...tripData,
-      paymentMethod: paymentMethodMap[tripData.paymentMethod] || 'cash'
+      paymentMethod: paymentMethodMap[tripData.paymentMethod] || 'cash',
+      tag: tripData.tag,
     });
 
     if (success) {
@@ -355,11 +460,15 @@ export const SecureTaxiDashboard = () => {
         {/* Goals Progress */}
         <GoalsProgress
           incomeProgress={dailyStats.incomeProgress}
-          tripsProgress={dailyStats.tripsProgress}
-          currentIncome={dailyStats.totalIncome}
-          currentTrips={dailyStats.tripsCount}
+          tripsProgress={weeklyMonthlyStats.tripsProgressMonthly}
+          currentIncome={dailyStats.totalIncomeGross}
+          currentTrips={weeklyMonthlyStats.monthlyTrips}
           incomeGoal={dailyGoals.income_goal}
-          tripsGoal={dailyGoals.trips_goal}
+          tripsGoal={weeklyMonthlyStats.tripsGoalMonthly}
+          weeklyIncome={weeklyMonthlyStats.weeklyIncome}
+          monthlyIncome={weeklyMonthlyStats.monthlyIncome}
+          weeklyGoal={weeklyMonthlyStats.weeklyGoalIncome}
+          monthlyGoal={weeklyMonthlyStats.monthlyGoalIncome}
         />
 
         {/* Action Buttons: add trip and add fuel expense */}
@@ -399,7 +508,7 @@ export const SecureTaxiDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <DailySummaryCard
             title="הכנסות היום"
-            value={dailyStats.totalIncome}
+            value={dailyStats.totalIncomeGross}
             icon={TrendingUp}
             variant="income"
           />
@@ -413,7 +522,7 @@ export const SecureTaxiDashboard = () => {
             title="רווח נקי"
             value={dailyStats.netProfit}
             icon={Target}
-            variant={dailyStats.netProfit >= 0 ? "profit" : "loss"}
+            variant={dailyStats.netProfit >= 0 ? 'profit' : 'loss'}
           />
         </div>
 
@@ -601,8 +710,24 @@ export const SecureTaxiDashboard = () => {
         <AddTripDialog
           isOpen={isAddTripOpen}
           onClose={() => setIsAddTripOpen(false)}
-          onAddTrip={(amount, method) => {
-            handleAddTrip(amount, method as 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי');
+          // Pass today's trips so the dialog can derive quick amount
+          // buttons from recent values.  Tags can optionally be passed
+          // via props; we rely on the default list in the component.
+          tripsToday={trips}
+          onAddTrip={(amount, method, tag) => {
+            handleAddTrip(
+              amount,
+              method as
+                | 'cash'
+                | 'card'
+                | 'app'
+                | 'מזומן'
+                | 'ביט'
+                | 'אשראי'
+                | 'GetTaxi'
+                | 'דהרי',
+              tag
+            );
           }}
         />
 
