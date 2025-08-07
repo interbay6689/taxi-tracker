@@ -73,7 +73,11 @@ export const AddTripDialog = ({
   const { allPaymentOptions } = useCustomPaymentTypes();
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
-  const [selectedTag, setSelectedTag] = useState<string>("");
+  // Selected tag value.  Use the special value "none" to denote no tag
+  // instead of an empty string.  Radix UI's Select.Item does not
+  // allow an empty string value, so we represent an unselected tag
+  // with "none" internally.
+  const [selectedTag, setSelectedTag] = useState<string>("none");
   // Normalize payment options to avoid calling .map on undefined
   const paymentOptions = Array.isArray(allPaymentOptions) ? allPaymentOptions : [];
   // Maintain a local copy of tags to allow the user to add new tags on the fly.
@@ -102,7 +106,8 @@ export const AddTripDialog = ({
   const resetState = () => {
     setAmount("");
     setPaymentMethod("cash");
-    setSelectedTag("");
+    // Reset to "none" to represent no tag selected
+    setSelectedTag("none");
   };
 
 
@@ -123,7 +128,8 @@ export const AddTripDialog = ({
       });
       return;
     }
-    onAddTrip(parsedAmount, paymentMethod, selectedTag || undefined);
+    // Interpret the special value "none" as an undefined tag
+    onAddTrip(parsedAmount, paymentMethod, selectedTag === "none" ? undefined : selectedTag);
     resetState();
     onClose();
     toast({
@@ -139,7 +145,7 @@ export const AddTripDialog = ({
    * component resets its state.
    */
   const handleQuickClick = (value: number) => {
-    onAddTrip(value, paymentMethod, selectedTag || undefined);
+    onAddTrip(value, paymentMethod, selectedTag === "none" ? undefined : selectedTag);
     resetState();
     onClose();
     toast({
@@ -208,10 +214,12 @@ export const AddTripDialog = ({
                 onValueChange={(value) => setSelectedTag(value)}
               >
                 <SelectTrigger className="h-10 min-w-[8rem]">
+                  {/* Show a placeholder when no tag is selected */}
                   <SelectValue placeholder="ללא תיוג" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">ללא תיוג</SelectItem>
+                  {/* Use the special value "none" instead of an empty string */}
+                  <SelectItem value="none">ללא תיוג</SelectItem>
                   {localTags.map((tag) => (
                     <SelectItem key={tag} value={tag}>
                       {tag}
