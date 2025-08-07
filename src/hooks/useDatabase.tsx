@@ -3,10 +3,26 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 
+// A single trip taken by the driver.  Each trip records the amount and
+// payment method used.  Optionally, a tag can be stored in the
+// `trip_status` column which we repurpose to hold arbitrary string tags.
+// Historically `trip_status` was limited to the strings "active" or
+// "completed", but since Supabase stores it as a free‐form string we
+// widen its type here to allow any value.  Consumers should treat
+// `tag` as optional metadata for categorising trips (for example,
+// "שדה", "תחנה", etc.).
 export interface Trip {
   id: string;
   amount: number;
-  payment_method: 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי';
+  payment_method:
+    | 'cash'
+    | 'card'
+    | 'app'
+    | 'מזומן'
+    | 'ביט'
+    | 'אשראי'
+    | 'GetTaxi'
+    | 'דהרי';
   timestamp: string;
   start_location_address?: string;
   start_location_city?: string;
@@ -16,7 +32,12 @@ export interface Trip {
   end_location_city?: string;
   end_location_lat?: number;
   end_location_lng?: number;
-  trip_status?: 'active' | 'completed';
+  /**
+   * A free form string representing the status or tag of the trip.  In
+   * this application we repurpose it as an optional tag field.  When
+   * undefined the trip has no tag associated with it.
+   */
+  trip_status?: string;
   trip_start_time?: string;
   trip_end_time?: string;
 }
@@ -34,7 +55,17 @@ export interface DailyGoals {
   income_goal: number;
   trips_goal: number;
   goal_type?: 'daily' | 'shift';
+  /**
+   * Optional weekly income goal defined by the user.  When undefined
+   * the application will derive a weekly goal by multiplying the
+   * daily income goal by 7.
+   */
   weekly_income_goal?: number;
+  /**
+   * Optional monthly income goal defined by the user.  When undefined
+   * the application will derive a monthly goal by multiplying the
+   * daily income goal by the number of days in the current month.
+   */
   monthly_income_goal?: number;
 }
 
@@ -192,7 +223,9 @@ export function useDatabase() {
       if (goalsResponse.data) {
         setDailyGoals({
           income_goal: Number(goalsResponse.data.income_goal),
-          trips_goal: goalsResponse.data.trips_goal
+          trips_goal: goalsResponse.data.trips_goal,
+          weekly_income_goal: goalsResponse.data.weekly_income_goal ?? undefined,
+          monthly_income_goal: goalsResponse.data.monthly_income_goal ?? undefined,
         });
       }
 
@@ -225,96 +258,148 @@ export function useDatabase() {
     }
   }, [user, loadUserData]);
 
-  const addTrip = useCallback(async (amount: number, paymentMethod: 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי') => {
-    if (!user) return false;
+  /**
+   * Adds a new trip record.  Accepts an optional `tag` which will be
+   * stored in the `trip_status` column.  When the user starts a
+   * shift the trip contributes to the current work day totals.  If no
+   * user is authenticated the operation fails silently.
+   *
+   * @param amount The trip amount in shekels
+   * @param paymentMethod The payment method used (cash, card, app, etc.)
+   * @param tag Optional string tag to categorise the trip
+   */
+  const addTrip = useCallback(
+    async (
+      amount: number,
+      paymentMethod: 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי',
+      tag?: string
+    ) => {
+      if (!user) return false;
 
-    try {
-      const { data, error } = await supabase
-        .from('trips')
-        .insert({
-          amount,
-          payment_method: paymentMethod,
-          user_id: user.id
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setTrips(prev => [{
-        id: data.id,
-        amount: Number(data.amount),
-        payment_method: data.payment_method as 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי',
-        timestamp: data.timestamp,
-        start_location_address: data.start_location_address,
-        start_location_city: data.start_location_city,
-        start_location_lat: data.start_location_lat ? Number(data.start_location_lat) : undefined,
-        start_location_lng: data.start_location_lng ? Number(data.start_location_lng) : undefined,
-        end_location_address: data.end_location_address,
-        end_location_city: data.end_location_city,
-        end_location_lat: data.end_location_lat ? Number(data.end_location_lat) : undefined,
-        end_location_lng: data.end_location_lng ? Number(data.end_location_lng) : undefined,
-        trip_status: data.trip_status as 'active' | 'completed' | undefined,
-        trip_start_time: data.trip_start_time,
-        trip_end_time: data.trip_end_time
-      }, ...prev]);
-
-      // Update current work day if active
-      if (currentWorkDay) {
-        const newTotalIncome = currentWorkDay.total_income + amount;
-        const newTotalTrips = currentWorkDay.total_trips + 1;
-
-        const { error: updateError } = await supabase
-          .from('work_days')
-          .update({
-            total_income: newTotalIncome,
-            total_trips: newTotalTrips
+      try {
+        const { data, error } = await supabase
+          .from('trips')
+          .insert({
+            amount,
+            payment_method: paymentMethod,
+            user_id: user.id,
+            // Persist tag in the trip_status column if provided
+            trip_status: tag ?? null,
           })
-          .eq('id', currentWorkDay.id);
+          .select()
+          .single();
 
-        if (updateError) throw updateError;
+        if (error) throw error;
 
-        setCurrentWorkDay(prev => prev ? {
+        setTrips(prev => [
+          {
+            id: data.id,
+            amount: Number(data.amount),
+            payment_method: data.payment_method as
+              | 'cash'
+              | 'card'
+              | 'app'
+              | 'מזומן'
+              | 'ביט'
+              | 'אשראי'
+              | 'GetTaxi'
+              | 'דהרי',
+            timestamp: data.timestamp,
+            start_location_address: data.start_location_address,
+            start_location_city: data.start_location_city,
+            start_location_lat: data.start_location_lat
+              ? Number(data.start_location_lat)
+              : undefined,
+            start_location_lng: data.start_location_lng
+              ? Number(data.start_location_lng)
+              : undefined,
+            end_location_address: data.end_location_address,
+            end_location_city: data.end_location_city,
+            end_location_lat: data.end_location_lat
+              ? Number(data.end_location_lat)
+              : undefined,
+            end_location_lng: data.end_location_lng
+              ? Number(data.end_location_lng)
+              : undefined,
+            trip_status: data.trip_status ?? undefined,
+            trip_start_time: data.trip_start_time,
+            trip_end_time: data.trip_end_time,
+          },
           ...prev,
-          total_income: newTotalIncome,
-          total_trips: newTotalTrips
-        } : null);
+        ]);
+
+        // Update current work day if active
+        if (currentWorkDay) {
+          const newTotalIncome = currentWorkDay.total_income + amount;
+          const newTotalTrips = currentWorkDay.total_trips + 1;
+
+          const { error: updateError } = await supabase
+            .from('work_days')
+            .update({
+              total_income: newTotalIncome,
+              total_trips: newTotalTrips,
+            })
+            .eq('id', currentWorkDay.id);
+
+          if (updateError) throw updateError;
+
+          setCurrentWorkDay(prev =>
+            prev
+              ? {
+                  ...prev,
+                  total_income: newTotalIncome,
+                  total_trips: newTotalTrips,
+                }
+              : null
+          );
+        }
+
+        toast({
+          title: 'נסיעה נוספה!',
+          description: `נסיעה בסך ${amount} ₪ נוספה בהצלחה`,
+        });
+
+        return true;
+      } catch (error: any) {
+        console.error('Error adding trip:', error);
+        toast({
+          title: 'שגיאה בהוספת נסיעה',
+          description: error.message,
+          variant: 'destructive',
+        });
+        return false;
       }
+    },
+    [user, currentWorkDay, toast]
+  );
 
-      toast({
-        title: "נסיעה נוספה!",
-        description: `נסיעה בסך ${amount} ₪ נוספה בהצלחה`,
-      });
-
-      return true;
-    } catch (error: any) {
-      console.error('Error adding trip:', error);
-      toast({
-        title: "שגיאה בהוספת נסיעה",
-        description: error.message,
-        variant: "destructive",
-      });
-      return false;
-    }
-  }, [user, currentWorkDay, toast]);
-
-  const addTripWithLocation = useCallback(async (tripData: {
-    amount: number;
-    paymentMethod?: 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי';
-    startLocation: {
-      address: string;
-      city: string;
-      lat: number;
-      lng: number;
-    };
-    endLocation: {
-      address: string;
-      city: string;
-      lat: number;
-      lng: number;
-    };
-    duration?: number;
-  }) => {
+  const addTripWithLocation = useCallback(
+    async (tripData: {
+      amount: number;
+      paymentMethod?:
+        | 'cash'
+        | 'card'
+        | 'app'
+        | 'מזומן'
+        | 'ביט'
+        | 'אשראי'
+        | 'GetTaxi'
+        | 'דהרי';
+      startLocation: {
+        address: string;
+        city: string;
+        lat: number;
+        lng: number;
+      };
+      endLocation: {
+        address: string;
+        city: string;
+        lat: number;
+        lng: number;
+      };
+      duration?: number;
+      tag?: string;
+    }) => {
     if (!user) return false;
 
     try {
@@ -332,9 +417,13 @@ export function useDatabase() {
           end_location_city: tripData.endLocation.city,
           end_location_lat: tripData.endLocation.lat,
           end_location_lng: tripData.endLocation.lng,
-          trip_status: 'completed',
-          trip_start_time: new Date(Date.now() - (tripData.duration || 0) * 1000).toISOString(),
-          trip_end_time: new Date().toISOString()
+          // Persist the optional tag in trip_status.  If no tag is
+          // provided we mark the status as completed.
+          trip_status: tripData.tag ?? 'completed',
+          trip_start_time: new Date(
+            Date.now() - (tripData.duration || 0) * 1000
+          ).toISOString(),
+          trip_end_time: new Date().toISOString(),
         })
         .select()
         .single();
@@ -809,37 +898,84 @@ export function useDatabase() {
     }
   }, [user, toast]);
 
-  const updateTrip = useCallback(async (tripId: string, amount: number) => {
-    if (!user) return false;
+  /**
+   * Updates an existing trip.  You can modify the amount, payment
+   * method or tag (trip_status).  Only the fields provided will be
+   * updated; others remain unchanged.  If the update succeeds the
+   * local state is updated accordingly.
+   *
+   * @param tripId The ID of the trip to update
+   * @param amount The new amount in shekels
+   * @param paymentMethod Optional new payment method
+   * @param tag Optional new tag for the trip
+   */
+  const updateTrip = useCallback(
+    async (
+      tripId: string,
+      amount: number,
+      paymentMethod?:
+        | 'cash'
+        | 'card'
+        | 'app'
+        | 'מזומן'
+        | 'ביט'
+        | 'אשראי'
+        | 'GetTaxi'
+        | 'דהרי',
+      tag?: string
+    ) => {
+      if (!user) return false;
 
-    try {
-      const { error } = await supabase
-        .from('trips')
-        .update({ amount })
-        .eq('id', tripId);
+      try {
+        const updateObject: any = { amount };
+        if (paymentMethod) {
+          updateObject.payment_method = paymentMethod;
+        }
+        if (typeof tag !== 'undefined') {
+          updateObject.trip_status = tag;
+        }
 
-      if (error) throw error;
+        const { error, data } = await supabase
+          .from('trips')
+          .update(updateObject)
+          .eq('id', tripId)
+          .select()
+          .single();
+        if (error) throw error;
 
-      setTrips(prev => prev.map(trip => 
-        trip.id === tripId ? { ...trip, amount } : trip
-      ));
+        setTrips(prev =>
+          prev.map(trip =>
+            trip.id === tripId
+              ? {
+                  ...trip,
+                  amount,
+                  ...(paymentMethod ? { payment_method: paymentMethod } : {}),
+                  ...(typeof tag !== 'undefined'
+                    ? { trip_status: tag ?? undefined }
+                    : {}),
+                }
+              : trip
+          )
+        );
 
-      toast({
-        title: "נסיעה עודכנה!",
-        description: "הנסיעה עודכנה בהצלחה",
-      });
+        toast({
+          title: 'נסיעה עודכנה!',
+          description: 'הנסיעה עודכנה בהצלחה',
+        });
 
-      return true;
-    } catch (error: any) {
-      console.error('Error updating trip:', error);
-      toast({
-        title: "שגיאה בעדכון נסיעה",
-        description: error.message,
-        variant: "destructive",
-      });
-      return false;
-    }
-  }, [user, toast]);
+        return true;
+      } catch (error: any) {
+        console.error('Error updating trip:', error);
+        toast({
+          title: 'שגיאה בעדכון נסיעה',
+          description: error.message,
+          variant: 'destructive',
+        });
+        return false;
+      }
+    },
+    [user, toast]
+  );
 
   return {
     trips,
