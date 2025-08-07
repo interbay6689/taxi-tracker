@@ -70,8 +70,23 @@ export interface DailyGoals {
 }
 
 export interface DailyExpenses {
+  /**
+   * Daily maintenance cost (e.g. car wash, oil change).
+   */
   maintenance: number;
+  /**
+   * Other daily expenses that aren't part of maintenance or the fixed cost.
+   */
   other: number;
+  /**
+   * A fixed cost that applies every day the driver works.  This value
+   * represents the daily cost of owning or leasing the taxi (for
+   * example, insurance or permit fees).  The application will
+   * multiply this value by the number of days in a given period when
+   * presenting monthly or weekly summaries.  When unspecified it
+   * defaults to zero.
+   */
+  daily_fixed_price?: number;
 }
 
 export interface ShiftExpense {
@@ -90,7 +105,7 @@ export function useDatabase() {
   const [workDays, setWorkDays] = useState<WorkDay[]>([]);
   const [currentWorkDay, setCurrentWorkDay] = useState<WorkDay | null>(null);
   const [dailyGoals, setDailyGoals] = useState<DailyGoals>({ income_goal: 500, trips_goal: 20 });
-  const [dailyExpenses, setDailyExpenses] = useState<DailyExpenses>({ maintenance: 0, other: 0 });
+  const [dailyExpenses, setDailyExpenses] = useState<DailyExpenses>({ maintenance: 0, other: 0, daily_fixed_price: 0 });
   const [shiftExpenses, setShiftExpenses] = useState<ShiftExpense[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -107,17 +122,13 @@ export function useDatabase() {
       // Load all data in parallel with timeout protection
       const today = new Date().toISOString().split('T')[0];
       
-      // Calculate dates for historical data
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const startOfYear = new Date(now.getFullYear(), 0, 1);
-      
       const loadPromises = [
-        // Load ALL trips (not just today) for proper analytics calculations
+        // Load trips for today
         supabase
           .from('trips')
           .select('*')
-          .gte('timestamp', startOfYear.toISOString())
+          .gte('timestamp', `${today}T00:00:00.000Z`)
+          .lt('timestamp', `${today}T23:59:59.999Z`)
           .order('timestamp', { ascending: false }),
         
         // Load current active work day
@@ -238,7 +249,8 @@ export function useDatabase() {
       if (expensesResponse.data) {
         setDailyExpenses({
           maintenance: Number(expensesResponse.data.maintenance || 0),
-          other: Number(expensesResponse.data.other || 0)
+          other: Number(expensesResponse.data.other || 0),
+          daily_fixed_price: Number(expensesResponse.data.daily_fixed_price || 0),
         });
       }
     } catch (error: any) {
@@ -779,7 +791,10 @@ export function useDatabase() {
           .from('daily_goals')
           .update({
             income_goal: newGoals.income_goal,
-            trips_goal: newGoals.trips_goal
+            trips_goal: newGoals.trips_goal,
+            // Persist optional weekly and monthly income goals when provided.
+            weekly_income_goal: newGoals.weekly_income_goal ?? null,
+            monthly_income_goal: newGoals.monthly_income_goal ?? null,
           })
           .eq('id', existingGoals.id);
 
@@ -791,7 +806,9 @@ export function useDatabase() {
           .insert({
             user_id: user.id,
             income_goal: newGoals.income_goal,
-            trips_goal: newGoals.trips_goal
+            trips_goal: newGoals.trips_goal,
+            weekly_income_goal: newGoals.weekly_income_goal ?? null,
+            monthly_income_goal: newGoals.monthly_income_goal ?? null,
           });
 
         if (error) throw error;
@@ -835,7 +852,8 @@ export function useDatabase() {
           .from('daily_expenses')
           .update({
             maintenance: newExpenses.maintenance,
-            other: newExpenses.other
+            other: newExpenses.other,
+            daily_fixed_price: newExpenses.daily_fixed_price ?? 0,
           })
           .eq('id', existingExpenses.id);
 
@@ -847,7 +865,8 @@ export function useDatabase() {
           .insert({
             user_id: user.id,
             maintenance: newExpenses.maintenance,
-            other: newExpenses.other
+            other: newExpenses.other,
+            daily_fixed_price: newExpenses.daily_fixed_price ?? 0,
           });
 
         if (error) throw error;
