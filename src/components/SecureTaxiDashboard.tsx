@@ -52,6 +52,8 @@ export const SecureTaxiDashboard = () => {
     // new: shift-level expenses and adder for fuel expenses
     shiftExpenses,
     addShiftExpense,
+    deleteShiftExpense,
+    updateShiftExpense,
   } = useDatabase();
 
   const [isAddTripOpen, setIsAddTripOpen] = useState(false);
@@ -375,7 +377,8 @@ export const SecureTaxiDashboard = () => {
                 </Button>
                 <Button
                   onClick={() => setIsAddFuelOpen(true)}
-                  className="h-16 text-lg"
+                  // Smaller and light red button for fuel
+                  className="h-14 text-base bg-red-100 text-red-700 hover:bg-red-200"
                   size="lg"
                 >
                   <Fuel className="mr-2 h-6 w-6" />
@@ -480,17 +483,44 @@ export const SecureTaxiDashboard = () => {
                          </div>
                        );
                      })}
-                     
-                     {/* שורת סיכום */}
+
+                     {/* הוצאות דלק */}
+                     {shiftExpenses.map((expense) => (
+                       <div key={`expense-${expense.id}`} className="p-3 bg-red-50 rounded-lg border border-red-200">
+                         <div className="flex justify-between items-start mb-2">
+                           <div className="flex items-center gap-3">
+                             <span className="font-medium text-lg text-red-700">
+                               -₪{expense.amount.toLocaleString()}
+                             </span>
+                             <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">
+                               דלק
+                             </span>
+                           </div>
+                           <span className="text-sm text-muted-foreground">
+                             {new Date(expense.created_at).toLocaleTimeString('he-IL')}
+                           </span>
+                         </div>
+                         {expense.description && (
+                           <div className="text-sm text-muted-foreground mt-1">
+                             {expense.description}
+                           </div>
+                         )}
+                       </div>
+                     ))}
+                     {/* שורת סיכום: סכום הכנסות אחרי קיזוז הוצאות דלק */}
                      <div className="p-4 bg-primary/10 rounded-lg border-2 border-primary/30 mt-4">
                        <div className="flex justify-between items-center">
                          <span className="font-bold text-lg text-primary">סכום כולל:</span>
                          <span className="font-bold text-xl text-primary">
-                           ₪{dailyStats.totalIncome.toLocaleString()}
+                           {(() => {
+                             const fuelTotal = shiftExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+                             const net = dailyStats.totalIncome - fuelTotal;
+                             return `₪${net.toLocaleString()}`;
+                           })()}
                          </span>
                        </div>
                        <div className="text-sm text-muted-foreground mt-1">
-                         {trips.length} נסיעות • ממוצע: ₪{trips.length > 0 ? (dailyStats.totalIncome / trips.length).toFixed(0) : '0'}
+                         {trips.length} נסיעות • ממוצע: ₪{trips.length > 0 ? ((dailyStats.totalIncome - shiftExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0)) / trips.length).toFixed(0) : '0'}
                        </div>
                      </div>
                   </div>
@@ -556,8 +586,11 @@ export const SecureTaxiDashboard = () => {
           isOpen={isEditTripsOpen}
           onClose={() => setIsEditTripsOpen(false)}
           trips={trips}
+          expenses={shiftExpenses}
           onDeleteTrip={deleteTrip}
           onUpdateTrip={updateTrip}
+          onDeleteExpense={deleteShiftExpense}
+          onUpdateExpense={updateShiftExpense}
           onAddTrip={() => {
             setIsEditTripsOpen(false);
             setIsAddTripOpen(true);
