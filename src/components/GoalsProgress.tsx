@@ -4,16 +4,33 @@ import { Progress } from "@/components/ui/progress";
 import { Target, TrendingUp, Car, DollarSign } from "lucide-react";
 import { GoalsPeriodSelector } from './GoalsPeriodSelector';
 
+/**
+ * Props for the GoalsProgress component.  This component displays
+ * progress toward income goals over different periods (daily,
+ * weekly, monthly) as well as a separate progress bar for
+ * monthly trip goals.  If weekly or monthly income data is not
+ * provided the component will fall back to zero values.
+ */
 interface GoalsProgressProps {
+  /** Percentage of the daily income goal that has been met (0–100). */
   incomeProgress: number;
+  /** Percentage of the monthly trips goal that has been met (0–100). */
   tripsProgress: number;
+  /** Gross income for the current day (shift). */
   currentIncome: number;
+  /** Number of trips completed in the current month. */
   currentTrips: number;
+  /** Daily income goal. */
   incomeGoal: number;
+  /** Monthly trips goal. */
   tripsGoal: number;
+  /** Gross income accumulated this week. */
   weeklyIncome?: number;
+  /** Gross income accumulated this month. */
   monthlyIncome?: number;
+  /** Weekly income goal. */
   weeklyGoal?: number;
+  /** Monthly income goal. */
   monthlyGoal?: number;
 }
 
@@ -29,8 +46,13 @@ export const GoalsProgress = ({
   weeklyGoal = 0,
   monthlyGoal = 0,
 }: GoalsProgressProps) => {
+  // Selected period for the income progress (does not affect trips progress).
   const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
 
+  // Determine the data to display based on the selected period.  If no
+  // goals or income values are provided the component falls back to
+  // zeros.  The label is used in the UI to indicate which period is
+  // currently shown.
   const getCurrentData = () => {
     switch (selectedPeriod) {
       case 'weekly':
@@ -39,7 +61,7 @@ export const GoalsProgress = ({
           goal: weeklyGoal,
           progress: weeklyGoal > 0 ? (weeklyIncome / weeklyGoal) * 100 : 0,
           remaining: Math.max(0, weeklyGoal - weeklyIncome),
-          label: 'שבועי'
+          label: 'שבועי',
         };
       case 'monthly':
         return {
@@ -47,7 +69,7 @@ export const GoalsProgress = ({
           goal: monthlyGoal,
           progress: monthlyGoal > 0 ? (monthlyIncome / monthlyGoal) * 100 : 0,
           remaining: Math.max(0, monthlyGoal - monthlyIncome),
-          label: 'חודשי'
+          label: 'חודשי',
         };
       default:
         return {
@@ -55,7 +77,7 @@ export const GoalsProgress = ({
           goal: incomeGoal,
           progress: incomeProgress,
           remaining: Math.max(0, incomeGoal - currentIncome),
-          label: 'משמרת'
+          label: 'משמרת',
         };
     }
   };
@@ -72,13 +94,13 @@ export const GoalsProgress = ({
           <Target className="h-5 w-5 text-primary" />
           התקדמות יעדים
         </CardTitle>
-        <GoalsPeriodSelector 
-          selectedPeriod={selectedPeriod} 
-          onPeriodChange={setSelectedPeriod} 
+        <GoalsPeriodSelector
+          selectedPeriod={selectedPeriod}
+          onPeriodChange={setSelectedPeriod}
         />
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* התקדמות הכנסות */}
+        {/* Income progress */}
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
@@ -91,58 +113,53 @@ export const GoalsProgress = ({
           </div>
           <Progress value={currentData.progress} className="h-3" />
           <div className="flex justify-between text-sm text-muted-foreground">
-            <span>₪{currentData.income} / ₪{currentData.goal}</span>
-            <span>{isIncomeGoalMet ? "יעד הושג! 🎉" : `נותרו: ₪${currentData.remaining}`}</span>
+            <span>
+              ₪{currentData.income.toLocaleString()} / ₪{currentData.goal.toLocaleString()}
+            </span>
+            <span>
+              {isIncomeGoalMet
+                ? 'יעד הושג! 🎉'
+                : `נותרו: ₪${currentData.remaining.toLocaleString()}`}
+            </span>
           </div>
         </div>
-
-        {/* התקדמות נסיעות - רק במצב יומי */}
-        {selectedPeriod === 'daily' && (
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <Car className="h-4 w-4 text-primary" />
-                <span className="font-medium">יעד נסיעות</span>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {Math.round(tripsProgress)}%
-              </div>
+        {/* Trips progress (monthly) */}
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Car className="h-4 w-4 text-primary" />
+              <span className="font-medium">יעד נסיעות (חודשי)</span>
             </div>
-            <Progress value={tripsProgress} className="h-3" />
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>{currentTrips} / {tripsGoal} נסיעות</span>
-              <span>{isTripsGoalMet ? "יעד הושג! 🎉" : `נותרו: ${remainingTrips} נסיעות`}</span>
+            <div className="text-sm text-muted-foreground">
+              {Math.round(tripsProgress)}%
             </div>
           </div>
-        )}
-
-        {/* סטטוס כללי */}
+          <Progress value={tripsProgress} className="h-3" />
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span>
+              {currentTrips} / {tripsGoal} נסיעות
+            </span>
+            <span>
+              {isTripsGoalMet
+                ? 'יעד הושג! 🎉'
+                : `נותרו: ${remainingTrips} נסיעות`}
+            </span>
+          </div>
+        </div>
+        {/* Overall status */}
         <div className="border-t pt-4">
           <div className="flex items-center justify-center gap-2">
-            {selectedPeriod === 'daily' ? (
-              incomeProgress >= 100 && tripsProgress >= 100 ? (
-                <div className="flex items-center gap-2 text-success font-medium">
-                  <Target className="h-4 w-4" />
-                  🎉 כל הכבוד! השגת את כל היעדים!
-                </div>
-              ) : (
-                <div className="text-center text-sm text-muted-foreground">
-                  {incomeProgress >= 100 ? "✅ יעד הכנסות הושג" : "💰 ממשיך לעבר יעד ההכנסות"}
-                  {" • "}
-                  {tripsProgress >= 100 ? "✅ יעד נסיעות הושג" : "🚗 ממשיך לעבר יעד הנסיעות"}
-                </div>
-              )
+            {isIncomeGoalMet && isTripsGoalMet ? (
+              <div className="flex items-center gap-2 text-success font-medium">
+                <Target className="h-4 w-4" />
+                🎉 כל הכבוד! השגת את כל היעדים!
+              </div>
             ) : (
-              isIncomeGoalMet ? (
-                <div className="flex items-center gap-2 text-success font-medium">
-                  <Target className="h-4 w-4" />
-                  🎉 יעד {currentData.label} הושג!
-                </div>
-              ) : (
-                <div className="text-center text-sm text-muted-foreground">
-                  💰 ממשיך לעבר יעד ההכנסות {currentData.label}
-                </div>
-              )
+              <div className="text-center text-sm text-muted-foreground">
+                {isIncomeGoalMet ? '✅ יעד הכנסות הושג' : '💰 ממשיך לעבר יעד ההכנסות'}{' '}
+                •{' '}
+                {isTripsGoalMet ? '✅ יעד נסיעות הושג' : '🚗 ממשיך לעבר יעד הנסיעות'}
+              </div>
             )}
           </div>
         </div>
