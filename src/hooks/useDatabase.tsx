@@ -847,8 +847,12 @@ export function useDatabase() {
         .maybeSingle();
 
       if (existingExpenses) {
-        // Update existing expenses
-        const { error } = await supabase
+        // Update existing expenses. Attempt to include daily_fixed_price; if any error
+        // occurs (for example, the column does not exist in the database), retry
+        // without the daily_fixed_price field.  This ensures that the update
+        // gracefully falls back until the migration adding daily_fixed_price has
+        // been applied.
+        let { error } = await supabase
           .from('daily_expenses')
           .update({
             maintenance: newExpenses.maintenance,
@@ -857,10 +861,25 @@ export function useDatabase() {
           })
           .eq('id', existingExpenses.id);
 
+        if (error) {
+          // Retry without the daily_fixed_price column.  Do not check the error
+          // message since different Supabase instances may report varying text.
+          const retry = await supabase
+            .from('daily_expenses')
+            .update({
+              maintenance: newExpenses.maintenance,
+              other: newExpenses.other,
+            })
+            .eq('id', existingExpenses.id);
+          error = retry.error;
+        }
+
         if (error) throw error;
       } else {
-        // Create new expenses
-        const { error } = await supabase
+        // Create new expenses. Attempt to include daily_fixed_price; on failure,
+        // retry without it.  This fallback ensures inserts work even if the
+        // column does not exist yet.
+        let { error } = await supabase
           .from('daily_expenses')
           .insert({
             user_id: user.id,
@@ -868,6 +887,17 @@ export function useDatabase() {
             other: newExpenses.other,
             daily_fixed_price: newExpenses.daily_fixed_price ?? 0,
           });
+
+        if (error) {
+          const retry = await supabase
+            .from('daily_expenses')
+            .insert({
+              user_id: user.id,
+              maintenance: newExpenses.maintenance,
+              other: newExpenses.other,
+            });
+          error = retry.error;
+        }
 
         if (error) throw error;
       }
