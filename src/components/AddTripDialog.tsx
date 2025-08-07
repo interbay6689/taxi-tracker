@@ -1,43 +1,124 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useCustomPaymentTypes } from "@/hooks/useCustomPaymentTypes";
+import { Trip } from "@/hooks/useDatabase";
 
+/**
+ * A dialog for adding a new trip.  In addition to entering an
+ * arbitrary amount, the user can pick a payment method from a
+ * dropdown and optionally assign a tag to the trip.  The component
+ * also surfaces a set of "quick amounts" based on the most recent
+ * trip values entered today.  Selecting a quick amount will submit
+ * the trip immediately using the currently selected payment method
+ * and tag.  After submission the dialog resets its internal state
+ * and closes.
+ */
 interface AddTripDialogProps {
+  /** Whether the dialog is open */
   isOpen: boolean;
+  /** Called when the dialog should close */
   onClose: () => void;
-  onAddTrip: (amount: number, paymentMethod: string) => void;
+  /**
+   * Handler invoked when the user adds a new trip.  The tag
+   * parameter is optional and will be undefined when the user
+   * chooses not to specify a tag.
+   */
+  onAddTrip: (amount: number, paymentMethod: string, tag?: string) => void;
+  /**
+   * A list of today's trips.  Used to derive quick amount buttons
+   * based on recently entered values.  Pass an empty array if
+   * unavailable.
+   */
+  tripsToday: Trip[];
+  /**
+   * A list of tags the user can choose from.  If not provided a
+   * sensible default is used.  Tags allow the user to categorise
+   * trips by type (for example: "שדה", "תחנה", "הזמנה", "אחר").
+   */
+  tags?: string[];
 }
 
-export const AddTripDialog = ({ isOpen, onClose, onAddTrip }: AddTripDialogProps) => {
-  const [amount, setAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("cash");
+export const AddTripDialog = ({
+  isOpen,
+  onClose,
+  onAddTrip,
+  tripsToday,
+  tags = ["שדה", "תחנה", "הזמנה", "אחר"],
+}: AddTripDialogProps) => {
   const { toast } = useToast();
+  // Payment methods come from the custom payment types hook.  Each
+  // option has a value used internally and a label shown to the user.
   const { allPaymentOptions } = useCustomPaymentTypes();
+  const [amount, setAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<string>("cash");
+  const [selectedTag, setSelectedTag] = useState<string>("");
+
+  /**
+   * Compute a list of quick amounts based on the unique values of
+   * today's trips.  If the user hasn't recorded any trips yet the
+   * component falls back to a predefined list of values.  Values
+   * greater than zero are kept and sorted in descending order.
+   */
+  const quickAmounts = useMemo(() => {
+    const uniqueAmounts = Array.from(
+      new Set(tripsToday.map((trip) => trip.amount))
+    )
+      .filter((val) => val > 0)
+      .sort((a, b) => b - a);
+    const amounts = uniqueAmounts.slice(0, 6);
+    const defaultAmounts = [20, 30, 40, 50, 60, 80];
+    return amounts.length > 0 ? amounts : defaultAmounts;
+  }, [tripsToday]);
+
+  const resetState = () => {
+    setAmount("");
+    setPaymentMethod("cash");
+    setSelectedTag("");
+  };
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const parsedAmount = parseFloat(amount);
-    
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       toast({
         title: "שגיאה",
         description: "אנא הזן סכום תקין",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
-
-    onAddTrip(parsedAmount, paymentMethod);
-    setAmount("");
-    setPaymentMethod("cash");
+    onAddTrip(parsedAmount, paymentMethod, selectedTag || undefined);
+    resetState();
     onClose();
     toast({
       title: "נסיעה נוספה",
       description: `נוספה נסיעה בסכום ₪${parsedAmount} (${paymentMethod})`,
+    });
+  };
+
+  const handleQuickClick = (value: number) => {
+    onAddTrip(value, paymentMethod, selectedTag || undefined);
+    resetState();
+    onClose();
+    toast({
+      title: "נסיעה נוספה",
+      description: `נוספה נסיעה בסכום ₪${value} (${paymentMethod})`,
     });
   };
 
@@ -47,10 +128,12 @@ export const AddTripDialog = ({ isOpen, onClose, onAddTrip }: AddTripDialogProps
         <DialogHeader>
           <DialogTitle className="text-center text-lg">הוספת נסיעה</DialogTitle>
         </DialogHeader>
-
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Amount input */}
           <div className="space-y-3">
-            <Label htmlFor="amount" className="text-base">סכום הנסיעה</Label>
+            <Label htmlFor="amount" className="text-base">
+              סכום הנסיעה
+            </Label>
             <Input
               id="amount"
               type="number"
@@ -61,60 +144,81 @@ export const AddTripDialog = ({ isOpen, onClose, onAddTrip }: AddTripDialogProps
               dir="ltr"
             />
           </div>
-
+          {/* Payment method dropdown */}
           <div className="space-y-3">
             <Label className="text-base">אמצעי תשלום</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {allPaymentOptions.map((option) => (
-                <Button
-                  key={option.value}
-                  type="button"
-                  variant={paymentMethod === option.value ? "default" : "outline"}
-                  onClick={() => setPaymentMethod(option.value)}
-                  className="text-sm h-10"
-                >
-                  {option.label}
-                  {option.isCustom && 'commissionRate' in option && typeof option.commissionRate === 'number' && option.commissionRate !== 0 && (
-                    <span className="mr-1 text-xs">
-                      {option.commissionRate > 0 ? `(-${option.commissionRate * 100}%)` : `(+${Math.abs(option.commissionRate) * 100}%)`}
-                    </span>
-                  )}
-                </Button>
-              ))}
-            </div>
+            <Select
+              value={paymentMethod}
+              onValueChange={(value) => setPaymentMethod(value)}
+            >
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="בחר אמצעי תשלום" />
+              </SelectTrigger>
+              <SelectContent>
+                {allPaymentOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                    {option.isCustom &&
+                      'commissionRate' in option &&
+                      typeof option.commissionRate === 'number' &&
+                      option.commissionRate !== 0 && (
+                        <span className="ml-1 text-xs">
+                          {option.commissionRate > 0
+                            ? `(-${option.commissionRate * 100}%)`
+                            : `(+${Math.abs(option.commissionRate) * 100}%)`}
+                        </span>
+                      )}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-
+          {/* Tag dropdown */}
+          <div className="space-y-3">
+            <Label className="text-base">תיוג נסיעה</Label>
+            <Select
+              value={selectedTag}
+              onValueChange={(value) => setSelectedTag(value)}
+            >
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="ללא תיוג" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">ללא תיוג</SelectItem>
+                {tags.map((tag) => (
+                  <SelectItem key={tag} value={tag}>
+                    {tag}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {/* Quick amount buttons */}
           <div className="space-y-3">
             <Label className="text-base">סכומים מהירים</Label>
             <div className="grid grid-cols-3 gap-2">
-              {[20, 30, 40, 50, 60, 80].map((quickAmount) => (
+              {quickAmounts.map((val) => (
                 <Button
-                  key={quickAmount}
+                  key={val}
                   type="button"
                   variant="outline"
-                  onClick={() => {
-                    onAddTrip(quickAmount, paymentMethod);
-                    setAmount("");
-                    setPaymentMethod("cash");
-                    onClose();
-                    toast({
-                      title: "נסיעה נוספה",
-                      description: `נוספה נסיעה בסכום ₪${quickAmount} (${paymentMethod})`,
-                    });
-                  }}
+                  onClick={() => handleQuickClick(val)}
                   className="text-base h-12"
                 >
-                  ₪{quickAmount}
+                  ₪{val}
                 </Button>
               ))}
             </div>
           </div>
-
+          {/* Action buttons */}
           <div className="flex gap-2 pt-2">
             <Button
               type="button"
               variant="outline"
-              onClick={onClose}
+              onClick={() => {
+                resetState();
+                onClose();
+              }}
               className="flex-1 h-12 touch-manipulation"
             >
               ביטול
