@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -74,9 +74,14 @@ export const AddTripDialog = ({
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
   const [selectedTag, setSelectedTag] = useState<string>("");
-  // Normalize payment options and tags to avoid calling .map on undefined
+  // Normalize payment options to avoid calling .map on undefined
   const paymentOptions = Array.isArray(allPaymentOptions) ? allPaymentOptions : [];
-  const tagOptions = Array.isArray(tags) ? tags : [];
+  // Maintain a local copy of tags to allow the user to add new tags on the fly.
+  const [localTags, setLocalTags] = useState<string[]>(Array.isArray(tags) ? tags : []);
+  // When the parent-provided tags change, update the local list accordingly.
+  useEffect(() => {
+    setLocalTags(Array.isArray(tags) ? tags : []);
+  }, [tags]);
 
   /**
    * Compute a list of quick amounts based on the unique values of
@@ -118,7 +123,7 @@ export const AddTripDialog = ({
       });
       return;
     }
-    onAddTrip(parsedAmount, paymentMethod, selectedTag === "none" ? undefined : selectedTag || undefined);
+    onAddTrip(parsedAmount, paymentMethod, selectedTag || undefined);
     resetState();
     onClose();
     toast({
@@ -134,7 +139,7 @@ export const AddTripDialog = ({
    * component resets its state.
    */
   const handleQuickClick = (value: number) => {
-    onAddTrip(value, paymentMethod, selectedTag === "none" ? undefined : selectedTag || undefined);
+    onAddTrip(value, paymentMethod, selectedTag || undefined);
     resetState();
     onClose();
     toast({
@@ -194,25 +199,46 @@ export const AddTripDialog = ({
               </SelectContent>
             </Select>
           </div>
-          {/* Tag dropdown */}
+          {/* Tag selection with ability to add new tags */}
           <div className="space-y-3">
             <Label className="text-base">תיוג נסיעה</Label>
-            <Select
-              value={selectedTag}
-              onValueChange={(value) => setSelectedTag(value)}
-            >
-              <SelectTrigger className="h-10">
-                <SelectValue placeholder="ללא תיוג" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">ללא תיוג</SelectItem>
-                {tagOptions.map((tag) => (
-                  <SelectItem key={tag} value={tag}>
-                    {tag}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select
+                value={selectedTag}
+                onValueChange={(value) => setSelectedTag(value)}
+              >
+                <SelectTrigger className="h-10 min-w-[8rem]">
+                  <SelectValue placeholder="ללא תיוג" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">ללא תיוג</SelectItem>
+                  {localTags.map((tag) => (
+                    <SelectItem key={tag} value={tag}>
+                      {tag}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-10"
+                onClick={() => {
+                  const newTag = prompt('הכנס שם תיוג חדש');
+                  if (newTag && newTag.trim() !== '') {
+                    // Avoid adding duplicate tags by checking the current list
+                    const trimmed = newTag.trim();
+                    if (!localTags.includes(trimmed)) {
+                      setLocalTags([...localTags, trimmed]);
+                    }
+                    setSelectedTag(trimmed);
+                  }
+                }}
+              >
+                הוסף תיוג
+              </Button>
+            </div>
           </div>
           {/* Quick amount buttons */}
           <div className="space-y-3">
