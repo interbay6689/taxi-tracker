@@ -2,8 +2,9 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Settings, Target, TrendingUp, DollarSign, Play, Square, LogOut, User, Moon, Sun, Car, BarChart3, FileText, Navigation } from "lucide-react";
+import { Plus, Settings, Target, TrendingUp, DollarSign, Play, Square, LogOut, User, Moon, Sun, Car, BarChart3, FileText, Navigation, Fuel } from "lucide-react";
 import { AddTripDialog } from "./AddTripDialog";
+import { AddFuelDialog } from "./AddFuelDialog";
 import { DailySummaryCard } from "./DailySummaryCard";
 import { ProgressBar } from "./ProgressBar";
 import { TripsList } from "./TripsList";
@@ -30,27 +31,32 @@ import { ReportsExport } from "./ReportsExport";
 
 export const SecureTaxiDashboard = () => {
   const { user, signOut } = useAuth();
-  const { 
-    trips, 
-    workDays, 
-    currentWorkDay, 
-    dailyGoals, 
-    dailyExpenses, 
+  const {
+    trips,
+    workDays,
+    currentWorkDay,
+    dailyGoals,
+    dailyExpenses,
     loading,
-    addTrip, 
+    addTrip,
     addTripWithLocation,
-    startWorkDay, 
+    startWorkDay,
     endWorkDay,
     pauseWorkDay,
     resumeWorkDay,
-    updateGoals, 
+    updateGoals,
     updateExpenses,
     deleteTrip,
     updateTrip,
-    loadUserData
+    loadUserData,
+    // new: shift-level expenses and adder for fuel expenses
+    shiftExpenses,
+    addShiftExpense,
   } = useDatabase();
 
   const [isAddTripOpen, setIsAddTripOpen] = useState(false);
+  // Controls the visibility of the fuel expense dialog
+  const [isAddFuelOpen, setIsAddFuelOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isEditTripsOpen, setIsEditTripsOpen] = useState(false);
   const [quickAmount, setQuickAmount] = useState<number | null>(null);
@@ -60,15 +66,30 @@ export const SecureTaxiDashboard = () => {
   const { getPaymentMethodDetails } = useCustomPaymentTypes();
 
   const dailyStats = useMemo(() => {
-    const totalIncome = trips.reduce((sum, trip) => {
+    // Filter trips to only include those that fall within the current shift
+    // boundaries. If no work day is active, consider all trips for the day.
+    const filteredTrips = trips.filter(trip => {
+      const ts = new Date(trip.timestamp).getTime();
+      const start = currentWorkDay?.start_time ? new Date(currentWorkDay.start_time).getTime() : null;
+      const end = currentWorkDay?.end_time ? new Date(currentWorkDay.end_time).getTime() : null;
+      if (start && ts < start) return false;
+      if (end && ts > end) return false;
+      return true;
+    });
+
+    const totalIncome = filteredTrips.reduce((sum, trip) => {
       const paymentDetails = getPaymentMethodDetails(trip.payment_method);
       const finalAmount = trip.amount * (1 - paymentDetails.commissionRate);
       return sum + finalAmount;
     }, 0);
-    const totalExpensesValue = dailyExpenses.maintenance + dailyExpenses.other;
+    // Calculate expenses: include daily expenses (maintenance + other) and any
+    // shift-level expenses such as fuel. Each shift expense record has an
+    // amount field representing its shekel value.
+    const fuelExpensesTotal = shiftExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
+    const totalExpensesValue = dailyExpenses.maintenance + dailyExpenses.other + fuelExpensesTotal;
     const netProfit = totalIncome - totalExpensesValue;
     const incomeProgress = Math.min((totalIncome / dailyGoals.income_goal) * 100, 100);
-    const tripsProgress = Math.min((trips.length / dailyGoals.trips_goal) * 100, 100);
+    const tripsProgress = Math.min((filteredTrips.length / dailyGoals.trips_goal) * 100, 100);
     
     return {
       totalIncome,
@@ -76,10 +97,10 @@ export const SecureTaxiDashboard = () => {
       netProfit,
       incomeProgress,
       tripsProgress,
-      tripsCount: trips.length,
-      goalMet: totalIncome >= dailyGoals.income_goal && trips.length >= dailyGoals.trips_goal
+      tripsCount: filteredTrips.length,
+      goalMet: totalIncome >= dailyGoals.income_goal && filteredTrips.length >= dailyGoals.trips_goal,
     };
-  }, [trips, dailyGoals, dailyExpenses, getPaymentMethodDetails]);
+  }, [trips, dailyGoals, dailyExpenses, shiftExpenses, currentWorkDay, getPaymentMethodDetails]);
 
   // התראות
   useNotifications({
@@ -121,6 +142,24 @@ export const SecureTaxiDashboard = () => {
     if (success) {
       setIsAddTripOpen(false);
       setQuickAmount(null);
+      vibrateSuccess();
+    } else {
+      vibrateError();
+    }
+  };
+
+  /**
+   * Handles adding a fuel expense. Delegates the persistence to the
+   * `addShiftExpense` hook. Provides haptic feedback similar to adding a
+   * trip.
+   */
+  const handleAddFuel = async (amount: number) => {
+    // Save the fuel expense using the database hook. Currently no offline
+    // storage is implemented for fuel expenses. If needed, similar logic to
+    // handleAddTrip can be applied.
+    const success = await addShiftExpense(amount);
+    if (success) {
+      setIsAddFuelOpen(false);
       vibrateSuccess();
     } else {
       vibrateError();
@@ -279,7 +318,7 @@ export const SecureTaxiDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4">
+            <div className="flex gap-4 justify-center">
               {!currentWorkDay ? (
                 <Button onClick={startWorkDay} className="flex items-center gap-2" size="lg">
                   <Play className="h-5 w-5" />
@@ -321,18 +360,28 @@ export const SecureTaxiDashboard = () => {
           tripsGoal={dailyGoals.trips_goal}
         />
 
-        {/* Add Trip Button */}
+        {/* Action Buttons: add trip and add fuel expense */}
         {currentWorkDay && (
           <Card className="border-2 border-dashed border-primary/30 hover:border-primary/50 transition-colors">
             <CardContent className="p-6">
-              <Button 
-                onClick={() => setIsAddTripOpen(true)}
-                className="w-full h-16 text-lg"
-                size="lg"
-              >
-                <Plus className="mr-2 h-6 w-6" />
-                הוסף נסיעה
-              </Button>
+              <div className="grid grid-cols-2 gap-4">
+                <Button
+                  onClick={() => setIsAddTripOpen(true)}
+                  className="h-16 text-lg"
+                  size="lg"
+                >
+                  <Plus className="mr-2 h-6 w-6" />
+                  הוסף נסיעה
+                </Button>
+                <Button
+                  onClick={() => setIsAddFuelOpen(true)}
+                  className="h-16 text-lg"
+                  size="lg"
+                >
+                  <Fuel className="mr-2 h-6 w-6" />
+                  דלק
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -521,6 +570,15 @@ export const SecureTaxiDashboard = () => {
           onClose={() => setIsAddTripOpen(false)}
           onAddTrip={(amount, method) => {
             handleAddTrip(amount, method as 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי');
+          }}
+        />
+
+        {/* Add Fuel Dialog */}
+        <AddFuelDialog
+          isOpen={isAddFuelOpen}
+          onClose={() => setIsAddFuelOpen(false)}
+          onAddFuel={(amount) => {
+            handleAddFuel(amount);
           }}
         />
       </div>
