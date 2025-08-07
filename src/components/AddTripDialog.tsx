@@ -82,6 +82,22 @@ export const AddTripDialog = ({
   const paymentOptions = Array.isArray(allPaymentOptions) ? allPaymentOptions : [];
   // Maintain a local copy of tags to allow the user to add new tags on the fly.
   const [localTags, setLocalTags] = useState<string[]>(Array.isArray(tags) ? tags : []);
+  // New tag input for adding tags inline.  This state stores the value
+  // typed into the new tag input field.
+  const [newTag, setNewTag] = useState<string>("");
+
+  // Handler to add a new tag from the newTag input.  It trims the
+  // input, checks for duplicates, and updates the local tags list and
+  // selectedTag accordingly.  After adding it clears the input.
+  const handleAddTag = () => {
+    const trimmed = newTag.trim();
+    if (trimmed === "") return;
+    if (!localTags.includes(trimmed)) {
+      setLocalTags([...localTags, trimmed]);
+    }
+    setSelectedTag(trimmed);
+    setNewTag("");
+  };
   // When the parent-provided tags change, update the local list accordingly.
   useEffect(() => {
     setLocalTags(Array.isArray(tags) ? tags : []);
@@ -205,46 +221,40 @@ export const AddTripDialog = ({
               </SelectContent>
             </Select>
           </div>
-          {/* Tag selection with ability to add new tags */}
+          {/* Tag selection with ability to add or create new tags */}
           <div className="space-y-3">
             <Label className="text-base">תיוג נסיעה</Label>
+            <Select
+              value={selectedTag}
+              onValueChange={(value) => setSelectedTag(value)}
+            >
+              <SelectTrigger className="h-10 min-w-[8rem]">
+                <SelectValue placeholder="ללא תיוג" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">ללא תיוג</SelectItem>
+                {localTags.map((tag) => (
+                  <SelectItem key={tag} value={tag}>
+                    {tag}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {/* Input field and button to add a new tag inline */}
             <div className="flex items-center gap-2">
-              <Select
-                value={selectedTag}
-                onValueChange={(value) => setSelectedTag(value)}
-              >
-                <SelectTrigger className="h-10 min-w-[8rem]">
-                  {/* Show a placeholder when no tag is selected */}
-                  <SelectValue placeholder="ללא תיוג" />
-                </SelectTrigger>
-                <SelectContent>
-                  {/* Use the special value "none" instead of an empty string */}
-                  <SelectItem value="none">ללא תיוג</SelectItem>
-                  {localTags.map((tag) => (
-                    <SelectItem key={tag} value={tag}>
-                      {tag}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                placeholder="הכנס תיוג חדש"
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                className="flex-1"
+              />
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-10"
-                onClick={() => {
-                  const newTag = prompt('הכנס שם תיוג חדש');
-                  if (newTag && newTag.trim() !== '') {
-                    // Avoid adding duplicate tags by checking the current list
-                    const trimmed = newTag.trim();
-                    if (!localTags.includes(trimmed)) {
-                      setLocalTags([...localTags, trimmed]);
-                    }
-                    setSelectedTag(trimmed);
-                  }
-                }}
+                onClick={handleAddTag}
               >
-                הוסף תיוג
+                הוסף
               </Button>
             </div>
           </div>
