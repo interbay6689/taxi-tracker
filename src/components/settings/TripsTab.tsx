@@ -7,19 +7,40 @@ import { Trip } from "@/hooks/useDatabase";
 
 interface TripsTabProps {
   trips: Trip[];
+  currentWorkDay: any;
   onDeleteTrip: (tripId: string) => void;
   onEditTrip: (tripId: string, amount: number) => void;
 }
 
-export const TripsTab: React.FC<TripsTabProps> = ({ trips, onDeleteTrip, onEditTrip }) => {
-  const todayTrips = trips.filter(trip => trip.timestamp.startsWith(new Date().toISOString().split('T')[0]));
+export const TripsTab: React.FC<TripsTabProps> = ({ trips, currentWorkDay, onDeleteTrip, onEditTrip }) => {
+  // Filter trips to show only those from the current active shift
+  const shiftTrips = trips.filter(trip => {
+    if (!currentWorkDay) return false;
+    
+    const tripTime = new Date(trip.timestamp);
+    const shiftStartTime = new Date(currentWorkDay.start_time);
+    const shiftEndTime = currentWorkDay.end_time ? new Date(currentWorkDay.end_time) : new Date();
+    
+    return tripTime >= shiftStartTime && tripTime <= shiftEndTime;
+  });
 
-  if (todayTrips.length === 0) {
+  if (!currentWorkDay) {
     return (
       <Card>
         <CardContent className="text-center py-8">
           <Car className="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <p className="text-muted-foreground">אין נסיעות להצגה</p>
+          <p className="text-muted-foreground">אין משמרת פעילה</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (shiftTrips.length === 0) {
+    return (
+      <Card>
+        <CardContent className="text-center py-8">
+          <Car className="h-12 w-12 mx-auto mb-3 opacity-50" />
+          <p className="text-muted-foreground">אין נסיעות במשמרת הנוכחית</p>
         </CardContent>
       </Card>
     );
@@ -27,7 +48,7 @@ export const TripsTab: React.FC<TripsTabProps> = ({ trips, onDeleteTrip, onEditT
 
   return (
     <div className="space-y-4">
-      {todayTrips.map((trip) => (
+      {shiftTrips.map((trip) => (
         <Card key={trip.id}>
           <CardContent className="p-4">
             <div className="flex justify-between items-start mb-2">
@@ -112,9 +133,9 @@ export const TripsTab: React.FC<TripsTabProps> = ({ trips, onDeleteTrip, onEditT
       <Card>
         <CardContent className="p-4">
           <div className="flex justify-between items-center">
-            <span className="font-medium">סה"כ נסיעות היום:</span>
+            <span className="font-medium">סה"כ נסיעות במשמרת:</span>
             <span className="text-lg font-bold">
-              ₪{todayTrips.reduce((sum, trip) => {
+              ₪{shiftTrips.reduce((sum, trip) => {
                 const amount = trip.payment_method === 'דהרי' ? trip.amount * 0.9 : trip.amount;
                 return sum + amount;
               }, 0).toLocaleString()}

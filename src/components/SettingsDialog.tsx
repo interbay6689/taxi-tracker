@@ -17,6 +17,7 @@ interface SettingsDialogProps {
   goals: DailyGoals;
   expenses: DailyExpenses;
   trips: Trip[];
+  currentWorkDay: any;
   onUpdateGoals: (goals: DailyGoals) => void;
   onUpdateExpenses: (expenses: DailyExpenses) => void;
   onUpdateTrips: (trips: Trip[]) => void;
@@ -28,6 +29,7 @@ export const SettingsDialog = ({
   goals,
   expenses,
   trips,
+  currentWorkDay,
   onUpdateGoals,
   onUpdateExpenses,
   onUpdateTrips
@@ -99,7 +101,8 @@ export const SettingsDialog = ({
 
           <TabsContent value="trips">
             <TripsTab 
-              trips={trips} 
+              trips={trips}
+              currentWorkDay={currentWorkDay}
               onDeleteTrip={(tripId) => console.log('Delete trip:', tripId)}
               onEditTrip={(tripId, amount) => console.log('Edit trip:', tripId, amount)}
             />

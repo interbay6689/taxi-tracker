@@ -7,6 +7,7 @@ import { Trip } from '@/hooks/useDatabase';
 
 interface TripsListProps {
   trips: Trip[];
+  currentWorkDay?: any;
 }
 
 const getPaymentMethodIcon = (method: string) => {
@@ -59,8 +60,16 @@ const formatLocationForDisplay = (city?: string, address?: string) => {
   return city || address;
 };
 
-export const TripsList: React.FC<TripsListProps> = ({ trips }) => {
-  if (trips.length === 0) {
+export const TripsList: React.FC<TripsListProps> = ({ trips, currentWorkDay }) => {
+  // Filter trips to show only those from the current active shift
+  const displayTrips = currentWorkDay ? trips.filter(trip => {
+    const tripTime = new Date(trip.timestamp);
+    const shiftStartTime = new Date(currentWorkDay.start_time);
+    const shiftEndTime = currentWorkDay.end_time ? new Date(currentWorkDay.end_time) : new Date();
+    
+    return tripTime >= shiftStartTime && tripTime <= shiftEndTime;
+  }) : trips;
+  if (displayTrips.length === 0) {
     return (
       <Card className="shadow-md">
         <CardHeader>
@@ -89,13 +98,13 @@ export const TripsList: React.FC<TripsListProps> = ({ trips }) => {
             נסיעות היום
           </div>
           <span className="text-sm text-muted-foreground">
-            {trips.length} נסיעות
+            {displayTrips.length} נסיעות
           </span>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4 max-h-80 overflow-y-auto">
-          {trips.map((trip) => (
+          {displayTrips.map((trip) => (
             <div
               key={trip.id}
               className="p-3 bg-muted/50 rounded-lg border border-muted-foreground/20"
@@ -176,14 +185,14 @@ export const TripsList: React.FC<TripsListProps> = ({ trips }) => {
           ))}
         </div>
         
-        {trips.length > 0 && (
+        {displayTrips.length > 0 && (
           <div className="mt-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium text-foreground">
                 סה"כ היום:
               </span>
               <span className="text-lg font-bold text-primary">
-                ₪{trips.reduce((sum, trip) => {
+                ₪{displayTrips.reduce((sum, trip) => {
                   const amount = trip.payment_method === 'דהרי' ? trip.amount * 0.9 : trip.amount;
                   return sum + amount;
                 }, 0).toLocaleString()}

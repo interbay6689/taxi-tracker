@@ -547,8 +547,14 @@ export const SecureTaxiDashboard = () => {
                     עדיין לא נוספו נסיעות היום
                   </p>
                 ) : (
-                  <div className="space-y-3">
-                     {trips.map((trip) => {
+                   <div className="space-y-3">
+                     {/* Show only trips from current shift */}
+                     {(currentWorkDay ? trips.filter(trip => {
+                       const tripTime = new Date(trip.timestamp);
+                       const shiftStartTime = new Date(currentWorkDay.start_time);
+                       const shiftEndTime = currentWorkDay.end_time ? new Date(currentWorkDay.end_time) : new Date();
+                       return tripTime >= shiftStartTime && tripTime <= shiftEndTime;
+                     }) : []).map((trip) => {
                        const paymentDetails = getPaymentMethodDetails(trip.payment_method);
                        const finalAmount = trip.amount * (1 - paymentDetails.commissionRate);
                        
@@ -630,12 +636,12 @@ export const SecureTaxiDashboard = () => {
                            })()}
                          </span>
                        </div>
-                       <div className="text-sm text-muted-foreground mt-1">
-                         {trips.length} נסיעות • ממוצע: ₪{
-                           trips.length > 0
-                             ? (dailyStats.netProfit / trips.length).toFixed(0)
-                             : '0'
-                         }
+                        <div className="text-sm text-muted-foreground mt-1">
+                          {dailyStats.tripsCount} נסיעות • ממוצע: ₪{
+                            dailyStats.tripsCount > 0
+                              ? (dailyStats.netProfit / dailyStats.tripsCount).toFixed(0)
+                              : '0'
+                          }
                        </div>
                      </div>
                   </div>
@@ -691,6 +697,7 @@ export const SecureTaxiDashboard = () => {
           goals={dailyGoals}
           expenses={dailyExpenses}
           trips={trips}
+          currentWorkDay={currentWorkDay}
           onUpdateGoals={handleUpdateGoals}
           onUpdateExpenses={handleUpdateExpenses}
           onUpdateTrips={handleUpdateTrips}
