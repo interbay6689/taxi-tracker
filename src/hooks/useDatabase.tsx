@@ -156,6 +156,32 @@ export function useDatabase() {
       // Handle active work day
       if (activeWorkDayResponse.error) throw activeWorkDayResponse.error;
       setCurrentWorkDay(activeWorkDayResponse.data);
+      // Load shift expenses for the current active work day. If there is
+      // no active work day then reset the shift expenses to an empty array.
+      if (activeWorkDayResponse.data) {
+        try {
+          const { data: shiftExpData, error: shiftExpError } = await supabase
+            .from('shift_expenses')
+            .select('*')
+            .eq('work_day_id', activeWorkDayResponse.data.id);
+          if (shiftExpError) throw shiftExpError;
+          setShiftExpenses(
+            (shiftExpData || []).map((expense: any) => ({
+              id: expense.id,
+              amount: Number(expense.amount),
+              payment_method: expense.payment_method,
+              work_day_id: expense.work_day_id,
+              description: expense.description ?? undefined,
+              created_at: expense.created_at,
+            }))
+          );
+        } catch (err) {
+          console.error('Error loading shift expenses:', err);
+          setShiftExpenses([]);
+        }
+      } else {
+        setShiftExpenses([]);
+      }
 
       // Handle work days history
       if (workDaysHistoryResponse.error) throw workDaysHistoryResponse.error;
@@ -360,6 +386,61 @@ export function useDatabase() {
       console.error('Error adding trip with location:', error);
       toast({
         title: "שגיאה בהוספת נסיעה",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  }, [user, currentWorkDay, toast]);
+
+  /**
+   * Adds a shift-level expense (e.g. fuel). Shift expenses are tied to the
+   * current active work day. The amount should be a positive number. If no
+   * active work day is found an error toast is displayed and the operation
+   * fails silently.
+   *
+   * @param amount The expense amount in shekels.
+   * @returns A boolean indicating whether the expense was successfully
+   * inserted into the database.
+   */
+  const addShiftExpense = useCallback(async (amount: number) => {
+    if (!user || !currentWorkDay) {
+      toast({
+        title: "שגיאה בהוספת הוצאה",
+        description: "אין יום עבודה פעיל",
+        variant: "destructive",
+      });
+      return false;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('shift_expenses')
+        .insert({
+          amount,
+          payment_method: 'fuel',
+          user_id: user.id,
+          work_day_id: currentWorkDay.id,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      // Append the new expense to local state
+      setShiftExpenses(prev => [
+        ...prev,
+        {
+          id: data.id,
+          amount: Number(data.amount),
+          payment_method: data.payment_method,
+          work_day_id: data.work_day_id,
+          description: data.description ?? undefined,
+          created_at: data.created_at,
+        },
+      ]);
+      return true;
+    } catch (error: any) {
+      console.error('Error adding shift expense:', error);
+      toast({
+        title: "שגיאה בהוספת הוצאה",
         description: error.message,
         variant: "destructive",
       });
@@ -707,6 +788,9 @@ export function useDatabase() {
     updateExpenses,
     deleteTrip,
     updateTrip,
-    loadUserData
+    loadUserData,
+    // Expose shift-level expenses and the function to add a new expense (fuel)
+    shiftExpenses,
+    addShiftExpense
   };
 }
