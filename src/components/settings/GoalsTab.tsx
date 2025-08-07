@@ -65,25 +65,53 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({ goals, setGoals }) => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Weekly income goal input */}
           <div>
-            <Label htmlFor="weekly_goal">יעד שבועי (בקרוב)</Label>
+            <Label htmlFor="weekly_income_goal">יעד הכנסה שבועי (₪)</Label>
             <Input
-              id="weekly_goal"
+              id="weekly_income_goal"
               type="number"
-              disabled
-              value={0}
-              placeholder="לא זמין כרגע"
+              placeholder="הזן יעד הכנסה שבועי"
+              value={
+                goals.weekly_income_goal !== undefined
+                  ? goals.weekly_income_goal
+                  : goals.income_goal * 7
+              }
+              onChange={(e) =>
+                setGoals({
+                  ...goals,
+                  weekly_income_goal: Number(e.target.value) || 0,
+                })
+              }
             />
           </div>
-          
+
+          {/* Monthly income goal input */}
           <div>
-            <Label htmlFor="monthly_goal">יעד חודשי (בקרוב)</Label>
+            <Label htmlFor="monthly_income_goal">יעד הכנסה חודשי (₪)</Label>
             <Input
-              id="monthly_goal"
+              id="monthly_income_goal"
               type="number"
-              disabled
-              value={0}
-              placeholder="לא זמין כרגע"
+              placeholder="הזן יעד הכנסה חודשי"
+              value={
+                goals.monthly_income_goal !== undefined
+                  ? goals.monthly_income_goal
+                  : (() => {
+                      const now = new Date();
+                      const daysInMonth = new Date(
+                        now.getFullYear(),
+                        now.getMonth() + 1,
+                        0
+                      ).getDate();
+                      return goals.income_goal * daysInMonth;
+                    })()
+              }
+              onChange={(e) =>
+                setGoals({
+                  ...goals,
+                  monthly_income_goal: Number(e.target.value) || 0,
+                })
+              }
             />
           </div>
         </CardContent>
