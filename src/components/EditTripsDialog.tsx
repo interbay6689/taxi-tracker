@@ -6,15 +6,18 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, Edit3, Plus, MapPin, ArrowLeft, Clock } from "lucide-react";
-import { Trip } from "@/hooks/useDatabase";
+import { Trip, ShiftExpense } from "@/hooks/useDatabase";
 import { useToast } from "@/hooks/use-toast";
 
 interface EditTripsDialogProps {
   isOpen: boolean;
   onClose: () => void;
   trips: Trip[];
+  expenses?: ShiftExpense[];
   onDeleteTrip: (id: string) => void;
   onUpdateTrip: (id: string, amount: number, paymentMethod: 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי') => void;
+  onDeleteExpense?: (id: string) => void;
+  onUpdateExpense?: (id: string, amount: number) => void;
   onAddTrip: () => void;
 }
 
@@ -22,14 +25,21 @@ export const EditTripsDialog = ({
   isOpen,
   onClose,
   trips,
+  expenses = [],
   onDeleteTrip,
   onUpdateTrip,
+  onDeleteExpense = () => {},
+  onUpdateExpense = () => {},
   onAddTrip
 }: EditTripsDialogProps) => {
   const [editingTrip, setEditingTrip] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState("");
   const [editPaymentMethod, setEditPaymentMethod] = useState<'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי'>('מזומן');
   const { toast } = useToast();
+
+  // State for editing a shift expense (e.g. fuel)
+  const [editingExpense, setEditingExpense] = useState<string | null>(null);
+  const [editExpenseAmount, setEditExpenseAmount] = useState<string>("");
 
   const handleEditStart = (trip: Trip) => {
     setEditingTrip(trip.id);
@@ -67,6 +77,43 @@ export const EditTripsDialog = ({
     toast({
       title: "נסיעה נמחקה",
       description: "הנסיעה נמחקה בהצלחה"
+    });
+  };
+
+  // Handle editing of a shift expense (fuel)
+  const handleExpenseEditStart = (expense: ShiftExpense) => {
+    setEditingExpense(expense.id);
+    setEditExpenseAmount(expense.amount.toString());
+  };
+
+  const handleExpenseEditSave = (expenseId: string) => {
+    const amount = parseFloat(editExpenseAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast({
+        title: "שגיאה",
+        description: "אנא הכנס סכום תקין",
+        variant: "destructive"
+      });
+      return;
+    }
+    onUpdateExpense(expenseId, amount);
+    setEditingExpense(null);
+    toast({
+      title: "הוצאה עודכנה",
+      description: "ההוצאה עודכנה בהצלחה"
+    });
+  };
+
+  const handleExpenseCancel = () => {
+    setEditingExpense(null);
+    setEditExpenseAmount("");
+  };
+
+  const handleDeleteExpense = (expenseId: string) => {
+    onDeleteExpense(expenseId);
+    toast({
+      title: "הוצאה נמחקה",
+      description: "ההוצאה נמחקה בהצלחה"
     });
   };
 
@@ -240,6 +287,57 @@ export const EditTripsDialog = ({
                             )}
                           </div>
                         )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* רשימת הוצאות דלק */}
+              {expenses && expenses.length > 0 && expenses.map((expense) => (
+                <Card key={expense.id}>
+                  <CardContent className="p-4">
+                    {editingExpense === expense.id ? (
+                      <div className="space-y-3">
+                        <div>
+                          <Label htmlFor={`edit-expense-${expense.id}`}>סכום (₪)</Label>
+                          <Input
+                            id={`edit-expense-${expense.id}`}
+                            type="number"
+                            value={editExpenseAmount}
+                            onChange={(e) => setEditExpenseAmount(e.target.value)}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button onClick={() => handleExpenseEditSave(expense.id)} size="sm">
+                            שמור
+                          </Button>
+                          <Button onClick={handleExpenseCancel} variant="outline" size="sm">
+                            ביטול
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-4">
+                          <div className="text-lg font-bold text-red-600">-₪{expense.amount}</div>
+                          <div className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">
+                            דלק
+                          </div>
+                          <div className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {new Date(expense.created_at).toLocaleTimeString('he-IL')}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button onClick={() => handleExpenseEditStart(expense)} variant="outline" size="sm">
+                            <Edit3 className="h-4 w-4" />
+                          </Button>
+                          <Button onClick={() => handleDeleteExpense(expense.id)} variant="destructive" size="sm">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </CardContent>
