@@ -60,12 +60,53 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({ expenses, setExpenses 
 
       <Card>
         <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Fuel className="h-5 w-5" />
+            מחיר פיקס יומי
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Label htmlFor="daily_fixed_price">מחיר פיקס יומי (₪)</Label>
+          <Input
+            id="daily_fixed_price"
+            type="number"
+            placeholder="הזן עלות פיקס יומית"
+            value={expenses.daily_fixed_price ?? 0}
+            onChange={(e) => setExpenses({
+              ...expenses,
+              daily_fixed_price: Number(e.target.value) || 0,
+            })}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>סיכום הוצאות</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex justify-between items-center text-lg">
-            <span>סה"כ הוצאות יומיות:</span>
-            <span className="font-bold">₪{(expenses.maintenance + expenses.other).toLocaleString()}</span>
+          <div className="flex flex-col gap-2 text-lg">
+            <div className="flex justify-between items-center">
+              <span>סה"כ הוצאות יומיות:</span>
+              <span className="font-bold">
+                ₪{(
+                  (expenses.maintenance || 0) +
+                  (expenses.other || 0) +
+                  (expenses.daily_fixed_price || 0)
+                ).toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-sm text-muted-foreground">
+              <span>הוצאה חודשית (משוער):</span>
+              <span>
+                ₪{(() => {
+                  const now = new Date();
+                  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+                  const monthly = (expenses.daily_fixed_price || 0) * daysInMonth;
+                  return monthly.toLocaleString();
+                })()}
+              </span>
+            </div>
           </div>
         </CardContent>
       </Card>
