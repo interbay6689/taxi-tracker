@@ -104,8 +104,14 @@ export const SecureTaxiDashboard = () => {
       (sum, expense) => sum + (expense.amount || 0),
       0
     );
+    // Include the daily fixed price when computing expenses.  If the
+    // property is undefined treat it as zero.  This cost applies to
+    // each day/shift and is configured in the expenses settings.
     const totalExpensesValue =
-      dailyExpenses.maintenance + dailyExpenses.other + fuelExpensesTotal;
+      (dailyExpenses.maintenance || 0) +
+      (dailyExpenses.other || 0) +
+      (dailyExpenses.daily_fixed_price || 0) +
+      fuelExpensesTotal;
     // Net profit is based on gross income minus total expenses.
     const netProfit = totals.gross - totalExpensesValue;
     // Progress metrics for daily income and monthly trips (tripsProgress
@@ -198,10 +204,15 @@ export const SecureTaxiDashboard = () => {
   // התראות
   useNotifications({
     dailyGoals,
+    // Use gross income for notifications since the net value includes
+    // commissions and expenses.  The previous property `totalIncome`
+    // no longer exists on dailyStats.
     totalIncome: dailyStats.totalIncomeGross,
     tripsCount: dailyStats.tripsCount,
     workDayStartTime: currentWorkDay?.start_time,
-    goalMet: dailyStats.incomeProgress >= 100 && dailyStats.tripsProgress >= 100,
+    // Do not include goalMet because the new dailyStats no longer
+    // computes this boolean. Notifications will handle goal logic
+    // internally based on the provided income and goals.
   });
 
   const handleAddTrip = async (
@@ -346,7 +357,7 @@ export const SecureTaxiDashboard = () => {
     return (
       <div className="min-h-screen">{/* מצב נהיגה */}
         <DrivingModeHeader
-          totalIncome={dailyStats.totalIncomeGross}
+          totalIncome={dailyStats.totalIncome}
           tripsCount={dailyStats.tripsCount}
           dailyGoal={dailyGoals.income_goal}
           onAddTrip={() => setIsAddTripOpen(true)}
@@ -547,14 +558,8 @@ export const SecureTaxiDashboard = () => {
                     עדיין לא נוספו נסיעות היום
                   </p>
                 ) : (
-                   <div className="space-y-3">
-                     {/* Show only trips from current shift */}
-                     {(currentWorkDay ? trips.filter(trip => {
-                       const tripTime = new Date(trip.timestamp);
-                       const shiftStartTime = new Date(currentWorkDay.start_time);
-                       const shiftEndTime = currentWorkDay.end_time ? new Date(currentWorkDay.end_time) : new Date();
-                       return tripTime >= shiftStartTime && tripTime <= shiftEndTime;
-                     }) : []).map((trip) => {
+                  <div className="space-y-3">
+                     {trips.map((trip) => {
                        const paymentDetails = getPaymentMethodDetails(trip.payment_method);
                        const finalAmount = trip.amount * (1 - paymentDetails.commissionRate);
                        
@@ -636,12 +641,12 @@ export const SecureTaxiDashboard = () => {
                            })()}
                          </span>
                        </div>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          {dailyStats.tripsCount} נסיעות • ממוצע: ₪{
-                            dailyStats.tripsCount > 0
-                              ? (dailyStats.netProfit / dailyStats.tripsCount).toFixed(0)
-                              : '0'
-                          }
+                       <div className="text-sm text-muted-foreground mt-1">
+                         {trips.length} נסיעות • ממוצע: ₪{
+                           trips.length > 0
+                             ? (dailyStats.netProfit / trips.length).toFixed(0)
+                             : '0'
+                         }
                        </div>
                      </div>
                   </div>
@@ -697,7 +702,6 @@ export const SecureTaxiDashboard = () => {
           goals={dailyGoals}
           expenses={dailyExpenses}
           trips={trips}
-          currentWorkDay={currentWorkDay}
           onUpdateGoals={handleUpdateGoals}
           onUpdateExpenses={handleUpdateExpenses}
           onUpdateTrips={handleUpdateTrips}
