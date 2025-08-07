@@ -16,13 +16,32 @@ export const AnalyticsTab = ({ trips }: AnalyticsTabProps) => {
   
   const analytics = useMemo(() => {
     const now = new Date();
+    
+    // תיקון חישוב תקופות
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    
+    // שבוע - מתחילת השבוע (יום ראשון)
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    
+    // חודש - מתחילת החודש
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const todayTrips = trips.filter(trip => new Date(trip.timestamp) >= today);
-    const weekTrips = trips.filter(trip => new Date(trip.timestamp) >= weekAgo);
-    const monthTrips = trips.filter(trip => new Date(trip.timestamp) >= monthAgo);
+    const todayTrips = trips.filter(trip => {
+      const tripDate = new Date(trip.timestamp);
+      return tripDate >= today && tripDate < tomorrow;
+    });
+    
+    const weekTrips = trips.filter(trip => {
+      const tripDate = new Date(trip.timestamp);
+      return tripDate >= startOfWeek;
+    });
+    
+    const monthTrips = trips.filter(trip => {
+      const tripDate = new Date(trip.timestamp);
+      return tripDate >= startOfMonth;
+    });
 
     const todayIncome = todayTrips.reduce((sum, trip) => {
       const paymentDetails = getPaymentMethodDetails(trip.payment_method);
@@ -128,17 +147,17 @@ export const AnalyticsTab = ({ trips }: AnalyticsTabProps) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center p-4 bg-muted/50 rounded-lg">
               <div className="text-lg font-bold">היום</div>
-              <div className="text-2xl font-bold text-primary">₪{analytics.todayIncome}</div>
+              <div className="text-2xl font-bold text-primary">₪{Math.round(analytics.todayIncome).toLocaleString()}</div>
               <div className="text-sm text-muted-foreground">{analytics.todayTrips} נסיעות</div>
             </div>
             <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <div className="text-lg font-bold">השבוע</div>
-              <div className="text-2xl font-bold text-primary">₪{analytics.weekIncome}</div>
+              <div className="text-lg font-bold">השבוע הנוכחי</div>
+              <div className="text-2xl font-bold text-primary">₪{Math.round(analytics.weekIncome).toLocaleString()}</div>
               <div className="text-sm text-muted-foreground">{analytics.weekTrips} נסיעות</div>
             </div>
             <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <div className="text-lg font-bold">החודש</div>
-              <div className="text-2xl font-bold text-primary">₪{analytics.monthIncome}</div>
+              <div className="text-lg font-bold">החודש הנוכחי</div>
+              <div className="text-2xl font-bold text-primary">₪{Math.round(analytics.monthIncome).toLocaleString()}</div>
               <div className="text-sm text-muted-foreground">{analytics.monthTrips} נסיעות</div>
             </div>
           </div>

@@ -45,8 +45,10 @@ export const ReportsExport = ({ trips }: ReportsExportProps) => {
         });
       
       case "week":
-        const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        return trips.filter(trip => new Date(trip.timestamp) >= weekStart);
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay()); // תחילת השבוע (יום ראשון)
+        startOfWeek.setHours(0, 0, 0, 0);
+        return trips.filter(trip => new Date(trip.timestamp) >= startOfWeek);
       
       case "month":
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -195,11 +197,41 @@ export const ReportsExport = ({ trips }: ReportsExportProps) => {
   };
 
   const filteredTrips = getFilteredTrips();
-  const weeklyTrips = trips.filter(trip => {
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    return new Date(trip.timestamp) >= weekAgo;
+  
+  // חישובי תקופות נכונים
+  const todayTrips = trips.filter(trip => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    const tripDate = new Date(trip.timestamp);
+    return tripDate >= today && tripDate < tomorrow;
   });
+  
+  const weeklyTrips = trips.filter(trip => {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    return new Date(trip.timestamp) >= startOfWeek;
+  });
+  
+  const monthlyTrips = trips.filter(trip => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    return new Date(trip.timestamp) >= startOfMonth;
+  });
+  
+  const todayIncome = todayTrips.reduce((sum, trip) => {
+    const details = getPaymentMethodDetails(trip.payment_method);
+    return sum + (trip.amount * (1 - details.commissionRate));
+  }, 0);
+  
   const weeklyIncome = weeklyTrips.reduce((sum, trip) => {
+    const details = getPaymentMethodDetails(trip.payment_method);
+    return sum + (trip.amount * (1 - details.commissionRate));
+  }, 0);
+  
+  const monthlyIncome = monthlyTrips.reduce((sum, trip) => {
     const details = getPaymentMethodDetails(trip.payment_method);
     return sum + (trip.amount * (1 - details.commissionRate));
   }, 0);
@@ -257,15 +289,31 @@ export const ReportsExport = ({ trips }: ReportsExportProps) => {
         <div className="grid grid-cols-3 gap-4 pt-4 border-t">
           <div className="text-center">
             <div className="text-2xl font-bold text-primary">
-              {weeklyTrips.length}
+              {period === 'today' ? todayTrips.length : 
+               period === 'week' ? weeklyTrips.length :
+               period === 'month' ? monthlyTrips.length : filteredTrips.length}
             </div>
-            <div className="text-sm text-muted-foreground">נסיעות השבוע</div>
+            <div className="text-sm text-muted-foreground">
+              נסיעות {period === 'today' ? 'היום' : 
+                      period === 'week' ? 'השבוע' :
+                      period === 'month' ? 'החודש' : 'בתקופה'}
+            </div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-primary">
-              ₪{weeklyIncome.toFixed(0)}
+              ₪{Math.round(period === 'today' ? todayIncome : 
+                          period === 'week' ? weeklyIncome :
+                          period === 'month' ? monthlyIncome : 
+                          filteredTrips.reduce((sum, trip) => {
+                            const details = getPaymentMethodDetails(trip.payment_method);
+                            return sum + (trip.amount * (1 - details.commissionRate));
+                          }, 0)).toLocaleString()}
             </div>
-            <div className="text-sm text-muted-foreground">הכנסות השבוע</div>
+            <div className="text-sm text-muted-foreground">
+              הכנסות {period === 'today' ? 'היום' : 
+                      period === 'week' ? 'השבוע' :
+                      period === 'month' ? 'החודש' : 'בתקופה'}
+            </div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-primary">
