@@ -448,6 +448,76 @@ export function useDatabase() {
     }
   }, [user, currentWorkDay, toast]);
 
+  /**
+   * Deletes a shift-level expense by its ID. Upon successful deletion the
+   * local state is updated to remove the expense from the current list. If
+   * there is an error, an error toast is shown.
+   *
+   * @param id The ID of the expense to delete
+   * @returns A boolean indicating whether the deletion succeeded
+   */
+  const deleteShiftExpense = useCallback(async (id: string) => {
+    if (!user) return false;
+    try {
+      const { error } = await supabase
+        .from('shift_expenses')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      setShiftExpenses(prev => prev.filter(exp => exp.id !== id));
+      toast({
+        title: 'הוצאה נמחקה',
+        description: 'ההוצאה הוסרה בהצלחה',
+      });
+      return true;
+    } catch (error: any) {
+      console.error('Error deleting shift expense:', error);
+      toast({
+        title: 'שגיאה במחיקת הוצאה',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return false;
+    }
+  }, [user, toast]);
+
+  /**
+   * Updates the amount of an existing shift-level expense. Only the amount
+   * can be modified; other fields remain unchanged. If the update
+   * succeeds, the local state is updated accordingly.
+   *
+   * @param id The ID of the expense to update
+   * @param amount The new amount in shekels
+   * @returns A boolean indicating whether the update succeeded
+   */
+  const updateShiftExpense = useCallback(async (id: string, amount: number) => {
+    if (!user) return false;
+    try {
+      const { data, error } = await supabase
+        .from('shift_expenses')
+        .update({ amount })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      // Update local state
+      setShiftExpenses(prev => prev.map(exp => exp.id === id ? { ...exp, amount: Number(data.amount) } : exp));
+      toast({
+        title: 'הוצאה עודכנה',
+        description: 'ההוצאה עודכנה בהצלחה',
+      });
+      return true;
+    } catch (error: any) {
+      console.error('Error updating shift expense:', error);
+      toast({
+        title: 'שגיאה בעדכון הוצאה',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return false;
+    }
+  }, [user, toast]);
+
   const startWorkDay = useCallback(async () => {
     if (!user) return false;
 
@@ -791,6 +861,9 @@ export function useDatabase() {
     loadUserData,
     // Expose shift-level expenses and the function to add a new expense (fuel)
     shiftExpenses,
-    addShiftExpense
+    addShiftExpense,
+    // New: allow deletion and updating of shift expenses
+    deleteShiftExpense,
+    updateShiftExpense
   };
 }
