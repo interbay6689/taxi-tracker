@@ -74,6 +74,9 @@ export const AddTripDialog = ({
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
   const [selectedTag, setSelectedTag] = useState<string>("");
+  // Normalize payment options and tags to avoid calling .map on undefined
+  const paymentOptions = Array.isArray(allPaymentOptions) ? allPaymentOptions : [];
+  const tagOptions = Array.isArray(tags) ? tags : [];
 
   /**
    * Compute a list of quick amounts based on the unique values of
@@ -97,6 +100,42 @@ export const AddTripDialog = ({
     setSelectedTag("");
   };
 
+  /**
+   * Derive a list of quick amount values based on the unique amounts
+   * recorded in today’s trips. When there are no trips yet, a default
+   * list of values is returned. Only positive amounts are considered and
+   * values are sorted descending to surface the largest values first.
+   */
+  const quickAmounts = useMemo(() => {
+    // Ensure tripsToday is an array before mapping. If the prop is
+    // undefined the default argument ensures it will be an empty array.
+    const source = Array.isArray(tripsToday) ? tripsToday : [];
+    const unique = Array.from(new Set(source.map((trip) => trip.amount)));
+    const positive = unique.filter((val) => val > 0);
+    // Sort descending and take the top 6 values. Fallback to a set of
+    // predefined amounts if none are available.
+    const sorted = positive.sort((a, b) => b - a).slice(0, 6);
+    const defaults = [20, 30, 40, 50, 60, 80];
+    return sorted.length > 0 ? sorted : defaults;
+  }, [tripsToday]);
+
+  /**
+   * Resets the local state of the form to its initial values. This
+   * function is called after a successful submission or when the user
+   * cancels the dialog.
+   */
+  const resetState = () => {
+    setAmount("");
+    setPaymentMethod("cash");
+    setSelectedTag("");
+  };
+
+  /**
+   * Validates the amount input and, if valid, invokes the `onAddTrip`
+   * callback with the current state. Displays a toast message when
+   * validation fails or when the trip is successfully added. After
+   * submission, the component state is reset and the dialog is closed.
+   */
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const parsedAmount = parseFloat(amount);
@@ -117,6 +156,12 @@ export const AddTripDialog = ({
     });
   };
 
+  /**
+   * Handles clicks on a quick amount button. Immediately records a new
+   * trip using the selected quick value, current payment method and
+   * selected tag. After submission the dialog is closed and the
+   * component resets its state.
+   */
   const handleQuickClick = (value: number) => {
     onAddTrip(value, paymentMethod, selectedTag || undefined);
     resetState();
@@ -160,12 +205,12 @@ export const AddTripDialog = ({
                 <SelectValue placeholder="בחר אמצעי תשלום" />
               </SelectTrigger>
               <SelectContent>
-                {allPaymentOptions.map((option) => (
+                {paymentOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                     {option.isCustom &&
-                      'commissionRate' in option &&
-                      typeof option.commissionRate === 'number' &&
+                      "commissionRate" in option &&
+                      typeof option.commissionRate === "number" &&
                       option.commissionRate !== 0 && (
                         <span className="ml-1 text-xs">
                           {option.commissionRate > 0
@@ -190,7 +235,7 @@ export const AddTripDialog = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">ללא תיוג</SelectItem>
-                {tags.map((tag) => (
+                {tagOptions.map((tag) => (
                   <SelectItem key={tag} value={tag}>
                     {tag}
                   </SelectItem>
