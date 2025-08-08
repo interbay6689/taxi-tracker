@@ -109,7 +109,13 @@ export function useDatabase() {
   const [shiftExpenses, setShiftExpenses] = useState<ShiftExpense[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load data when user is authenticated
+  // Load data when user is authenticated.  This function fetches the
+  // current active work day (if any) and then loads all trips and
+  // shift-level expenses that fall within that shift.  It also
+  // retrieves completed work days for history and the latest goals
+  // and expenses configured by the user.  Everything is mapped into
+  // local state.  If there is no active user the function exits
+  // early and clears the loading state.
   const loadUserData = useCallback(async () => {
     if (!user) {
       setLoading(false);
@@ -119,140 +125,153 @@ export function useDatabase() {
     try {
       setLoading(true);
 
-      // Load all data in parallel with timeout protection
-      const today = new Date().toISOString().split('T')[0];
-      
-      const loadPromises = [
-        // Load trips for today
-        supabase
+      // Fetch the current active work day for this user.  The
+      // combination of `is_active = true` and `user_id` uniquely
+      // identifies at most one active shift.  We order by start time
+      // descending just in case and take the most recent.
+      const { data: activeWorkDay, error: activeError } = await supabase
+        .from('work_days')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .order('start_time', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (activeError) throw activeError;
+
+      // Set currentWorkDay (null if there is no active shift)
+      setCurrentWorkDay(activeWorkDay ?? null);
+
+      // Initialise containers for trips and expenses
+      let tripRows: any[] = [];
+      let expenseRows: any[] = [];
+
+      if (activeWorkDay) {
+        // Fetch trips that belong to this shift.  The trips table does
+        // not have a work_day_id FK so we filter by timestamp between
+        // start_time and (optional) end_time.
+        let tripQuery = supabase
           .from('trips')
           .select('*')
-          .gte('timestamp', `${today}T00:00:00.000Z`)
-          .lt('timestamp', `${today}T23:59:59.999Z`)
-          .order('timestamp', { ascending: false }),
-        
-        // Load current active work day
-        supabase
-          .from('work_days')
-          .select('*')
-          .eq('is_active', true)
-          .maybeSingle(),
-        
-        // Load work days history
-        supabase
-          .from('work_days')
-          .select('*')
-          .eq('is_active', false)
-          .order('start_time', { ascending: false })
-          .limit(30),
-        
-        // Load daily goals
-        supabase
-          .from('daily_goals')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        
-        // Load daily expenses
-        supabase
-          .from('daily_expenses')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-      ];
+          .eq('user_id', user.id)
+          .gte('timestamp', activeWorkDay.start_time)
+          .order('timestamp', { ascending: false });
+        if (activeWorkDay.end_time) {
+          tripQuery = tripQuery.lt('timestamp', activeWorkDay.end_time);
+        }
+        const { data: tripsData, error: tripsError } = await tripQuery;
+        if (tripsError) throw tripsError;
+        tripRows = tripsData ?? [];
 
-      // Execute with timeout protection (5 seconds max)
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Database timeout')), 5000)
+        // Fetch shift-level expenses tied to this work day.  These
+        // correspond to fuel or other per-shift costs stored in
+        // shift_expenses.
+        const { data: shiftExpData, error: shiftExpError } = await supabase
+          .from('shift_expenses')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('work_day_id', activeWorkDay.id)
+          .order('created_at', { ascending: false });
+        if (shiftExpError) throw shiftExpError;
+        expenseRows = shiftExpData ?? [];
+      }
+
+      // Fetch all completed work days for history.  We exclude the
+      // currently active shift to avoid counting it twice.  Work days
+      // are ordered by start_time descending.
+      const { data: workDaysHistory, error: historyError } = await supabase
+        .from('work_days')
+        .select('*')
+        .eq('user_id', user.id)
+        .neq('is_active', true)
+        .order('start_time', { ascending: false });
+      if (historyError) throw historyError;
+
+      // Fetch the latest goals record for this user.  If none exist
+      // the defaults remain unchanged.
+      const { data: goalsData, error: goalsError } = await supabase
+        .from('daily_goals')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (goalsError) throw goalsError;
+
+      // Fetch the latest expenses record for this user.  If none exist
+      // the defaults remain unchanged.
+      const { data: expensesData, error: expensesError } = await supabase
+        .from('daily_expenses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (expensesError) throw expensesError;
+
+      // Map trips to local Trip type
+      setTrips(
+        tripRows.map(trip => ({
+          id: trip.id,
+          amount: Number(trip.amount),
+          payment_method: trip.payment_method as
+            | 'cash'
+            | 'card'
+            | 'app'
+            | 'מזומן'
+            | 'ביט'
+            | 'אשראי'
+            | 'GetTaxi'
+            | 'דהרי',
+          timestamp: trip.timestamp,
+          start_location_address: trip.start_location_address,
+          start_location_city: trip.start_location_city,
+          start_location_lat: trip.start_location_lat ? Number(trip.start_location_lat) : undefined,
+          start_location_lng: trip.start_location_lng ? Number(trip.start_location_lng) : undefined,
+          end_location_address: trip.end_location_address,
+          end_location_city: trip.end_location_city,
+          end_location_lat: trip.end_location_lat ? Number(trip.end_location_lat) : undefined,
+          end_location_lng: trip.end_location_lng ? Number(trip.end_location_lng) : undefined,
+          trip_status: trip.trip_status as 'active' | 'completed' | undefined,
+          trip_start_time: trip.trip_start_time,
+          trip_end_time: trip.trip_end_time,
+        }))
       );
 
-      const [
-        tripsResponse,
-        activeWorkDayResponse,
-        workDaysHistoryResponse,
-        goalsResponse,
-        expensesResponse
-      ] = await Promise.race([
-        Promise.all(loadPromises),
-        timeoutPromise
-      ]) as any;
+      // Map shift expenses to local ShiftExpense type
+      setShiftExpenses(
+        expenseRows.map((expense: any) => ({
+          id: expense.id,
+          amount: Number(expense.amount),
+          payment_method: expense.payment_method,
+          work_day_id: expense.work_day_id,
+          description: expense.description ?? undefined,
+          created_at: expense.created_at,
+        }))
+      );
 
-      // Handle trips
-      if (tripsResponse.error) throw tripsResponse.error;
-      setTrips((tripsResponse.data || []).map(trip => ({
-        id: trip.id,
-        amount: Number(trip.amount),
-        payment_method: trip.payment_method as 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי',
-        timestamp: trip.timestamp,
-        start_location_address: trip.start_location_address,
-        start_location_city: trip.start_location_city,
-        start_location_lat: trip.start_location_lat ? Number(trip.start_location_lat) : undefined,
-        start_location_lng: trip.start_location_lng ? Number(trip.start_location_lng) : undefined,
-        end_location_address: trip.end_location_address,
-        end_location_city: trip.end_location_city,
-        end_location_lat: trip.end_location_lat ? Number(trip.end_location_lat) : undefined,
-        end_location_lng: trip.end_location_lng ? Number(trip.end_location_lng) : undefined,
-        trip_status: trip.trip_status as 'active' | 'completed' | undefined,
-        trip_start_time: trip.trip_start_time,
-        trip_end_time: trip.trip_end_time
-      })));
+      // Populate work days history
+      setWorkDays(workDaysHistory ?? []);
 
-      // Handle active work day
-      if (activeWorkDayResponse.error) throw activeWorkDayResponse.error;
-      setCurrentWorkDay(activeWorkDayResponse.data);
-      // Load shift expenses for the current active work day. If there is
-      // no active work day then reset the shift expenses to an empty array.
-      if (activeWorkDayResponse.data) {
-        try {
-          const { data: shiftExpData, error: shiftExpError } = await supabase
-            .from('shift_expenses')
-            .select('*')
-            .eq('work_day_id', activeWorkDayResponse.data.id);
-          if (shiftExpError) throw shiftExpError;
-          setShiftExpenses(
-            (shiftExpData || []).map((expense: any) => ({
-              id: expense.id,
-              amount: Number(expense.amount),
-              payment_method: expense.payment_method,
-              work_day_id: expense.work_day_id,
-              description: expense.description ?? undefined,
-              created_at: expense.created_at,
-            }))
-          );
-        } catch (err) {
-          console.error('Error loading shift expenses:', err);
-          setShiftExpenses([]);
-        }
-      } else {
-        setShiftExpenses([]);
-      }
-
-      // Handle work days history
-      if (workDaysHistoryResponse.error) throw workDaysHistoryResponse.error;
-      setWorkDays(workDaysHistoryResponse.data || []);
-
-      // Handle goals
-      if (goalsResponse.error) throw goalsResponse.error;
-      if (goalsResponse.data) {
+      // Set goals if available
+      if (goalsData) {
         setDailyGoals({
-          income_goal: Number(goalsResponse.data.income_goal),
-          trips_goal: goalsResponse.data.trips_goal,
-          weekly_income_goal: goalsResponse.data.weekly_income_goal ?? undefined,
-          monthly_income_goal: goalsResponse.data.monthly_income_goal ?? undefined,
+          income_goal: Number(goalsData.income_goal),
+          trips_goal: goalsData.trips_goal,
+          weekly_income_goal: goalsData.weekly_income_goal ?? undefined,
+          monthly_income_goal: goalsData.monthly_income_goal ?? undefined,
         });
       }
 
-      // Handle expenses
-      if (expensesResponse.error) throw expensesResponse.error;
-      if (expensesResponse.data) {
+      // Set expenses if available
+      if (expensesData) {
         setDailyExpenses({
-          maintenance: Number(expensesResponse.data.maintenance || 0),
-          other: Number(expensesResponse.data.other || 0),
-          daily_fixed_price: Number(expensesResponse.data.daily_fixed_price || 0),
+          maintenance: Number(expensesData.maintenance || 0),
+          other: Number(expensesData.other || 0),
+          daily_fixed_price: Number(expensesData.daily_fixed_price || 0),
         });
       }
+
     } catch (error: any) {
       console.error('Error loading user data:', error);
       toast({
@@ -665,11 +684,20 @@ export function useDatabase() {
     try {
       const endTime = new Date().toISOString();
 
+      // Compute totals for this shift before closing it.  Sum up the
+      // amounts of all trips that belong to the current shift and count
+      // them.  These values will be stored in the work_days record and
+      // displayed in history views.
+      const tripSum = trips.reduce((sum, trip) => sum + trip.amount, 0);
+      const tripCount = trips.length;
+
       const { error } = await supabase
         .from('work_days')
         .update({
           end_time: endTime,
-          is_active: false
+          is_active: false,
+          total_income: tripSum,
+          total_trips: tripCount,
         })
         .eq('id', currentWorkDay.id);
 
@@ -678,16 +706,19 @@ export function useDatabase() {
       const completedWorkDay = {
         ...currentWorkDay,
         end_time: endTime,
-        is_active: false
+        is_active: false,
+        total_income: tripSum,
+        total_trips: tripCount,
       };
 
       setWorkDays(prev => [completedWorkDay, ...prev]);
       setCurrentWorkDay(null);
-      setTrips([]); // Reset for next work day
+      setTrips([]); // Reset trips for next work day
+      setShiftExpenses([]); // Reset shift expenses for next work day
 
       toast({
         title: "יום עבודה הסתיים!",
-        description: `יום עבודה הסתיים עם ${currentWorkDay.total_trips} נסיעות ו-${currentWorkDay.total_income} ₪`,
+        description: `יום עבודה הסתיים עם ${tripCount} נסיעות ו-${tripSum} ₪`,
       });
 
       return true;
