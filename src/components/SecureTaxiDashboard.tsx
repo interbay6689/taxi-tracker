@@ -15,7 +15,7 @@ import { DrivingModeHeader } from "./DrivingModeHeader";
 import { SimpleSettingsDialog } from "./SimpleSettingsDialog";
 import { EditTripsDialog } from "./EditTripsDialog";
 import { GoalsProgress } from "./GoalsProgress";
-import { TripTracker } from "./TripTracker";
+import { ExpensesDetailCard } from "./ExpensesDetailCard";
 import { MobileStatus } from "./MobileStatus";
 import { useAuth } from "@/hooks/useAuth";
 import { useDatabase, Trip, WorkDay, DailyGoals, DailyExpenses } from "@/hooks/useDatabase";
@@ -512,7 +512,17 @@ export const SecureTaxiDashboard = () => {
 
         {/* Trip Tracker - רק כשיום עבודה פעיל */}
         {currentWorkDay && (
-          <TripTracker onTripComplete={handleTripWithLocationComplete} />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2">
+              {/* פירוט נסיעות והוצאות */}
+            </div>
+            <div>
+              <ExpensesDetailCard 
+                dailyExpenses={dailyExpenses} 
+                shiftExpenses={shiftExpenses} 
+              />
+            </div>
+          </div>
         )}
 
         {/* Summary Cards */}
