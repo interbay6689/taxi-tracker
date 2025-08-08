@@ -357,7 +357,7 @@ export const SecureTaxiDashboard = () => {
     return (
       <div className="min-h-screen">{/* מצב נהיגה */}
         <DrivingModeHeader
-          totalIncome={dailyStats.totalIncome}
+          totalIncome={dailyStats.totalIncomeGross}
           tripsCount={dailyStats.tripsCount}
           dailyGoal={dailyGoals.income_goal}
           onAddTrip={() => setIsAddTripOpen(true)}
