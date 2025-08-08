@@ -109,15 +109,30 @@ export const SettingsDialog = ({
           </TabsContent>
 
           <TabsContent value="analytics">
-            <div className="text-center p-8 text-muted-foreground">
-              ניתוחים זמינים בדשבורד הראשי
+            <div className="space-y-4">
+              <Tabs defaultValue="daily" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="daily">ניתוח יומי</TabsTrigger>
+                  <TabsTrigger value="shifts">היסטוריית משמרות</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="daily">
+                  <AnalyticsTab trips={trips} />
+                </TabsContent>
+                
+                <TabsContent value="shifts">
+                  <div className="mt-4">
+                    <div className="text-center p-6 text-muted-foreground border-2 border-dashed rounded-lg">
+                      ניתוח משמרות יוצג כאן בעדכון הבא
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
           </TabsContent>
 
           <TabsContent value="reports">
-            <div className="text-center p-8 text-muted-foreground">
-              דוחות זמינים בדשבורד הראשי
-            </div>
+            <ReportsExport trips={trips} />
           </TabsContent>
         </Tabs>
 

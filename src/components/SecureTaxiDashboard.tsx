@@ -201,6 +201,8 @@ export const SecureTaxiDashboard = () => {
     };
   }, [workDays, dailyStats.totalIncomeGross, dailyStats.tripsCount, dailyGoals]);
 
+  const goalMet = dailyStats.totalIncomeGross >= dailyGoals.income_goal && dailyStats.tripsCount >= dailyGoals.trips_goal;
+
   // התראות
   useNotifications({
     dailyGoals,
@@ -210,9 +212,7 @@ export const SecureTaxiDashboard = () => {
     totalIncome: dailyStats.totalIncomeGross,
     tripsCount: dailyStats.tripsCount,
     workDayStartTime: currentWorkDay?.start_time,
-    // Do not include goalMet because the new dailyStats no longer
-    // computes this boolean. Notifications will handle goal logic
-    // internally based on the provided income and goals.
+    goalMet
   });
 
   const handleAddTrip = async (
@@ -656,7 +656,29 @@ export const SecureTaxiDashboard = () => {
           </TabsContent>
 
           <TabsContent value="analytics">
-            <AnalyticsTab trips={trips} />
+            <Card>
+              <CardHeader>
+                <CardTitle>ניתוחים מתקדמים</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="daily" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                     <TabsTrigger value="daily">ניתוח יומי</TabsTrigger>
+                     <TabsTrigger value="shifts">היסטוריית משמרות</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="daily">
+                    <AnalyticsTab trips={trips} />
+                  </TabsContent>
+                  
+                  <TabsContent value="shifts">
+                    <div className="text-center p-8 text-muted-foreground">
+                      ניתוח משמרות זמין בהגדרות ← ניתוח
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="reports">
@@ -702,6 +724,7 @@ export const SecureTaxiDashboard = () => {
           goals={dailyGoals}
           expenses={dailyExpenses}
           trips={trips}
+          currentWorkDay={currentWorkDay}
           onUpdateGoals={handleUpdateGoals}
           onUpdateExpenses={handleUpdateExpenses}
           onUpdateTrips={handleUpdateTrips}

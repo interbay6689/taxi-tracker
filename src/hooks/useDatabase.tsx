@@ -268,7 +268,7 @@ export function useDatabase() {
         setDailyExpenses({
           maintenance: Number(expensesData.maintenance || 0),
           other: Number(expensesData.other || 0),
-          daily_fixed_price: Number(expensesData.daily_fixed_price || 0),
+          daily_fixed_price: Number((expensesData as any).daily_fixed_price || 0),
         });
       }
 
