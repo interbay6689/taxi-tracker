@@ -146,23 +146,18 @@ export function useDatabase() {
       let tripRows: any[] = [];
       let expenseRows: any[] = [];
 
-      if (activeWorkDay) {
-        // Fetch trips that belong to this shift.  The trips table does
-        // not have a work_day_id FK so we filter by timestamp between
-        // start_time and (optional) end_time.
-        let tripQuery = supabase
-          .from('trips')
-          .select('*')
-          .eq('user_id', user.id)
-          .gte('timestamp', activeWorkDay.start_time)
-          .order('timestamp', { ascending: false });
-        if (activeWorkDay.end_time) {
-          tripQuery = tripQuery.lt('timestamp', activeWorkDay.end_time);
-        }
-        const { data: tripsData, error: tripsError } = await tripQuery;
-        if (tripsError) throw tripsError;
-        tripRows = tripsData ?? [];
+      // Always fetch historical trips (all trips from beginning of year)
+      const startOfYear = new Date(new Date().getFullYear(), 0, 1);
+      const { data: allTripsData, error: allTripsError } = await supabase
+        .from('trips')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('timestamp', startOfYear.toISOString())
+        .order('timestamp', { ascending: false });
+      if (allTripsError) throw allTripsError;
+      tripRows = allTripsData ?? [];
 
+      if (activeWorkDay) {
         // Fetch shift-level expenses tied to this work day.  These
         // correspond to fuel or other per-shift costs stored in
         // shift_expenses.
