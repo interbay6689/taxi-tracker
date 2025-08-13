@@ -59,7 +59,7 @@ export const GoalsProgress = ({
         return {
           income: weeklyIncome,
           goal: weeklyGoal,
-          progress: weeklyGoal > 0 ? (weeklyIncome / weeklyGoal) * 100 : 0,
+          progress: weeklyGoal > 0 ? Math.min((weeklyIncome / weeklyGoal) * 100, 100) : 0,
           remaining: Math.max(0, weeklyGoal - weeklyIncome),
           label: 'שבועי',
         };
@@ -67,7 +67,7 @@ export const GoalsProgress = ({
         return {
           income: monthlyIncome,
           goal: monthlyGoal,
-          progress: monthlyGoal > 0 ? (monthlyIncome / monthlyGoal) * 100 : 0,
+          progress: monthlyGoal > 0 ? Math.min((monthlyIncome / monthlyGoal) * 100, 100) : 0,
           remaining: Math.max(0, monthlyGoal - monthlyIncome),
           label: 'חודשי',
         };
@@ -75,9 +75,9 @@ export const GoalsProgress = ({
         return {
           income: currentIncome,
           goal: incomeGoal,
-          progress: incomeProgress,
+          progress: Math.min(incomeProgress, 100),
           remaining: Math.max(0, incomeGoal - currentIncome),
-          label: 'משמרת',
+          label: 'יומי',
         };
     }
   };

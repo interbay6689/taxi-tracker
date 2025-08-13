@@ -1,11 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-// Import only the icons still used in this component. Icons for the removed
-// metrics (average per trip, commissions, busy hours, efficiency, best hour)
-// have been removed from the imports.
-import { Tag } from "lucide-react";
+import { Tag, TrendingUp } from "lucide-react";
 import { Trip } from "@/hooks/useDatabase";
 import { useCustomPaymentTypes } from "@/hooks/useCustomPaymentTypes";
+import { PeriodSelector, TimePeriod } from "./PeriodSelector";
 
 interface AnalyticsTabProps {
   trips: Trip[];
@@ -13,16 +11,24 @@ interface AnalyticsTabProps {
 
 export const AnalyticsTab = ({ trips }: AnalyticsTabProps) => {
   const { getPaymentMethodDetails, allPaymentOptions } = useCustomPaymentTypes();
+  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('today');
   
   const analytics = useMemo(() => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    
+    // Start of current week (Monday)
+    const startOfWeek = new Date(today);
+    const dayOfWeek = now.getDay();
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    startOfWeek.setDate(today.getDate() + diffToMonday);
+    
+    // Start of current month
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const todayTrips = trips.filter(trip => new Date(trip.timestamp) >= today);
-    const weekTrips = trips.filter(trip => new Date(trip.timestamp) >= weekAgo);
-    const monthTrips = trips.filter(trip => new Date(trip.timestamp) >= monthAgo);
+    const weekTrips = trips.filter(trip => new Date(trip.timestamp) >= startOfWeek);
+    const monthTrips = trips.filter(trip => new Date(trip.timestamp) >= startOfMonth);
 
     const todayIncome = todayTrips.reduce((sum, trip) => {
       const paymentDetails = getPaymentMethodDetails(trip.payment_method);
@@ -37,9 +43,23 @@ export const AnalyticsTab = ({ trips }: AnalyticsTabProps) => {
       return sum + (trip.amount * (1 - paymentDetails.commissionRate));
     }, 0);
 
-    // ניתוח תשלומים מתקדם - כולל כל התיוגים
+    // Get current period data based on selection
+    const getCurrentPeriodData = () => {
+      switch (selectedPeriod) {
+        case 'week':
+          return { trips: weekTrips, label: 'השבוע' };
+        case 'month':
+          return { trips: monthTrips, label: 'החודש' };
+        default:
+          return { trips: todayTrips, label: 'היום' };
+      }
+    };
+
+    const currentPeriodData = getCurrentPeriodData();
+
+    // ניתוח תשלומים מתקדם - כולל כל התיוגים עבור התקופה הנבחרת
     const paymentStats = allPaymentOptions.map(option => {
-      const methodTrips = todayTrips.filter(trip => trip.payment_method === option.value);
+      const methodTrips = currentPeriodData.trips.filter(trip => trip.payment_method === option.value);
       const income = methodTrips.reduce((sum, trip) => {
         const paymentDetails = getPaymentMethodDetails(trip.payment_method);
         return sum + (trip.amount * (1 - paymentDetails.commissionRate));
@@ -63,9 +83,10 @@ export const AnalyticsTab = ({ trips }: AnalyticsTabProps) => {
       paymentStats,
       todayTrips: todayTrips.length,
       weekTrips: weekTrips.length,
-      monthTrips: monthTrips.length
+      monthTrips: monthTrips.length,
+      currentPeriodData
     };
-  }, [trips, getPaymentMethodDetails, allPaymentOptions]);
+  }, [trips, getPaymentMethodDetails, allPaymentOptions, selectedPeriod]);
 
   return (
     <div className="space-y-6">
@@ -74,13 +95,17 @@ export const AnalyticsTab = ({ trips }: AnalyticsTabProps) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Tag className="h-5 w-5" />
-            התפלגות תיוגי תשלומים היום
+            התפלגות תיוגי תשלומים {analytics.currentPeriodData.label}
           </CardTitle>
+          <PeriodSelector
+            selectedPeriod={selectedPeriod}
+            onPeriodChange={setSelectedPeriod}
+          />
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {analytics.paymentStats.length === 0 ? (
-              <p className="text-center text-muted-foreground py-4">אין נסיעות היום</p>
+              <p className="text-center text-muted-foreground py-4">אין נסיעות {analytics.currentPeriodData.label}</p>
             ) : (
               analytics.paymentStats.map((stat, index) => (
                 <div key={index} className={`p-3 rounded-lg border ${stat.isCustom ? 'bg-primary/5 border-primary/20' : 'bg-muted/30'}`}>
@@ -122,23 +147,26 @@ export const AnalyticsTab = ({ trips }: AnalyticsTabProps) => {
       {/* סיכום תקופות */}
       <Card>
         <CardHeader>
-          <CardTitle>סיכום תקופות</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            סיכום תקופות
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-muted/50 rounded-lg">
+            <div className={`text-center p-4 rounded-lg ${selectedPeriod === 'today' ? 'bg-primary/10 border-2 border-primary/20' : 'bg-muted/50'}`}>
               <div className="text-lg font-bold">היום</div>
-              <div className="text-2xl font-bold text-primary">₪{analytics.todayIncome}</div>
+              <div className="text-2xl font-bold text-primary">₪{analytics.todayIncome.toLocaleString()}</div>
               <div className="text-sm text-muted-foreground">{analytics.todayTrips} נסיעות</div>
             </div>
-            <div className="text-center p-4 bg-muted/50 rounded-lg">
+            <div className={`text-center p-4 rounded-lg ${selectedPeriod === 'week' ? 'bg-primary/10 border-2 border-primary/20' : 'bg-muted/50'}`}>
               <div className="text-lg font-bold">השבוע</div>
-              <div className="text-2xl font-bold text-primary">₪{analytics.weekIncome}</div>
+              <div className="text-2xl font-bold text-primary">₪{analytics.weekIncome.toLocaleString()}</div>
               <div className="text-sm text-muted-foreground">{analytics.weekTrips} נסיעות</div>
             </div>
-            <div className="text-center p-4 bg-muted/50 rounded-lg">
+            <div className={`text-center p-4 rounded-lg ${selectedPeriod === 'month' ? 'bg-primary/10 border-2 border-primary/20' : 'bg-muted/50'}`}>
               <div className="text-lg font-bold">החודש</div>
-              <div className="text-2xl font-bold text-primary">₪{analytics.monthIncome}</div>
+              <div className="text-2xl font-bold text-primary">₪{analytics.monthIncome.toLocaleString()}</div>
               <div className="text-sm text-muted-foreground">{analytics.monthTrips} נסיעות</div>
             </div>
           </div>
