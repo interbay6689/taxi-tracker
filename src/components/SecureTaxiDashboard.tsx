@@ -146,14 +146,12 @@ export const SecureTaxiDashboard = () => {
    * aggregates sum all work days from the first day of the month.
    */
   const weeklyMonthlyStats = useMemo(() => {
-    // Determine the start of the current week (Monday at 00:00) and
+    // Determine the start of the current week (Sunday at 00:00) and
     // the start of the current month.
     const now = new Date();
     const startOfWeek = new Date(now);
-    // Set to Monday.  In JavaScript getDay returns 0 for Sunday.
-    const dayOfWeek = now.getDay();
-    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    startOfWeek.setDate(now.getDate() + diffToMonday);
+    // Set to Sunday (day 0 in JavaScript)
+    startOfWeek.setDate(now.getDate() - now.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 

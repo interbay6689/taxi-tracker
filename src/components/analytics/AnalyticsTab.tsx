@@ -17,11 +17,10 @@ export const AnalyticsTab = ({ trips }: AnalyticsTabProps) => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
-    // Start of current week (Monday)
+    // Start of current week (Sunday - Israeli standard)
     const startOfWeek = new Date(today);
-    const dayOfWeek = now.getDay();
-    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    startOfWeek.setDate(today.getDate() + diffToMonday);
+    startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday is day 0
+    startOfWeek.setHours(0, 0, 0, 0);
     
     // Start of current month
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);

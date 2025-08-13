@@ -48,7 +48,12 @@ export const ReportsExport = ({ trips }: ReportsExportProps) => {
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - now.getDay()); // תחילת השבוע (יום ראשון)
         startOfWeek.setHours(0, 0, 0, 0);
-        return trips.filter(trip => new Date(trip.timestamp) >= startOfWeek);
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 7); // סוף השבוע (מוצאי שבת 00:00)
+        return trips.filter(trip => {
+          const tripDate = new Date(trip.timestamp);
+          return tripDate >= startOfWeek && tripDate < endOfWeek;
+        });
       
       case "month":
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -179,7 +184,7 @@ export const ReportsExport = ({ trips }: ReportsExportProps) => {
   const getPeriodText = (period: string) => {
     const texts = {
       'today': 'היום',
-      'week': 'שבוע_אחרון',
+      'week': 'השבוע_הנוכחי',
       'month': 'חודש_נוכחי',
       'year': 'שנה_נוכחית',
       'all': 'כל_התקופות'
@@ -210,9 +215,12 @@ export const ReportsExport = ({ trips }: ReportsExportProps) => {
   const weeklyTrips = trips.filter(trip => {
     const now = new Date();
     const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setDate(now.getDate() - now.getDay()); // יום ראשון
     startOfWeek.setHours(0, 0, 0, 0);
-    return new Date(trip.timestamp) >= startOfWeek;
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 7); // מוצאי שבת 00:00
+    const tripDate = new Date(trip.timestamp);
+    return tripDate >= startOfWeek && tripDate < endOfWeek;
   });
   
   const monthlyTrips = trips.filter(trip => {
@@ -268,7 +276,7 @@ export const ReportsExport = ({ trips }: ReportsExportProps) => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="today">היום</SelectItem>
-                <SelectItem value="week">שבוע אחרון</SelectItem>
+                <SelectItem value="week">השבוע הנוכחי (ראשון-שבת)</SelectItem>
                 <SelectItem value="month">החודש הנוכחי</SelectItem>
                 <SelectItem value="year">השנה הנוכחית</SelectItem>
                 <SelectItem value="all">כל התקופות</SelectItem>
