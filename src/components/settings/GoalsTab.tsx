@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Target, DollarSign, Calendar, Car } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Target, DollarSign, Calendar, Car, Save } from 'lucide-react';
 import { DailyGoals } from "@/hooks/useDatabase";
 
 interface GoalsTabProps {
@@ -11,6 +12,35 @@ interface GoalsTabProps {
 }
 
 export const GoalsTab: React.FC<GoalsTabProps> = ({ goals, setGoals }) => {
+  const [localGoals, setLocalGoals] = useState<DailyGoals>(goals);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // סינכרון עם props בפעם הראשונה
+  useEffect(() => {
+    setLocalGoals(goals);
+    setHasChanges(false);
+  }, [goals]);
+
+  // בדיקה אם יש שינויים
+  useEffect(() => {
+    const changed = 
+      localGoals.income_goal !== goals.income_goal ||
+      localGoals.trips_goal !== goals.trips_goal ||
+      localGoals.weekly_income_goal !== goals.weekly_income_goal ||
+      localGoals.monthly_income_goal !== goals.monthly_income_goal;
+    setHasChanges(changed);
+  }, [localGoals, goals]);
+
+  const handleSave = () => {
+    setGoals(localGoals);
+    setHasChanges(false);
+  };
+
+  const handleReset = () => {
+    setLocalGoals(goals);
+    setHasChanges(false);
+  };
+
   return (
     <div className="space-y-4">
       <Card>
@@ -26,9 +56,9 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({ goals, setGoals }) => {
             id="income_goal"
             type="number"
             placeholder="הזן יעד הכנסה יומי"
-            value={goals.income_goal}
-            onChange={(e) => setGoals({
-              ...goals,
+            value={localGoals.income_goal}
+            onChange={(e) => setLocalGoals({
+              ...localGoals,
               income_goal: Number(e.target.value) || 0
             })}
           />
@@ -48,9 +78,9 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({ goals, setGoals }) => {
             id="trips_goal"
             type="number"
             placeholder="הזן מספר נסיעות יומי"
-            value={goals.trips_goal}
-            onChange={(e) => setGoals({
-              ...goals,
+            value={localGoals.trips_goal}
+            onChange={(e) => setLocalGoals({
+              ...localGoals,
               trips_goal: Number(e.target.value) || 0
             })}
           />
@@ -73,13 +103,13 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({ goals, setGoals }) => {
               type="number"
               placeholder="הזן יעד הכנסה שבועי"
               value={
-                goals.weekly_income_goal !== undefined
-                  ? goals.weekly_income_goal
-                  : goals.income_goal * 7
+                localGoals.weekly_income_goal !== undefined
+                  ? localGoals.weekly_income_goal
+                  : localGoals.income_goal * 7
               }
               onChange={(e) =>
-                setGoals({
-                  ...goals,
+                setLocalGoals({
+                  ...localGoals,
                   weekly_income_goal: Number(e.target.value) || 0,
                 })
               }
@@ -94,8 +124,8 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({ goals, setGoals }) => {
               type="number"
               placeholder="הזן יעד הכנסה חודשי"
               value={
-                goals.monthly_income_goal !== undefined
-                  ? goals.monthly_income_goal
+                localGoals.monthly_income_goal !== undefined
+                  ? localGoals.monthly_income_goal
                   : (() => {
                       const now = new Date();
                       const daysInMonth = new Date(
@@ -103,12 +133,12 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({ goals, setGoals }) => {
                         now.getMonth() + 1,
                         0
                       ).getDate();
-                      return goals.income_goal * daysInMonth;
+                      return localGoals.income_goal * daysInMonth;
                     })()
               }
               onChange={(e) =>
-                setGoals({
-                  ...goals,
+                setLocalGoals({
+                  ...localGoals,
                   monthly_income_goal: Number(e.target.value) || 0,
                 })
               }
@@ -116,6 +146,31 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({ goals, setGoals }) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* כפתורי שמירה ואיפוס */}
+      {hasChanges && (
+        <Card className="border-primary/50 bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="flex gap-3 justify-center">
+              <Button 
+                onClick={handleSave}
+                className="flex items-center gap-2"
+                size="lg"
+              >
+                <Save className="h-4 w-4" />
+                שמור שינויים
+              </Button>
+              <Button 
+                onClick={handleReset}
+                variant="outline"
+                size="lg"
+              >
+                בטל שינויים
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
