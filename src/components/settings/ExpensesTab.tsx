@@ -72,10 +72,13 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({ expenses, setExpenses 
             type="number"
             placeholder="הזן עלות פיקס יומית"
             value={expenses.daily_fixed_price ?? 0}
-            onChange={(e) => setExpenses({
-              ...expenses,
-              daily_fixed_price: Number(e.target.value) || 0,
-            })}
+            onChange={(e) => {
+              const newExpenses = {
+                ...expenses,
+                daily_fixed_price: Number(e.target.value) || 0,
+              };
+              setExpenses(newExpenses);
+            }}
           />
         </CardContent>
       </Card>

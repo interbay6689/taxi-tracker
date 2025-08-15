@@ -131,10 +131,10 @@ export const GoalsProgress = ({
               <span className="font-medium">יעד נסיעות (חודשי)</span>
             </div>
             <div className="text-sm text-muted-foreground">
-              {Math.round(tripsProgress)}%
+              {Math.round(Math.min(tripsProgress, 100))}%
             </div>
           </div>
-          <Progress value={tripsProgress} className="h-3" />
+          <Progress value={Math.min(tripsProgress, 100)} className="h-3" />
           <div className="flex justify-between text-sm text-muted-foreground">
             <span>
               {currentTrips} / {tripsGoal} נסיעות
