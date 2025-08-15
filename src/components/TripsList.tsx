@@ -67,28 +67,38 @@ export const TripsList: React.FC<TripsListProps> = ({ trips, currentWorkDay }) =
   const filteredTrips = useMemo(() => {
     const now = new Date();
     
-    // משמרת נוכחית
+    // משמרת נוכחית - רק נסיעות מהמשמרת הפעילה
     const shiftTrips = currentWorkDay ? trips.filter(trip => {
       const tripTime = new Date(trip.timestamp);
       const shiftStartTime = new Date(currentWorkDay.start_time);
-      const shiftEndTime = currentWorkDay.end_time ? new Date(currentWorkDay.end_time) : new Date();
+      const shiftEndTime = currentWorkDay.end_time ? new Date(currentWorkDay.end_time) : now;
       
       return tripTime >= shiftStartTime && tripTime <= shiftEndTime;
     }) : [];
 
-    // שבוע נוכחי (מיום ראשון עד כעת)
+    // שבוע נוכחי - נתונים היסטוריים (לא כולל משמרת נוכחית)
     const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay()); // יום ראשון
+    startOfWeek.setDate(now.getDate() - now.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
     const weekTrips = trips.filter(trip => {
       const tripTime = new Date(trip.timestamp);
+      // אם יש משמרת פעילה, לא כוללים נסיעות מהמשמרת הנוכחית
+      if (currentWorkDay) {
+        const shiftStartTime = new Date(currentWorkDay.start_time);
+        return tripTime >= startOfWeek && tripTime < shiftStartTime;
+      }
       return tripTime >= startOfWeek && tripTime <= now;
     });
 
-    // מתחילת החודש עד כעת
+    // מתחילת החודש - נתונים היסטוריים (לא כולל משמרת נוכחית)
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthTrips = trips.filter(trip => {
       const tripTime = new Date(trip.timestamp);
+      // אם יש משמרת פעילה, לא כוללים נסיעות מהמשמרת הנוכחית
+      if (currentWorkDay) {
+        const shiftStartTime = new Date(currentWorkDay.start_time);
+        return tripTime >= startOfMonth && tripTime < shiftStartTime;
+      }
       return tripTime >= startOfMonth && tripTime <= now;
     });
 
@@ -116,11 +126,11 @@ export const TripsList: React.FC<TripsListProps> = ({ trips, currentWorkDay }) =
   const getEmptyMessage = (tab: string) => {
     switch (tab) {
       case 'shift':
-        return 'עדיין לא נוספו נסיעות במשמרת הנוכחית';
+        return currentWorkDay ? 'עדיין לא נוספו נסיעות במשמרת הנוכחית' : 'התחל משמרת כדי לראות נסיעות';
       case 'week':
-        return 'אין נסיעות השבוע';
+        return 'אין נסיעות השבוע (לא כולל משמרת נוכחית)';
       case 'month':
-        return 'אין נסיעות מתחילת החודש';
+        return 'אין נסיעות מתחילת החודש (לא כולל משמרת נוכחית)';
       default:
         return 'אין נסיעות';
     }

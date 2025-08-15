@@ -68,25 +68,30 @@ export const SecureTaxiDashboard = () => {
   const { getPaymentMethodDetails } = useCustomPaymentTypes();
 
   const dailyStats = useMemo(() => {
-    // Filter trips to only include those that fall within the current shift
-    // boundaries. If no work day is active, consider all trips for the day.
+    // אם אין משמרת פעילה, מציגים אפס לכל הנתונים
+    if (!currentWorkDay) {
+      return {
+        totalIncomeGross: 0,
+        totalIncomeNet: 0,
+        totalExpenses: 0,
+        netProfit: 0,
+        incomeProgress: 0,
+        tripsProgress: 0,
+        tripsCount: 0,
+      };
+    }
+
+    // מסננים נסיעות רק למשמרת הפעילה
     const filteredTrips = trips.filter((trip) => {
-      const ts = new Date(trip.timestamp).getTime();
-      const start = currentWorkDay?.start_time
-        ? new Date(currentWorkDay.start_time).getTime()
-        : null;
-      const end = currentWorkDay?.end_time
-        ? new Date(currentWorkDay.end_time).getTime()
-        : null;
-      if (start && ts < start) return false;
-      if (end && ts > end) return false;
-      return true;
+      const tripTime = new Date(trip.timestamp).getTime();
+      const shiftStart = new Date(currentWorkDay.start_time).getTime();
+      const shiftEnd = currentWorkDay.end_time 
+        ? new Date(currentWorkDay.end_time).getTime() 
+        : Date.now();
+      
+      return tripTime >= shiftStart && tripTime <= shiftEnd;
     });
-    // Gross income (before commissions) is simply the sum of all trip
-    // amounts for the filtered set.  Net income takes into account
-    // commission rates defined by the payment method.  We compute both
-    // because the UI displays gross income while net values are
-    // informative for profit calculations.
+
     const totals = filteredTrips.reduce(
       (acc, trip) => {
         const paymentDetails = getPaymentMethodDetails(trip.payment_method);
@@ -97,27 +102,25 @@ export const SecureTaxiDashboard = () => {
       },
       { gross: 0, net: 0 }
     );
-    // Calculate expenses: include daily expenses (maintenance + other) and
-    // any shift-level expenses such as fuel. Each shift expense record
-    // has an amount field representing its shekel value.
-    const fuelExpensesTotal = shiftExpenses.reduce(
+
+    // הוצאות - רק של המשמרת הפעילה
+    const currentShiftExpenses = shiftExpenses.filter(expense => 
+      expense.work_day_id === currentWorkDay.id
+    );
+    const fuelExpensesTotal = currentShiftExpenses.reduce(
       (sum, expense) => sum + (expense.amount || 0),
       0
     );
-    // Include the daily fixed price when computing expenses.  If the
-    // property is undefined treat it as zero.  This cost applies to
-    // each day/shift and is configured in the expenses settings.
+
     const totalExpensesValue =
       (dailyExpenses.maintenance || 0) +
       (dailyExpenses.other || 0) +
       (dailyExpenses.daily_fixed_price || 0) +
       fuelExpensesTotal;
-    // Net profit is based on gross income minus total expenses.
+
     const netProfit = totals.gross - totalExpensesValue;
-    // Progress metrics for daily income and monthly trips (tripsProgress
-    // will be overridden later when computing monthly progress).  The
-    // income goal is dailyGoals.income_goal.  Guard against division
-    // by zero.
+
+    // התקדמות יעדים - רק בהתבסס על המשמרת הפעילה
     const incomeProgress =
       dailyGoals.income_goal > 0
         ? Math.min((totals.gross / dailyGoals.income_goal) * 100, 100)
@@ -126,6 +129,7 @@ export const SecureTaxiDashboard = () => {
       dailyGoals.trips_goal > 0
         ? Math.min((filteredTrips.length / dailyGoals.trips_goal) * 100, 100)
         : 0;
+
     return {
       totalIncomeGross: totals.gross,
       totalIncomeNet: totals.net,
@@ -138,27 +142,22 @@ export const SecureTaxiDashboard = () => {
   }, [trips, dailyGoals, dailyExpenses, shiftExpenses, currentWorkDay, getPaymentMethodDetails]);
 
   /**
-   * Compute weekly and monthly aggregates for income and trips.  These
-   * values are used by the goals progress component to display
-   * progress for different periods.  Weekly aggregates sum up all
-   * work days starting from the first day of the week (Monday) plus
-   * the current day's gross income and trip count.  Monthly
-   * aggregates sum all work days from the first day of the month.
+   * חישוב נתונים שבועיים וחודשיים - רק עבור נתונים היסטוריים
+   * כאשר אין משמרת פעילה, נציג נתונים היסטוריים בלבד
    */
   const weeklyMonthlyStats = useMemo(() => {
-    // Determine the start of the current week (Sunday at 00:00) and
-    // the start of the current month.
     const now = new Date();
     const startOfWeek = new Date(now);
-    // Set to Sunday (day 0 in JavaScript)
     startOfWeek.setDate(now.getDate() - now.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    let weeklyIncome = dailyStats.totalIncomeGross;
-    let monthlyIncome = dailyStats.totalIncomeGross;
-    let monthlyTrips = dailyStats.tripsCount;
+    // אם יש משמרת פעילה, נכלול את נתוני המשמרת הנוכחית
+    let weeklyIncome = currentWorkDay ? dailyStats.totalIncomeGross : 0;
+    let monthlyIncome = currentWorkDay ? dailyStats.totalIncomeGross : 0;
+    let monthlyTrips = currentWorkDay ? dailyStats.tripsCount : 0;
 
+    // מוסיפים נתונים היסטוריים מימי עבודה קודמים
     workDays.forEach((day) => {
       const dayStart = new Date(day.start_time);
       if (dayStart >= startOfWeek) {
@@ -170,19 +169,12 @@ export const SecureTaxiDashboard = () => {
       }
     });
 
-    // Determine goals.  If weekly or monthly goals are not provided
-    // explicitly (via dailyGoals.weekly_income_goal / monthly_income_goal)
-    // compute them as dailyGoal * number of days.
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     const weeklyGoalIncome =
       dailyGoals.weekly_income_goal ?? dailyGoals.income_goal * 7;
     const monthlyGoalIncome =
       dailyGoals.monthly_income_goal ?? dailyGoals.income_goal * daysInMonth;
 
-    // Monthly trips goal is defined by dailyGoals.trips_goal.  We treat
-    // this value as the goal for the entire month (i.e. the number
-    // supplied in settings represents the desired total trips for the
-    // month).
     const tripsGoalMonthly = dailyGoals.trips_goal;
     const tripsProgressMonthly =
       tripsGoalMonthly > 0
@@ -197,7 +189,7 @@ export const SecureTaxiDashboard = () => {
       tripsGoalMonthly,
       tripsProgressMonthly,
     };
-  }, [workDays, dailyStats.totalIncomeGross, dailyStats.tripsCount, dailyGoals]);
+  }, [workDays, dailyStats.totalIncomeGross, dailyStats.tripsCount, dailyGoals, currentWorkDay]);
 
   const goalMet = dailyStats.totalIncomeGross >= dailyGoals.income_goal && dailyStats.tripsCount >= dailyGoals.trips_goal;
 
