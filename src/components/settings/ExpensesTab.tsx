@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Fuel, Wrench, CreditCard } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Fuel, Wrench, CreditCard, Save, RotateCcw } from 'lucide-react';
 import { DailyExpenses } from "@/hooks/useDatabase";
 
 interface ExpensesTabProps {
@@ -11,8 +12,53 @@ interface ExpensesTabProps {
 }
 
 export const ExpensesTab: React.FC<ExpensesTabProps> = ({ expenses, setExpenses }) => {
+  const [localExpenses, setLocalExpenses] = useState<DailyExpenses>(expenses);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  useEffect(() => {
+    setLocalExpenses(expenses);
+    setHasChanges(false);
+  }, [expenses]);
+
+  useEffect(() => {
+    const hasChanged = 
+      localExpenses.maintenance !== expenses.maintenance ||
+      localExpenses.other !== expenses.other ||
+      localExpenses.daily_fixed_price !== expenses.daily_fixed_price;
+    setHasChanges(hasChanged);
+  }, [localExpenses, expenses]);
+
+  const handleSave = () => {
+    setExpenses(localExpenses);
+    setHasChanges(false);
+  };
+
+  const handleCancel = () => {
+    setLocalExpenses(expenses);
+    setHasChanges(false);
+  };
   return (
     <div className="space-y-4">
+      {/* כפתורי שמירה וביטול */}
+      {hasChanges && (
+        <Card className="border-primary">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">יש לך שינויים שלא נשמרו</span>
+              <div className="flex gap-2">
+                <Button onClick={handleSave} size="sm">
+                  <Save className="h-4 w-4 mr-1" />
+                  שמור
+                </Button>
+                <Button onClick={handleCancel} variant="outline" size="sm">
+                  <RotateCcw className="h-4 w-4 mr-1" />
+                  ביטול
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -27,9 +73,9 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({ expenses, setExpenses 
             id="maintenance"
             type="number"
             placeholder="הזן עלות תחזוקה"
-            value={expenses.maintenance}
-            onChange={(e) => setExpenses({
-              ...expenses,
+            value={localExpenses.maintenance}
+            onChange={(e) => setLocalExpenses({
+              ...localExpenses,
               maintenance: Number(e.target.value) || 0
             })}
           />
@@ -49,9 +95,9 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({ expenses, setExpenses 
             id="other"
             type="number"
             placeholder="הזן הוצאות נוספות"
-            value={expenses.other}
-            onChange={(e) => setExpenses({
-              ...expenses,
+            value={localExpenses.other}
+            onChange={(e) => setLocalExpenses({
+              ...localExpenses,
               other: Number(e.target.value) || 0
             })}
           />
@@ -71,14 +117,11 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({ expenses, setExpenses 
             id="daily_fixed_price"
             type="number"
             placeholder="הזן עלות פיקס יומית"
-            value={expenses.daily_fixed_price ?? 0}
-            onChange={(e) => {
-              const newExpenses = {
-                ...expenses,
-                daily_fixed_price: Number(e.target.value) || 0,
-              };
-              setExpenses(newExpenses);
-            }}
+            value={localExpenses.daily_fixed_price ?? 0}
+            onChange={(e) => setLocalExpenses({
+              ...localExpenses,
+              daily_fixed_price: Number(e.target.value) || 0,
+            })}
           />
         </CardContent>
       </Card>
@@ -93,9 +136,9 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({ expenses, setExpenses 
               <span>סה"כ הוצאות יומיות:</span>
               <span className="font-bold">
                 ₪{(
-                  (expenses.maintenance || 0) +
-                  (expenses.other || 0) +
-                  (expenses.daily_fixed_price || 0)
+                  (localExpenses.maintenance || 0) +
+                  (localExpenses.other || 0) +
+                  (localExpenses.daily_fixed_price || 0)
                 ).toLocaleString()}
               </span>
             </div>
@@ -105,7 +148,7 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({ expenses, setExpenses 
                 ₪{(() => {
                   const now = new Date();
                   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-                  const monthly = (expenses.daily_fixed_price || 0) * daysInMonth;
+                  const monthly = (localExpenses.daily_fixed_price || 0) * daysInMonth;
                   return monthly.toLocaleString();
                 })()}
               </span>
