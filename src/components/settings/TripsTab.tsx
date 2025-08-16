@@ -53,35 +53,16 @@ export const TripsTab: React.FC<TripsTabProps> = ({ trips, currentWorkDay, onDel
           <CardContent className="p-4">
             <div className="flex justify-between items-start mb-2">
               <div className="flex flex-col gap-1">
-                {trip.payment_method === 'דהרי' ? (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-red-600 font-medium">
-                        -10% עמלת סדרנים
-                      </span>
-                      <Badge variant="outline">דהרי</Badge>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-base line-through text-muted-foreground">
-                        ₪{trip.amount.toLocaleString()}
-                      </span>
-                      <span className="text-lg font-bold">
-                        ₪{Math.round(trip.amount * 0.9).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold">₪{trip.amount.toLocaleString()}</span>
-                    <Badge variant="outline">
-                      {trip.payment_method === 'cash' || trip.payment_method === 'מזומן' ? 'מזומן' : 
-                       trip.payment_method === 'card' || trip.payment_method === 'אשראי' ? 'כרטיס' : 
-                       trip.payment_method === 'ביט' ? 'ביט' :
-                       trip.payment_method === 'app' || trip.payment_method === 'GetTaxi' ? 'אפליקציה' : 
-                       trip.payment_method === 'דהרי' ? 'דהרי' : trip.payment_method}
-                    </Badge>
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold">₪{trip.amount.toLocaleString()}</span>
+                  <Badge variant="outline">
+                    {trip.payment_method === 'cash' || trip.payment_method === 'מזומן' ? 'מזומן' : 
+                     trip.payment_method === 'card' || trip.payment_method === 'אשראי' ? 'כרטיס' : 
+                     trip.payment_method === 'ביט' ? 'ביט' :
+                     trip.payment_method === 'app' || trip.payment_method === 'GetTaxi' ? 'אפליקציה' : 
+                     trip.payment_method === 'דהרי' ? 'דהרי' : trip.payment_method}
+                  </Badge>
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button
@@ -135,10 +116,7 @@ export const TripsTab: React.FC<TripsTabProps> = ({ trips, currentWorkDay, onDel
           <div className="flex justify-between items-center">
             <span className="font-medium">סה"כ נסיעות במשמרת:</span>
             <span className="text-lg font-bold">
-              ₪{shiftTrips.reduce((sum, trip) => {
-                const amount = trip.payment_method === 'דהרי' ? trip.amount * 0.9 : trip.amount;
-                return sum + amount;
-              }, 0).toLocaleString()}
+              ₪{shiftTrips.reduce((sum, trip) => sum + trip.amount, 0).toLocaleString()}
             </span>
           </div>
         </CardContent>

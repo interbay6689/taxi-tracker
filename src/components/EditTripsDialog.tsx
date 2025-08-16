@@ -205,41 +205,16 @@ export const EditTripsDialog = ({
                       <div>
                         <div className="flex justify-between items-start mb-2">
                           <div className="flex flex-col gap-2">
-                            {trip.payment_method === 'דהרי' ? (
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-4">
-                                  <span className="text-sm text-red-600 font-medium">
-                                    -10% עמלת סדרנים
-                                  </span>
-                                  <div className="text-sm text-muted-foreground flex items-center gap-1">
-                                    <Clock className="h-3 w-3" />
-                                    {new Date(trip.timestamp).toLocaleTimeString('he-IL')}
-                                  </div>
-                                  <div className="text-xs bg-primary/10 px-2 py-1 rounded">
-                                    {getPaymentMethodText(trip.payment_method)}
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-base line-through text-muted-foreground">
-                                    ₪{trip.amount}
-                                  </span>
-                                  <span className="text-lg font-bold">
-                                    ₪{Math.round(trip.amount * 0.9)}
-                                  </span>
-                                </div>
+                            <div className="flex items-center gap-4">
+                              <div className="text-lg font-bold">₪{trip.amount}</div>
+                              <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {new Date(trip.timestamp).toLocaleTimeString('he-IL')}
                               </div>
-                            ) : (
-                              <div className="flex items-center gap-4">
-                                <div className="text-lg font-bold">₪{trip.amount}</div>
-                                <div className="text-sm text-muted-foreground flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  {new Date(trip.timestamp).toLocaleTimeString('he-IL')}
-                                </div>
-                                <div className="text-xs bg-primary/10 px-2 py-1 rounded">
-                                  {getPaymentMethodText(trip.payment_method)}
-                                </div>
+                              <div className="text-xs bg-primary/10 px-2 py-1 rounded">
+                                {getPaymentMethodText(trip.payment_method)}
                               </div>
-                            )}
+                            </div>
                           </div>
                           <div className="flex gap-2">
                             <Button 

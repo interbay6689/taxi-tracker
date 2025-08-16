@@ -180,37 +180,15 @@ export const TripsList: React.FC<TripsListProps> = ({ trips, currentWorkDay }) =
                         {/* סכום ואמצעי תשלום */}
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex flex-col gap-1">
-                            {trip.payment_method === 'דהרי' ? (
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm text-red-600 font-medium">
-                                    -10% עמלת סדרנים
-                                  </span>
-                                  <Badge variant="outline" className="flex items-center gap-1">
-                                    {getPaymentMethodIcon(trip.payment_method)}
-                                    {getPaymentMethodText(trip.payment_method)}
-                                  </Badge>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-base line-through text-muted-foreground">
-                                    ₪{trip.amount.toLocaleString()}
-                                  </span>
-                                  <span className="text-lg font-bold text-primary">
-                                    ₪{Math.round(trip.amount * 0.9).toLocaleString()}
-                                  </span>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <span className="text-lg font-bold text-primary">
-                                  ₪{trip.amount.toLocaleString()}
-                                </span>
-                                <Badge variant="outline" className="flex items-center gap-1">
-                                  {getPaymentMethodIcon(trip.payment_method)}
-                                  {getPaymentMethodText(trip.payment_method)}
-                                </Badge>
-                              </div>
-                            )}
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg font-bold text-primary">
+                                ₪{trip.amount.toLocaleString()}
+                              </span>
+                              <Badge variant="outline" className="flex items-center gap-1">
+                                {getPaymentMethodIcon(trip.payment_method)}
+                                {getPaymentMethodText(trip.payment_method)}
+                              </Badge>
+                            </div>
                           </div>
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Clock className="h-3 w-3" />
@@ -259,10 +237,7 @@ export const TripsList: React.FC<TripsListProps> = ({ trips, currentWorkDay }) =
                         סה"כ {getTabLabel(tab)}:
                       </span>
                       <span className="text-lg font-bold text-primary">
-                        ₪{filteredTrips[tab as keyof typeof filteredTrips].reduce((sum, trip) => {
-                          const amount = trip.payment_method === 'דהרי' ? trip.amount * 0.9 : trip.amount;
-                          return sum + amount;
-                        }, 0).toLocaleString()}
+                        ₪{filteredTrips[tab as keyof typeof filteredTrips].reduce((sum, trip) => sum + trip.amount, 0).toLocaleString()}
                       </span>
                     </div>
                   </div>
