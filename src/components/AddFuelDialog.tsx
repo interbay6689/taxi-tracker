@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -57,9 +57,10 @@ export const AddFuelDialog = ({ isOpen, onClose, onAddFuel }: AddFuelDialogProps
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent>
+      <DialogContent aria-describedby="add-fuel-desc">
         <DialogHeader>
           <DialogTitle>הוספת הוצאת דלק</DialogTitle>
+          <p id="add-fuel-desc" className="sr-only">טופס להוספת הוצאת דלק בסכום כסף.</p>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex flex-col space-y-2">

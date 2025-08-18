@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Target, Fuel, List, FileText, BarChart3, Moon, Sun, Tag, Tags } from "lucide-react";
 import { Trip, DailyGoals, DailyExpenses } from "@/hooks/useDatabase";
@@ -47,9 +47,10 @@ export const SettingsDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-lg mx-auto max-h-[90vh] overflow-y-auto rtl">
+      <DialogContent className="w-[95vw] max-w-lg mx-auto max-h-[90vh] overflow-y-auto rtl" aria-describedby="settings-desc">
         <DialogHeader>
           <DialogTitle className="text-center text-lg">הגדרות</DialogTitle>
+          <p id="settings-desc" className="sr-only">מרכז הגדרות האפליקציה לניהול יעדים, הוצאות, תשלומים, תיוגים, נסיעות ודוחות.</p>
         </DialogHeader>
 
         <div className="flex justify-between items-center mb-4">

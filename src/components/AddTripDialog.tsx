@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -172,9 +173,10 @@ export const AddTripDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-sm mx-auto rtl">
+      <DialogContent className="w-[95vw] max-w-sm mx-auto rtl" aria-describedby="add-trip-desc">
         <DialogHeader>
           <DialogTitle className="text-center text-lg">הוספת נסיעה</DialogTitle>
+          <p id="add-trip-desc" className="sr-only">טופס להוספת נסיעה חדשה עם סכום, אמצעי תשלום ותיוג אופציונלי.</p>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Amount input */}
