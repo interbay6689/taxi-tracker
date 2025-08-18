@@ -65,7 +65,7 @@ export const AddTripDialog = ({
   onClose,
   onAddTrip,
   tripsToday = [],
-  tags = ["שדה", "תחנה", "הזמנה", "אחר"],
+  tags = ["שדה", "תחנה", "הזמנה", "שדה תעופה", "נסיעה ארוכה", "עיר"],
 }: AddTripDialogProps) => {
   const { toast } = useToast();
   // Payment methods come from the custom payment types hook.  Each
@@ -221,40 +221,54 @@ export const AddTripDialog = ({
               </SelectContent>
             </Select>
           </div>
-          {/* Tag selection with ability to add or create new tags */}
+          {/* Quick Tags */}
           <div className="space-y-3">
-            <Label className="text-base">תיוג נסיעה</Label>
-            <Select
-              value={selectedTag}
-              onValueChange={(value) => setSelectedTag(value)}
-            >
-              <SelectTrigger className="h-10 min-w-[8rem]">
-                <SelectValue placeholder="ללא תיוג" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">ללא תיוג</SelectItem>
-                {localTags.map((tag) => (
-                  <SelectItem key={tag} value={tag}>
-                    {tag}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label className="text-base">תיוגים מהירים</Label>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant={selectedTag === "none" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedTag("none")}
+                className="h-8 text-xs"
+              >
+                ללא תיוג
+              </Button>
+              {localTags.map((tag) => (
+                <Button
+                  key={tag}
+                  type="button"
+                  variant={selectedTag === tag ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedTag(tag)}
+                  className="h-8 text-xs hover-scale"
+                >
+                  {tag}
+                </Button>
+              ))}
+            </div>
             {/* Input field and button to add a new tag inline */}
             <div className="flex items-center gap-2">
               <Input
-                placeholder="הכנס תיוג חדש"
+                placeholder="הוסף תיוג חדש"
                 value={newTag}
                 onChange={(e) => setNewTag(e.target.value)}
-                className="flex-1"
+                className="flex-1 h-8 text-sm"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddTag();
+                  }
+                }}
               />
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={handleAddTag}
+                className="h-8"
               >
-                הוסף
+                +
               </Button>
             </div>
           </div>

@@ -301,7 +301,7 @@ export function useDatabase() {
   const addTrip = useCallback(
     async (
       amount: number,
-      paymentMethod: 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי',
+      paymentMethod: string,
       tag?: string
     ) => {
       if (!user) return false;

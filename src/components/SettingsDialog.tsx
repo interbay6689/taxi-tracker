@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Target, Fuel, List, FileText, BarChart3, Moon, Sun, Tag } from "lucide-react";
+import { Target, Fuel, List, FileText, BarChart3, Moon, Sun, Tag, Tags } from "lucide-react";
 import { Trip, DailyGoals, DailyExpenses } from "@/hooks/useDatabase";
 import { ReportsExport } from "./ReportsExport";
 import { GoalsTab } from "./settings/GoalsTab";
@@ -9,6 +9,7 @@ import { ExpensesTab } from "./settings/ExpensesTab";
 import { TripsTab } from "./settings/TripsTab";
 import { PaymentTypesTab } from "./settings/PaymentTypesTab";
 import { AnalyticsTab } from "./analytics/AnalyticsTab";
+import { TagsManagement } from "./TagsManagement";
 import { useTheme } from "next-themes";
 
 interface SettingsDialogProps {
@@ -21,6 +22,8 @@ interface SettingsDialogProps {
   onUpdateGoals: (goals: DailyGoals) => void;
   onUpdateExpenses: (expenses: DailyExpenses) => void;
   onUpdateTrips: (trips: Trip[]) => void;
+  tags?: string[];
+  onUpdateTags?: (tags: string[]) => void;
 }
 
 export const SettingsDialog = ({
@@ -32,7 +35,9 @@ export const SettingsDialog = ({
   currentWorkDay,
   onUpdateGoals,
   onUpdateExpenses,
-  onUpdateTrips
+  onUpdateTrips,
+  tags = ["שדה", "תחנה", "הזמנה", "שדה תעופה", "נסיעה ארוכה", "עיר"],
+  onUpdateTags
 }: SettingsDialogProps) => {
   const { theme, setTheme } = useTheme();
 
@@ -60,7 +65,7 @@ export const SettingsDialog = ({
         </div>
 
         <Tabs defaultValue="goals" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-6 text-xs gap-1">
             <TabsTrigger value="goals" className="text-xs">
               <Target className="h-3 w-3 ml-1" />
               יעדים
@@ -71,6 +76,10 @@ export const SettingsDialog = ({
             </TabsTrigger>
             <TabsTrigger value="payment-types" className="text-xs">
               <Tag className="h-3 w-3 ml-1" />
+              תשלומים
+            </TabsTrigger>
+            <TabsTrigger value="tags" className="text-xs">
+              <Tags className="h-3 w-3 ml-1" />
               תיוגים
             </TabsTrigger>
             <TabsTrigger value="trips" className="text-xs">
@@ -97,6 +106,19 @@ export const SettingsDialog = ({
 
           <TabsContent value="payment-types">
             <PaymentTypesTab />
+          </TabsContent>
+
+          <TabsContent value="tags">
+            {onUpdateTags ? (
+              <TagsManagement
+                tags={tags}
+                onUpdateTags={onUpdateTags}
+              />
+            ) : (
+              <div className="text-center text-muted-foreground p-4">
+                ניהול תיוגים לא זמין
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="trips">

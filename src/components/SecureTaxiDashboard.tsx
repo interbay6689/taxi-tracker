@@ -24,6 +24,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useLocation } from "@/hooks/useLocation";
 import { useOfflineStorage } from "@/hooks/useOfflineStorage";
 import { useCustomPaymentTypes } from "@/hooks/useCustomPaymentTypes";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 // Import heavy components normally for now to avoid loading issues
 import { AnalyticsTab } from "./analytics/AnalyticsTab";
@@ -65,6 +66,11 @@ export const SecureTaxiDashboard = () => {
   const { mode, toggleNightMode, toggleDrivingMode } = useAppMode();
   const { currentLocation } = useLocation();
   const { isOnline, saveOfflineTrip, vibrateSuccess, vibrateError } = useOfflineStorage();
+  
+  // מערכת תיוגים
+  const [tags, setTags] = useLocalStorage<string[]>('trip_tags', 
+    ["שדה", "תחנה", "הזמנה", "שדה תעופה", "נסיעה ארוכה", "עיר"]
+  );
   const { getPaymentMethodDetails } = useCustomPaymentTypes();
 
   const dailyStats = useMemo(() => {
@@ -207,15 +213,7 @@ export const SecureTaxiDashboard = () => {
 
   const handleAddTrip = async (
     amount: number,
-    paymentMethod:
-      | 'cash'
-      | 'card'
-      | 'app'
-      | 'מזומן'
-      | 'ביט'
-      | 'אשראי'
-      | 'GetTaxi'
-      | 'דהרי',
+    paymentMethod: string,
     tag?: string,
   ) => {
     console.log('handleAddTrip called with:', { amount, paymentMethod, tag });
@@ -224,7 +222,7 @@ export const SecureTaxiDashboard = () => {
       const offlineTrip = {
         id: `offline_${Date.now()}`,
         amount,
-        payment_method: paymentMethod,
+        payment_method: paymentMethod as any,
         timestamp: new Date().toISOString(),
         location: currentLocation ? {
           latitude: currentLocation.latitude,
@@ -728,6 +726,8 @@ export const SecureTaxiDashboard = () => {
           onUpdateGoals={handleUpdateGoals}
           onUpdateExpenses={handleUpdateExpenses}
           onUpdateTrips={handleUpdateTrips}
+          tags={tags}
+          onUpdateTags={setTags}
         />
 
         {/* Edit Trips Dialog */}
@@ -750,24 +750,10 @@ export const SecureTaxiDashboard = () => {
         <AddTripDialog
           isOpen={isAddTripOpen}
           onClose={() => setIsAddTripOpen(false)}
-          // Pass today's trips so the dialog can derive quick amount
-          // buttons from recent values.  Tags use the default list defined
-          // in the component unless explicitly provided.
           tripsToday={trips}
+          tags={tags}
           onAddTrip={(amount, method, tag) => {
-            handleAddTrip(
-              amount,
-              method as
-                | 'cash'
-                | 'card'
-                | 'app'
-                | 'מזומן'
-                | 'ביט'
-                | 'אשראי'
-                | 'GetTaxi'
-                | 'דהרי',
-              tag
-            );
+            handleAddTrip(amount, method, tag);
           }}
         />
 
