@@ -189,6 +189,14 @@ export const TripsList: React.FC<TripsListProps> = ({ trips, currentWorkDay }) =
                                 {getPaymentMethodText(trip.payment_method)}
                               </Badge>
                             </div>
+                            {/* תיוג */}
+                            {trip.trip_status && trip.trip_status !== 'completed' && trip.trip_status !== 'active' && (
+                              <div className="mt-1">
+                                <Badge variant="secondary" className="text-xs">
+                                  {trip.trip_status}
+                                </Badge>
+                              </div>
+                            )}
                           </div>
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Clock className="h-3 w-3" />

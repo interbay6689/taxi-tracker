@@ -214,6 +214,12 @@ export const EditTripsDialog = ({
                               <div className="text-xs bg-primary/10 px-2 py-1 rounded">
                                 {getPaymentMethodText(trip.payment_method)}
                               </div>
+                              {/* תיוג */}
+                              {trip.trip_status && trip.trip_status !== 'completed' && trip.trip_status !== 'active' && (
+                                <div className="text-xs bg-secondary px-2 py-1 rounded">
+                                  {trip.trip_status}
+                                </div>
+                              )}
                             </div>
                           </div>
                           <div className="flex gap-2">
