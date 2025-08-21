@@ -680,7 +680,7 @@ export const SecureTaxiDashboard = () => {
           </TabsContent>
 
           <TabsContent value="reports">
-            <ReportsExport trips={trips} />
+            <ReportsExport trips={trips} workDays={workDays} />
           </TabsContent>
 
           <TabsContent value="navigation">
@@ -722,6 +722,7 @@ export const SecureTaxiDashboard = () => {
           goals={dailyGoals}
           expenses={dailyExpenses}
           trips={trips}
+          workDays={workDays}
           currentWorkDay={currentWorkDay}
           onUpdateGoals={handleUpdateGoals}
           onUpdateExpenses={handleUpdateExpenses}

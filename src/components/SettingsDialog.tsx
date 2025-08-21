@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Target, Fuel, List, FileText, BarChart3, Moon, Sun, Tag, Tags } from "lucide-react";
-import { Trip, DailyGoals, DailyExpenses } from "@/hooks/useDatabase";
+import { Trip, DailyGoals, DailyExpenses, WorkDay } from "@/hooks/useDatabase";
 import { ReportsExport } from "./ReportsExport";
 import { GoalsTab } from "./settings/GoalsTab";
 import { ExpensesTab } from "./settings/ExpensesTab";
@@ -18,6 +18,7 @@ interface SettingsDialogProps {
   goals: DailyGoals;
   expenses: DailyExpenses;
   trips: Trip[];
+  workDays: WorkDay[];
   currentWorkDay: any;
   onUpdateGoals: (goals: DailyGoals) => void;
   onUpdateExpenses: (expenses: DailyExpenses) => void;
@@ -32,6 +33,7 @@ export const SettingsDialog = ({
   goals,
   expenses,
   trips,
+  workDays,
   currentWorkDay,
   onUpdateGoals,
   onUpdateExpenses,
@@ -155,7 +157,7 @@ export const SettingsDialog = ({
           </TabsContent>
 
           <TabsContent value="reports">
-            <ReportsExport trips={trips} />
+            <ReportsExport trips={trips} workDays={workDays} />
           </TabsContent>
         </Tabs>
 

@@ -3,15 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, FileText, Calendar, TrendingUp } from "lucide-react";
-import { Trip } from "@/hooks/useDatabase";
+import { Trip, WorkDay } from "@/hooks/useDatabase";
 import { useToast } from "@/hooks/use-toast";
 import { useCustomPaymentTypes } from "@/hooks/useCustomPaymentTypes";
 
 interface ReportsExportProps {
   trips: Trip[];
+  workDays: WorkDay[];
 }
 
-export const ReportsExport = ({ trips }: ReportsExportProps) => {
+export const ReportsExport = ({ trips, workDays }: ReportsExportProps) => {
   const [reportType, setReportType] = useState<string>("");
   const [period, setPeriod] = useState<string>("");
   const { toast } = useToast();
@@ -65,6 +66,42 @@ export const ReportsExport = ({ trips }: ReportsExportProps) => {
       
       default:
         return trips;
+    }
+  };
+
+  const getFilteredWorkDays = (): WorkDay[] => {
+    const now = new Date();
+    
+    switch (period) {
+      case "today":
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+        return workDays.filter(workDay => {
+          const workDate = new Date(workDay.start_time);
+          return workDate >= today && workDate < tomorrow;
+        });
+      
+      case "week":
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 7);
+        return workDays.filter(workDay => {
+          const workDate = new Date(workDay.start_time);
+          return workDate >= startOfWeek && workDate < endOfWeek;
+        });
+      
+      case "month":
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        return workDays.filter(workDay => new Date(workDay.start_time) >= monthStart);
+      
+      case "year":
+        const yearStart = new Date(now.getFullYear(), 0, 1);
+        return workDays.filter(workDay => new Date(workDay.start_time) >= yearStart);
+      
+      default:
+        return workDays;
     }
   };
 
@@ -202,6 +239,7 @@ export const ReportsExport = ({ trips }: ReportsExportProps) => {
   };
 
   const filteredTrips = getFilteredTrips();
+  const filteredWorkDays = getFilteredWorkDays();
   
   // חישובי תקופות נכונים
   const todayTrips = trips.filter(trip => {
@@ -294,7 +332,7 @@ export const ReportsExport = ({ trips }: ReportsExportProps) => {
           הורד דוח ({filteredTrips.length} נסיעות)
         </Button>
 
-        <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+        <div className="grid grid-cols-2 gap-4 pt-4 border-t">
           <div className="text-center">
             <div className="text-2xl font-bold text-primary">
               {period === 'today' ? todayTrips.length : 
@@ -319,15 +357,32 @@ export const ReportsExport = ({ trips }: ReportsExportProps) => {
             </div>
             <div className="text-sm text-muted-foreground">
               הכנסות {period === 'today' ? 'היום' : 
-                      period === 'week' ? 'השבוע' :
+                      period === 'week' ? 'השבוع' :
                       period === 'month' ? 'החודש' : 'בתקופה'}
             </div>
           </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 pt-4 border-t">
           <div className="text-center">
-            <div className="text-2xl font-bold text-primary">
-              {trips.length}
+            <div className="text-2xl font-bold text-secondary">
+              {filteredWorkDays.length}
             </div>
-            <div className="text-sm text-muted-foreground">סה״כ נסיעות</div>
+            <div className="text-sm text-muted-foreground">
+              ימי עבודה {period === 'today' ? 'היום' : 
+                        period === 'week' ? 'השבוע' :
+                        period === 'month' ? 'החודש' : 'בתקופה'}
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-secondary">
+              {filteredWorkDays.filter(workDay => workDay.end_time).length}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              משמרות הושלמו {period === 'today' ? 'היום' : 
+                           period === 'week' ? 'השבוע' :
+                           period === 'month' ? 'החודש' : 'בתקופה'}
+            </div>
           </div>
         </div>
       </CardContent>
