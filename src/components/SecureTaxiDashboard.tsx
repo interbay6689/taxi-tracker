@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -241,7 +242,7 @@ export const SecureTaxiDashboard = () => {
       case 'history':
         return (
           <div className="space-y-6">
-            <ShiftHistoryTab workDays={workDays} />
+            <ShiftHistoryTab trips={trips} workDays={workDays} />
           </div>
         );
 
@@ -258,7 +259,10 @@ export const SecureTaxiDashboard = () => {
               trips={trips}
               workDays={workDays}
               selectedPeriod={selectedPeriod}
-              customDateRange={customDateRange}
+              customDateRange={customDateRange && customDateRange.from && customDateRange.to 
+                ? { from: customDateRange.from, to: customDateRange.to }
+                : undefined
+              }
             />
           </div>
         );
@@ -311,7 +315,7 @@ export const SecureTaxiDashboard = () => {
             { label: 'הגדרות', value: 'settings', icon: Settings },
           ]}
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          setActiveTab={(value) => setActiveTab(value as typeof activeTab)}
         />
 
         <div className="mt-6">{renderTabContent()}</div>

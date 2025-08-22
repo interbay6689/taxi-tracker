@@ -166,7 +166,10 @@ export const SettingsDialog = ({
               trips={trips} 
               workDays={workDays} 
               selectedPeriod={selectedPeriod}
-              customDateRange={customDateRange}
+              customDateRange={customDateRange && customDateRange.from && customDateRange.to 
+                ? { from: customDateRange.from, to: customDateRange.to }
+                : undefined
+              }
             />
           </TabsContent>
         </Tabs>
