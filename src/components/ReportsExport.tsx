@@ -1,394 +1,313 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+
+import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, FileText, Calendar, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, Download, TrendingUp, Car, Clock, DollarSign } from "lucide-react";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO } from "date-fns";
+import { he } from "date-fns/locale";
 import { Trip, WorkDay } from "@/hooks/useDatabase";
-import { useToast } from "@/hooks/use-toast";
-import { useCustomPaymentTypes } from "@/hooks/useCustomPaymentTypes";
 
 interface ReportsExportProps {
   trips: Trip[];
   workDays: WorkDay[];
+  selectedPeriod: 'today' | 'week' | 'month' | 'year' | 'custom';
+  customDateRange?: { from: Date; to: Date };
 }
 
-export const ReportsExport = ({ trips, workDays }: ReportsExportProps) => {
-  const [reportType, setReportType] = useState<string>("");
-  const [period, setPeriod] = useState<string>("");
-  const { toast } = useToast();
-  const { getPaymentMethodDetails } = useCustomPaymentTypes();
+export const ReportsExport: React.FC<ReportsExportProps> = ({
+  trips = [],
+  workDays = [],
+  selectedPeriod,
+  customDateRange
+}) => {
+  const [isExporting, setIsExporting] = useState(false);
 
-  const generateReport = () => {
-    if (!reportType || !period) {
-      toast({
-        title: "שגיאה",
-        description: "אנא בחר סוג דוח ותקופה",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const filteredTrips = getFilteredTrips();
-    const reportData = generateReportData(filteredTrips, reportType);
-    downloadReport(reportData, reportType, period);
-  };
-
-  const getFilteredTrips = (): Trip[] => {
+  // Helper function to get date range based on selected period
+  const getDateRange = () => {
     const now = new Date();
     
-    switch (period) {
-      case "today":
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-        return trips.filter(trip => {
-          const tripDate = new Date(trip.timestamp);
-          return tripDate >= today && tripDate < tomorrow;
-        });
+    switch (selectedPeriod) {
+      case 'today':
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const endOfToday = new Date(today);
+        endOfToday.setHours(23, 59, 59, 999);
+        return { start: today, end: endOfToday };
       
-      case "week":
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay()); // תחילת השבוע (יום ראשון)
-        startOfWeek.setHours(0, 0, 0, 0);
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 7); // סוף השבוע (מוצאי שבת 00:00)
-        return trips.filter(trip => {
-          const tripDate = new Date(trip.timestamp);
-          return tripDate >= startOfWeek && tripDate < endOfWeek;
-        });
+      case 'week':
+        return { 
+          start: startOfWeek(now, { weekStartsOn: 0 }), 
+          end: endOfWeek(now, { weekStartsOn: 0 }) 
+        };
       
-      case "month":
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        return trips.filter(trip => new Date(trip.timestamp) >= monthStart);
+      case 'month':
+        return { 
+          start: startOfMonth(now), 
+          end: endOfMonth(now) 
+        };
       
-      case "year":
-        const yearStart = new Date(now.getFullYear(), 0, 1);
-        return trips.filter(trip => new Date(trip.timestamp) >= yearStart);
+      case 'year':
+        return { 
+          start: startOfYear(now), 
+          end: endOfYear(now) 
+        };
       
-      default:
-        return trips;
-    }
-  };
-
-  const getFilteredWorkDays = (): WorkDay[] => {
-    const now = new Date();
-    
-    switch (period) {
-      case "today":
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-        return workDays.filter(workDay => {
-          const workDate = new Date(workDay.start_time);
-          return workDate >= today && workDate < tomorrow;
-        });
-      
-      case "week":
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay());
-        startOfWeek.setHours(0, 0, 0, 0);
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 7);
-        return workDays.filter(workDay => {
-          const workDate = new Date(workDay.start_time);
-          return workDate >= startOfWeek && workDate < endOfWeek;
-        });
-      
-      case "month":
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        return workDays.filter(workDay => new Date(workDay.start_time) >= monthStart);
-      
-      case "year":
-        const yearStart = new Date(now.getFullYear(), 0, 1);
-        return workDays.filter(workDay => new Date(workDay.start_time) >= yearStart);
-      
-      default:
-        return workDays;
-    }
-  };
-
-  const generateReportData = (trips: Trip[], type: string) => {
-    const totalIncome = trips.reduce((sum, trip) => {
-      const details = getPaymentMethodDetails(trip.payment_method);
-      return sum + (trip.amount * (1 - details.commissionRate));
-    }, 0);
-    const totalTrips = trips.length;
-    const avgTripValue = totalTrips > 0 ? totalIncome / totalTrips : 0;
-
-    // Header with BOM for proper Hebrew encoding
-    const header = [
-      `דוח נסיעות מונית - ${getPeriodText(period)}`,
-      `תאריך יצירה: ${new Date().toLocaleDateString('he-IL')}`,
-      "",
-      "סיכום כללי:",
-      `סה״כ הכנסות: ₪${totalIncome.toFixed(2)}`,
-      `מספר נסיעות: ${totalTrips}`,
-      `ממוצע לנסיעה: ₪${avgTripValue.toFixed(2)}`,
-      "",
-    ];
-
-    if (type === "detailed") {
-      const csvHeader = "תאריך,שעת התחלה,שעת סיום,תיוג תשלום,סכום נטו,סכום גולמי,עמלה";
-      const csvRows = trips.map(trip => {
-        const tripDate = new Date(trip.timestamp);
-        const details = getPaymentMethodDetails(trip.payment_method);
-        const grossAmount = trip.amount;
-        const netAmount = grossAmount * (1 - details.commissionRate);
-        const commission = grossAmount - netAmount;
-        
-        return [
-          tripDate.toLocaleDateString('he-IL'),
-          trip.trip_start_time ? new Date(trip.trip_start_time).toLocaleTimeString('he-IL') : tripDate.toLocaleTimeString('he-IL'),
-          trip.trip_end_time ? new Date(trip.trip_end_time).toLocaleTimeString('he-IL') : "",
-          details.displayName,
-          netAmount.toFixed(2),
-          grossAmount.toFixed(2),
-          commission.toFixed(2)
-        ].join(',');
-      });
-
-      return [
-        ...header,
-        csvHeader,
-        ...csvRows
-      ];
-    }
-
-    if (type === "summary") {
-      const paymentBreakdown: Record<string, { count: number; total: number; commission: number }> = {};
-      trips.forEach(trip => {
-        const details = getPaymentMethodDetails(trip.payment_method);
-        const key = details.displayName;
-        if (!paymentBreakdown[key]) {
-          paymentBreakdown[key] = { count: 0, total: 0, commission: 0 };
+      case 'custom':
+        if (customDateRange?.from && customDateRange?.to) {
+          return { 
+            start: customDateRange.from, 
+            end: customDateRange.to 
+          };
         }
-        paymentBreakdown[key].count++;
-        paymentBreakdown[key].total += trip.amount;
-        paymentBreakdown[key].commission += trip.amount * details.commissionRate;
-      });
-
-      const breakdown = Object.entries(paymentBreakdown).map(([method, data]) => 
-        `${method}: ₪${data.total.toFixed(2)} (${data.count} נסיעות, עמלה: ₪${data.commission.toFixed(2)})`
-      );
-
-      return [
-        ...header,
-        "פירוט לפי אמצעי תשלום:",
-        ...breakdown,
-      ];
+        // Fallback to current year if custom range is invalid
+        return { 
+          start: startOfYear(now), 
+          end: endOfYear(now) 
+        };
+      
+      default:
+        // Default to all time (current year)
+        return { 
+          start: startOfYear(now), 
+          end: endOfYear(now) 
+        };
     }
+  };
 
-    // Default tax report
-    const csvHeader = "תאריך,שעה,סכום,אמצעי תשלום";
-    const csvRows = trips.map(trip => {
-      const tripDate = new Date(trip.timestamp);
-      const details = getPaymentMethodDetails(trip.payment_method);
-      return [
-        tripDate.toLocaleDateString('he-IL'),
-        tripDate.toLocaleTimeString('he-IL'),
-        trip.amount.toFixed(2),
-        details.displayName
-      ].join(',');
+  // Filter data based on selected period
+  const { filteredTrips, filteredWorkDays } = useMemo(() => {
+    console.log('Filtering data - Total trips:', trips.length, 'Total work days:', workDays.length);
+    
+    const { start, end } = getDateRange();
+    console.log('Date range:', { start, end, selectedPeriod });
+    
+    const tripsInRange = trips.filter(trip => {
+      try {
+        const tripDate = parseISO(trip.timestamp);
+        const isInRange = isWithinInterval(tripDate, { start, end });
+        return isInRange;
+      } catch (error) {
+        console.error('Error parsing trip date:', trip.timestamp, error);
+        return false;
+      }
     });
 
-    return [
-      ...header,
-      "דוח לרשויות המס:",
-      csvHeader,
-      ...csvRows
-    ];
-  };
-
-  const downloadReport = (data: string[], type: string, period: string) => {
-    const content = data.join('\n');
-    const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    
-    const fileName = `דוח_נסיעות_${getReportTypeText(type)}_${getPeriodText(period)}_${new Date().toLocaleDateString('he-IL').replace(/\//g, '_')}.csv`;
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', fileName);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast({
-      title: "הצלחה",
-      description: `הדוח הורד בהצלחה: ${fileName}`,
+    const workDaysInRange = workDays.filter(workDay => {
+      try {
+        const workDayDate = parseISO(workDay.start_time);
+        const isInRange = isWithinInterval(workDayDate, { start, end });
+        return isInRange;
+      } catch (error) {
+        console.error('Error parsing work day date:', workDay.start_time, error);
+        return false;
+      }
     });
-  };
 
-  const getPeriodText = (period: string) => {
-    const texts = {
-      'today': 'היום',
-      'week': 'השבוע_הנוכחי',
-      'month': 'חודש_נוכחי',
-      'year': 'שנה_נוכחית',
-      'all': 'כל_התקופות'
+    console.log('Filtered results:', {
+      tripsInRange: tripsInRange.length,
+      workDaysInRange: workDaysInRange.length
+    });
+
+    return {
+      filteredTrips: tripsInRange,
+      filteredWorkDays: workDaysInRange
     };
-    return texts[period] || period;
-  };
+  }, [trips, workDays, selectedPeriod, customDateRange]);
 
-  const getReportTypeText = (type: string) => {
-    const texts = {
-      'detailed': 'מפורט',
-      'summary': 'סיכום',
-      'tax': 'מס'
+  // Calculate summary statistics
+  const summaryStats = useMemo(() => {
+    const totalIncome = filteredTrips.reduce((sum, trip) => sum + trip.amount, 0);
+    const totalTrips = filteredTrips.length;
+    const totalWorkDays = filteredWorkDays.length;
+    const completedShifts = filteredWorkDays.filter(wd => !wd.is_active).length;
+    const activeShifts = filteredWorkDays.filter(wd => wd.is_active).length;
+    
+    // Calculate average income per trip and per work day
+    const avgIncomePerTrip = totalTrips > 0 ? totalIncome / totalTrips : 0;
+    const avgIncomePerWorkDay = totalWorkDays > 0 ? totalIncome / totalWorkDays : 0;
+
+    // Calculate payment method breakdown
+    const paymentMethodBreakdown = filteredTrips.reduce((acc, trip) => {
+      const method = trip.payment_method;
+      if (!acc[method]) {
+        acc[method] = { count: 0, amount: 0 };
+      }
+      acc[method].count += 1;
+      acc[method].amount += trip.amount;
+      return acc;
+    }, {} as Record<string, { count: number; amount: number }>);
+
+    return {
+      totalIncome,
+      totalTrips,
+      totalWorkDays,
+      completedShifts,
+      activeShifts,
+      avgIncomePerTrip,
+      avgIncomePerWorkDay,
+      paymentMethodBreakdown
     };
-    return texts[type] || type;
+  }, [filteredTrips, filteredWorkDays]);
+
+  const exportToCSV = async () => {
+    setIsExporting(true);
+    
+    try {
+      // Create CSV content
+      const csvContent = [
+        // Header
+        ['תאריך', 'שעה', 'סכום', 'אמצעי תשלום', 'תיוג', 'עיר התחלה', 'עיר סיום'].join(','),
+        // Data rows
+        ...filteredTrips.map(trip => [
+          format(parseISO(trip.timestamp), 'dd/MM/yyyy', { locale: he }),
+          format(parseISO(trip.timestamp), 'HH:mm', { locale: he }),
+          trip.amount.toString(),
+          trip.payment_method,
+          trip.trip_status || '',
+          trip.start_location_city || '',
+          trip.end_location_city || ''
+        ].join(','))
+      ].join('\n');
+
+      // Create and download file
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `דוח_נסיעות_${format(new Date(), 'dd-MM-yyyy')}.csv`;
+      link.click();
+
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
-  const filteredTrips = getFilteredTrips();
-  const filteredWorkDays = getFilteredWorkDays();
-  
-  // Always show current data regardless of selection
-  const displayWorkDays = period ? filteredWorkDays : workDays;
-  
-  // חישובי תקופות נכונים
-  const todayTrips = trips.filter(trip => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-    const tripDate = new Date(trip.timestamp);
-    return tripDate >= today && tripDate < tomorrow;
-  });
-  
-  const weeklyTrips = trips.filter(trip => {
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay()); // יום ראשון
-    startOfWeek.setHours(0, 0, 0, 0);
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 7); // מוצאי שבת 00:00
-    const tripDate = new Date(trip.timestamp);
-    return tripDate >= startOfWeek && tripDate < endOfWeek;
-  });
-  
-  const monthlyTrips = trips.filter(trip => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    return new Date(trip.timestamp) >= startOfMonth;
-  });
-  
-  const todayIncome = todayTrips.reduce((sum, trip) => {
-    const details = getPaymentMethodDetails(trip.payment_method);
-    return sum + (trip.amount * (1 - details.commissionRate));
-  }, 0);
-  
-  const weeklyIncome = weeklyTrips.reduce((sum, trip) => {
-    const details = getPaymentMethodDetails(trip.payment_method);
-    return sum + (trip.amount * (1 - details.commissionRate));
-  }, 0);
-  
-  const monthlyIncome = monthlyTrips.reduce((sum, trip) => {
-    const details = getPaymentMethodDetails(trip.payment_method);
-    return sum + (trip.amount * (1 - details.commissionRate));
-  }, 0);
+  const getPeriodDisplayName = () => {
+    switch (selectedPeriod) {
+      case 'today': return 'היום';
+      case 'week': return 'השבוע';
+      case 'month': return 'החודש';
+      case 'year': return 'השנה';
+      case 'custom': return 'תקופה מותאמת אישית';
+      default: return 'כל הזמן';
+    }
+  };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          ייצא דוחות
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm font-medium mb-2 block">סוג דוח</label>
-            <Select value={reportType} onValueChange={setReportType}>
-              <SelectTrigger>
-                <SelectValue placeholder="בחר סוג דוח" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="detailed">דוח מפורט</SelectItem>
-                <SelectItem value="summary">דוח סיכום</SelectItem>
-                <SelectItem value="tax">דוח לרשויות המס</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div>
-            <label className="text-sm font-medium mb-2 block">תקופה</label>
-            <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger>
-                <SelectValue placeholder="בחר תקופה" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">היום</SelectItem>
-                <SelectItem value="week">השבוע הנוכחי (ראשון-שבת)</SelectItem>
-                <SelectItem value="month">החודש הנוכחי</SelectItem>
-                <SelectItem value="year">השנה הנוכחית</SelectItem>
-                <SelectItem value="all">כל התקופות</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+    <div className="space-y-6">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">הכנסות כוללות</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₪{summaryStats.totalIncome.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">{getPeriodDisplayName()}</p>
+          </CardContent>
+        </Card>
 
-        <Button 
-          onClick={generateReport} 
-          disabled={!reportType || !period}
-          className="w-full"
-        >
-          <Download className="w-4 h-4 mr-2" />
-          הורד דוח ({filteredTrips.length} נסיעות)
-        </Button>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">מספר נסיעות</CardTitle>
+            <Car className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summaryStats.totalTrips}</div>
+            <p className="text-xs text-muted-foreground">ממוצע ₪{summaryStats.avgIncomePerTrip.toFixed(0)} לנסיעה</p>
+          </CardContent>
+        </Card>
 
-        <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-primary">
-              {period === 'today' ? todayTrips.length : 
-               period === 'week' ? weeklyTrips.length :
-               period === 'month' ? monthlyTrips.length : filteredTrips.length}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              נסיעות {period === 'today' ? 'היום' : 
-                      period === 'week' ? 'השבוע' :
-                      period === 'month' ? 'החודש' : 'בתקופה'}
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-primary">
-              ₪{Math.round(period === 'today' ? todayIncome : 
-                          period === 'week' ? weeklyIncome :
-                          period === 'month' ? monthlyIncome : 
-                          filteredTrips.reduce((sum, trip) => {
-                            const details = getPaymentMethodDetails(trip.payment_method);
-                            return sum + (trip.amount * (1 - details.commissionRate));
-                          }, 0)).toLocaleString()}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              הכנסות {period === 'today' ? 'היום' : 
-                      period === 'week' ? 'השבוع' :
-                      period === 'month' ? 'החודש' : 'בתקופה'}
-            </div>
-          </div>
-        </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">ימי עבודה</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summaryStats.totalWorkDays}</div>
+            <p className="text-xs text-muted-foreground">ממוצע ₪{summaryStats.avgIncomePerWorkDay.toFixed(0)} ליום</p>
+          </CardContent>
+        </Card>
 
-        <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-secondary">
-              {displayWorkDays.length}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">משמרות</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summaryStats.completedShifts}</div>
+            <p className="text-xs text-muted-foreground">
+              {summaryStats.activeShifts > 0 && `+ ${summaryStats.activeShifts} פעילות`}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Payment Methods Breakdown */}
+      {Object.keys(summaryStats.paymentMethodBreakdown).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              פירוט לפי אמצעי תשלום
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {Object.entries(summaryStats.paymentMethodBreakdown).map(([method, data]) => (
+                <div key={method} className="flex justify-between items-center">
+                  <span className="font-medium">{method}</span>
+                  <div className="text-left">
+                    <div className="font-bold">₪{data.amount.toLocaleString()}</div>
+                    <div className="text-sm text-muted-foreground">{data.count} נסיעות</div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="text-sm text-muted-foreground">
-              ימי עבודה {period ? (period === 'today' ? 'היום' : 
-                        period === 'week' ? 'השבוע' :
-                        period === 'month' ? 'החודש' : 'בתקופה') : 'סה"כ'}
-            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Export Button */}
+      <Card>
+        <CardHeader>
+          <CardTitle>יצוא נתונים</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              יצא את כל הנתונים עבור {getPeriodDisplayName()} לקובץ CSV
+            </p>
+            <Button 
+              onClick={exportToCSV} 
+              disabled={isExporting || filteredTrips.length === 0}
+              className="w-full"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {isExporting ? 'מייצא...' : `יצא ${filteredTrips.length} נסיעות`}
+            </Button>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-secondary">
-              {displayWorkDays.filter(workDay => workDay.end_time).length}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              משמרות הושלמו {period ? (period === 'today' ? 'היום' : 
-                           period === 'week' ? 'השבוע' :
-                           period === 'month' ? 'החודש' : 'בתקופה') : 'סה"כ'}
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Debug info (remove in production) */}
+      {process.env.NODE_ENV === 'development' && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="text-orange-800">מידע דיבוג</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-orange-700">
+            <div>סה"כ נסיעות במערכת: {trips.length}</div>
+            <div>סה"כ ימי עבודה במערכת: {workDays.length}</div>
+            <div>נסיעות מסוננות: {filteredTrips.length}</div>
+            <div>ימי עבודה מסוננים: {filteredWorkDays.length}</div>
+            <div>תקופה נבחרת: {selectedPeriod}</div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };
