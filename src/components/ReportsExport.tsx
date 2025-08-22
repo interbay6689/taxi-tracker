@@ -241,6 +241,9 @@ export const ReportsExport = ({ trips, workDays }: ReportsExportProps) => {
   const filteredTrips = getFilteredTrips();
   const filteredWorkDays = getFilteredWorkDays();
   
+  // Always show current data regardless of selection
+  const displayWorkDays = period ? filteredWorkDays : workDays;
+  
   // חישובי תקופות נכונים
   const todayTrips = trips.filter(trip => {
     const today = new Date();
@@ -366,22 +369,22 @@ export const ReportsExport = ({ trips, workDays }: ReportsExportProps) => {
         <div className="grid grid-cols-2 gap-4 pt-4 border-t">
           <div className="text-center">
             <div className="text-2xl font-bold text-secondary">
-              {filteredWorkDays.length}
+              {displayWorkDays.length}
             </div>
             <div className="text-sm text-muted-foreground">
-              ימי עבודה {period === 'today' ? 'היום' : 
+              ימי עבודה {period ? (period === 'today' ? 'היום' : 
                         period === 'week' ? 'השבוע' :
-                        period === 'month' ? 'החודש' : 'בתקופה'}
+                        period === 'month' ? 'החודש' : 'בתקופה') : 'סה"כ'}
             </div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-secondary">
-              {filteredWorkDays.filter(workDay => workDay.end_time).length}
+              {displayWorkDays.filter(workDay => workDay.end_time).length}
             </div>
             <div className="text-sm text-muted-foreground">
-              משמרות הושלמו {period === 'today' ? 'היום' : 
+              משמרות הושלמו {period ? (period === 'today' ? 'היום' : 
                            period === 'week' ? 'השבוע' :
-                           period === 'month' ? 'החודש' : 'בתקופה'}
+                           period === 'month' ? 'החודש' : 'בתקופה') : 'סה"כ'}
             </div>
           </div>
         </div>
