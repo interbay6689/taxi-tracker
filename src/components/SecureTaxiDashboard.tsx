@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarIcon, Car, CheckCircle2, CircleSlash, Plus, Settings, BarChart4, Clock } from 'lucide-react';
+import { CalendarIcon, Car, CheckCircle2, CircleSlash, Plus, Settings, BarChart4, Clock, TrendingUp } from 'lucide-react';
 import { AddTripDialog } from '@/components/AddTripDialog';
 import { EditTripsDialog } from '@/components/EditTripsDialog';
 import { useDatabase } from '@/hooks/useDatabase';
@@ -12,8 +12,8 @@ import { EndShiftDialog } from '@/components/EndShiftDialog';
 import { AddFuelDialog } from '@/components/AddFuelDialog';
 import { useToast } from '@/hooks/use-toast';
 import { ShadcnTabs } from '@/components/ui/shadcn-tabs';
-import { AnalyticsTab } from '@/components/AnalyticsTab';
-import { ShiftHistoryTab } from '@/components/ShiftHistoryTab';
+import { AnalyticsTab } from '@/components/analytics/AnalyticsTab';
+import { ShiftHistoryTab } from '@/components/analytics/ShiftHistoryTab';
 import { ReportsExport } from '@/components/ReportsExport';
 import { DateRange } from "react-day-picker";
 import { DateRangePicker } from "@/components/date-range-picker"
@@ -107,7 +107,6 @@ export const SecureTaxiDashboard = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('today');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
 
-  // Redirect to auth if not authenticated
   useEffect(() => {
     if (!loading && !user) {
       navigate('/auth', { replace: true });
@@ -117,40 +116,30 @@ export const SecureTaxiDashboard = () => {
   const handleStartShift = async () => {
     const success = await startWorkDay();
     if (success) {
-      toast({
-        title: "משמרת החלה",
-        description: "המשמרת החלה בהצלחה!",
-      });
+      toast({ title: "משמרת החלה", description: "המשמרת החלה בהצלחה!" });
+      setStartShiftOpen(false);
     }
   };
 
   const handleEndShift = async () => {
     const success = await endWorkDay();
     if (success) {
-      toast({
-        title: "משמרת הסתיימה",
-        description: "המשמרת הסתיימה בהצלחה!",
-      });
+      toast({ title: "משמרת הסתיימה", description: "המשמרת הסתיימה בהצלחה!" });
+      setEndShiftOpen(false);
     }
   };
 
   const handlePauseShift = async () => {
     const success = await pauseWorkDay();
     if (success) {
-      toast({
-        title: "משמרת הופסקה",
-        description: "המשמרת הופסקה בהצלחה!",
-      });
+      toast({ title: "משמרת הופסקה", description: "המשמרת הופסקה בהצלחה!" });
     }
   };
 
   const handleResumeShift = async () => {
     const success = await resumeWorkDay();
     if (success) {
-      toast({
-        title: "משמרת חודשה",
-        description: "המשמרת חודשה בהצלחה!",
-      });
+      toast({ title: "משמרת חודשה", description: "המשמרת חודשה בהצלחה!" });
     }
   };
 
@@ -245,12 +234,7 @@ export const SecureTaxiDashboard = () => {
       case 'analytics':
         return (
           <div className="space-y-6">
-            <AnalyticsTab 
-              trips={trips} 
-              workDays={workDays}
-              dailyGoals={dailyGoals}
-              dailyExpenses={dailyExpenses}
-            />
+            <AnalyticsTab trips={trips} />
           </div>
         );
 
@@ -284,12 +268,14 @@ export const SecureTaxiDashboard = () => {
           <SettingsDialog
             isOpen={true}
             onClose={() => setActiveTab('dashboard')}
-            dailyGoals={dailyGoals}
-            dailyExpenses={dailyExpenses}
+            goals={dailyGoals}
+            expenses={dailyExpenses}
             onUpdateGoals={updateGoals}
             onUpdateExpenses={updateExpenses}
             trips={trips}
             workDays={workDays}
+            currentWorkDay={currentWorkDay}
+            onUpdateTrips={() => {}}
           />
         );
 
@@ -313,7 +299,7 @@ export const SecureTaxiDashboard = () => {
     <div className="min-h-screen py-6">
       <div className="container mx-auto">
         <h1 className="text-3xl font-semibold mb-4">
-          שלום {user?.email || user?.name || 'נהג'}!
+          שלום {user?.email || 'נהג'}!
         </h1>
 
         <ShadcnTabs

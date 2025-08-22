@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +12,8 @@ import { PaymentTypesTab } from "./settings/PaymentTypesTab";
 import { AnalyticsTab } from "./analytics/AnalyticsTab";
 import { TagsManagement } from "./TagsManagement";
 import { useTheme } from "next-themes";
+import { useState } from "react";
+import { DateRange } from "react-day-picker";
 
 interface SettingsDialogProps {
   isOpen: boolean;
@@ -20,8 +23,8 @@ interface SettingsDialogProps {
   trips: Trip[];
   workDays: WorkDay[];
   currentWorkDay: any;
-  onUpdateGoals: (goals: DailyGoals) => void;
-  onUpdateExpenses: (expenses: DailyExpenses) => void;
+  onUpdateGoals: (goals: DailyGoals) => void | Promise<boolean>;
+  onUpdateExpenses: (expenses: DailyExpenses) => void | Promise<boolean>;
   onUpdateTrips: (trips: Trip[]) => void;
   tags?: string[];
   onUpdateTags?: (tags: string[]) => void;
@@ -42,6 +45,8 @@ export const SettingsDialog = ({
   onUpdateTags
 }: SettingsDialogProps) => {
   const { theme, setTheme } = useTheme();
+  const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('today');
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -100,11 +105,11 @@ export const SettingsDialog = ({
           </TabsList>
 
           <TabsContent value="goals">
-            <GoalsTab goals={goals} setGoals={onUpdateGoals} />
+            <GoalsTab goals={goals} setGoals={onUpdateGoals as any} />
           </TabsContent>
 
           <TabsContent value="expenses">
-            <ExpensesTab expenses={expenses} setExpenses={onUpdateExpenses} />
+            <ExpensesTab expenses={expenses} setExpenses={onUpdateExpenses as any} />
           </TabsContent>
 
           <TabsContent value="payment-types">
@@ -157,7 +162,12 @@ export const SettingsDialog = ({
           </TabsContent>
 
           <TabsContent value="reports">
-            <ReportsExport trips={trips} workDays={workDays} />
+            <ReportsExport 
+              trips={trips} 
+              workDays={workDays} 
+              selectedPeriod={selectedPeriod}
+              customDateRange={customDateRange}
+            />
           </TabsContent>
         </Tabs>
 
