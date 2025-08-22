@@ -245,8 +245,12 @@ export function useDatabase() {
         }))
       );
 
-      // Populate work days history
-      setWorkDays(workDaysHistory ?? []);
+      // Populate work days list (include active shift first if exists)
+      const combinedWorkDays = [
+        ...(activeWorkDay ? [activeWorkDay] : []),
+        ...(workDaysHistory ?? []),
+      ];
+      setWorkDays(combinedWorkDays);
 
       // Set goals if available
       if (goalsData) {
