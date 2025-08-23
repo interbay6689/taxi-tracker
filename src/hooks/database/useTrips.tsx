@@ -25,7 +25,7 @@ export function useTrips(user: any) {
           .order('timestamp', { ascending: false });
         if (res.error) throw res.error;
         return res;
-      }, 2, 700);
+      }, 2, 600);
 
       const mappedTrips = (allTripsData ?? []).map(trip => ({
         id: trip.id,
@@ -56,7 +56,11 @@ export function useTrips(user: any) {
       setTrips(mappedTrips);
       return mappedTrips;
     } catch (error: any) {
-      console.error('Error loading trips:', error);
+      if (isNetworkError(error)) {
+        console.warn('Network issue: Error loading trips (using empty fallback).', error?.message);
+      } else {
+        console.error('Error loading trips:', error);
+      }
       if (!isNetworkError(error)) {
         toast({
           title: "שגיאה בטעינת נסיעות",

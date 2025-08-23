@@ -23,7 +23,7 @@ export function useShiftExpenses(user: any, currentWorkDayId?: string) {
           .order('created_at', { ascending: false });
         if (res.error) throw res.error;
         return res;
-      }, 2, 700);
+      }, 2, 600);
 
       const mappedExpenses = (shiftExpData ?? []).map((expense: any) => ({
         id: expense.id,
@@ -37,7 +37,11 @@ export function useShiftExpenses(user: any, currentWorkDayId?: string) {
       setShiftExpenses(mappedExpenses);
       return mappedExpenses;
     } catch (error: any) {
-      console.error('Error loading shift expenses:', error);
+      if (isNetworkError(error)) {
+        console.warn('Network issue: Error loading shift expenses (using empty fallback).', error?.message);
+      } else {
+        console.error('Error loading shift expenses:', error);
+      }
       if (!isNetworkError(error)) {
         toast({
           title: "שגיאה בטעינת הוצאות",

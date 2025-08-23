@@ -27,7 +27,7 @@ export function useWorkDays(user: any) {
           .maybeSingle();
         if (res.error) throw res.error;
         return res;
-      }, 2, 700);
+      }, 2, 600);
       const activeWorkDay = activeRes.data;
 
       // Fetch completed work days
@@ -40,7 +40,7 @@ export function useWorkDays(user: any) {
           .order('start_time', { ascending: false });
         if (res.error) throw res.error;
         return res;
-      }, 2, 700);
+      }, 2, 600);
       const workDaysHistory = historyRes.data ?? [];
 
       setCurrentWorkDay(activeWorkDay ?? null);
@@ -54,7 +54,11 @@ export function useWorkDays(user: any) {
 
       return { activeWorkDay, workDaysHistory };
     } catch (error: any) {
-      console.error('Error loading work days:', error);
+      if (isNetworkError(error)) {
+        console.warn('Network issue: Error loading work days (using empty fallback).', error?.message);
+      } else {
+        console.error('Error loading work days:', error);
+      }
       if (!isNetworkError(error)) {
         toast({
           title: "שגיאה בטעינת ימי עבודה",

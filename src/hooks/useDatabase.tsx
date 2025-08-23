@@ -1,12 +1,12 @@
 
-
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 import { useTrips } from './database/useTrips';
 import { useWorkDays } from './database/useWorkDays';
 import { useSettings } from './database/useSettings';
 import { useShiftExpenses } from './database/useShiftExpenses';
+import { isNetworkError } from '@/utils/networkError';
 
 // Re-export types for backward compatibility
 export type {
@@ -18,10 +18,16 @@ export type {
 } from './database/types';
 
 export function useDatabase() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Prevent duplicate loads for the same session and concurrent execution
+  const loadGuard = useRef<{ running: boolean; sessionKey: string | null }>({
+    running: false,
+    sessionKey: null,
+  });
 
   // Initialize sub-hooks with error handling
   const tripsHook = useTrips(user);
@@ -37,22 +43,34 @@ export function useDatabase() {
     }
 
     try {
-      console.log('🔄 Loading user data...');
+      console.groupCollapsed('🔄 Loading user data (composite)');
       setLoading(true);
       setError(null);
 
       // Load all data in parallel for better performance
       const [workDaysResult, trips] = await Promise.all([
         workDaysHook.loadWorkDays().catch(error => {
-          console.error('Error loading work days:', error);
+          if (isNetworkError(error)) {
+            console.warn('Network issue while loading work days (will use fallback):', error?.message);
+          } else {
+            console.error('Error loading work days:', error);
+          }
           return { activeWorkDay: null, workDaysHistory: [] };
         }),
         tripsHook.loadTrips().catch(error => {
-          console.error('Error loading trips:', error);
+          if (isNetworkError(error)) {
+            console.warn('Network issue while loading trips (will use fallback):', error?.message);
+          } else {
+            console.error('Error loading trips:', error);
+          }
           return [];
         }),
         settingsHook.loadSettings().catch(error => {
-          console.error('Error loading settings:', error);
+          if (isNetworkError(error)) {
+            console.warn('Network issue while loading settings (will use fallback):', error?.message);
+          } else {
+            console.error('Error loading settings:', error);
+          }
           return null;
         }),
       ]);
@@ -62,18 +80,22 @@ export function useDatabase() {
         try {
           await shiftExpensesHook.loadShiftExpenses(workDaysResult.activeWorkDay.id);
         } catch (error) {
-          console.error('Error loading shift expenses:', error);
+          if (isNetworkError(error)) {
+            console.warn('Network issue while loading shift expenses (skipping now):', (error as any)?.message);
+          } else {
+            console.error('Error loading shift expenses:', error);
+          }
         }
       }
 
       console.log('✅ User data loaded successfully');
-
+      console.groupEnd();
     } catch (error: any) {
       console.error('❌ Critical error loading user data:', error);
       setError(error.message || 'אירעה שגיאה בטעינת הנתונים');
-      
+
       // Only show toast for critical errors, not network errors
-      if (!error.message?.includes('fetch')) {
+      if (!isNetworkError(error)) {
         toast({
           title: "שגיאה בטעינת נתונים",
           description: "אירעה שגיאה בטעינת הנתונים. נסה לרענן את הדף.",
@@ -85,14 +107,32 @@ export function useDatabase() {
     }
   }, [user, workDaysHook, tripsHook, settingsHook, shiftExpensesHook, toast]);
 
-  // Load data when user is authenticated
+  // Load data when user/session is authenticated – dedupe per session and prevent concurrent calls
   useEffect(() => {
-    if (user) {
-      loadUserData();
+    const sessKey = session ? `${session.user?.id}::${session.expires_at || ''}` : null;
+
+    if (user && session) {
+      if (loadGuard.current.running) {
+        return;
+      }
+      if (loadGuard.current.sessionKey === sessKey) {
+        // Already loaded for this session
+        setLoading(false);
+        return;
+      }
+
+      loadGuard.current.running = true;
+      loadUserData()
+        .finally(() => {
+          loadGuard.current.running = false;
+          loadGuard.current.sessionKey = sessKey;
+        });
     } else {
+      // No user – ensure state reset
       setLoading(false);
+      loadGuard.current.sessionKey = null;
     }
-  }, [user, loadUserData]);
+  }, [user, session, loadUserData]);
 
   // Enhanced addTrip that updates work day totals
   const addTrip = useCallback(

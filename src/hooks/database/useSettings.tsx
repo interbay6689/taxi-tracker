@@ -33,7 +33,7 @@ export function useSettings(user: any) {
           .maybeSingle();
         if (res.error) throw res.error;
         return res;
-      }, 2, 700);
+      }, 2, 600);
 
       // Load expenses
       const expensesRes = await withRetry(async () => {
@@ -46,7 +46,7 @@ export function useSettings(user: any) {
           .maybeSingle();
         if (res.error) throw res.error;
         return res;
-      }, 2, 700);
+      }, 2, 600);
 
       const goalsData = goalsRes.data;
       const expensesData = expensesRes.data;
@@ -68,7 +68,11 @@ export function useSettings(user: any) {
         });
       }
     } catch (error: any) {
-      console.error('Error loading settings:', error);
+      if (isNetworkError(error)) {
+        console.warn('Network issue: Error loading settings (skipping now).', error?.message);
+      } else {
+        console.error('Error loading settings:', error);
+      }
       if (!isNetworkError(error)) {
         toast({
           title: "שגיאה בטעינת הגדרות",
