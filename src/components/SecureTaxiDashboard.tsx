@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -73,14 +74,14 @@ const GoalsPeriodSelector: React.FC<GoalsPeriodSelectorProps> = ({
 };
 
 export const SecureTaxiDashboard = () => {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const {
-    trips,
-    workDays,
+    trips = [],
+    workDays = [],
     currentWorkDay,
-    dailyGoals,
-    dailyExpenses,
+    dailyGoals = { income_goal: 500, trips_goal: 20 },
+    dailyExpenses = { maintenance: 0, other: 0, daily_fixed_price: 0 },
     loading: dbLoading,
     addTrip,
     addTripWithLocation,
@@ -92,7 +93,7 @@ export const SecureTaxiDashboard = () => {
     updateExpenses,
     deleteTrip,
     updateTrip,
-    shiftExpenses,
+    shiftExpenses = [],
     addShiftExpense,
     deleteShiftExpense,
     updateShiftExpense
@@ -109,186 +110,262 @@ export const SecureTaxiDashboard = () => {
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!authLoading && !user) {
       navigate('/auth', { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, authLoading, navigate]);
+
+  // Safe trip filtering with error handling
+  const tripsToday = React.useMemo(() => {
+    try {
+      if (!trips || !Array.isArray(trips)) return [];
+      return trips.filter(
+        (trip) => {
+          try {
+            return new Date(trip.timestamp).toDateString() === new Date().toDateString();
+          } catch (error) {
+            console.error('Error filtering trip:', error, trip);
+            return false;
+          }
+        }
+      );
+    } catch (error) {
+      console.error('Error in tripsToday calculation:', error);
+      return [];
+    }
+  }, [trips]);
+
+  const totalIncomeToday = React.useMemo(() => {
+    try {
+      return tripsToday.reduce((sum, trip) => sum + (trip.amount || 0), 0);
+    } catch (error) {
+      console.error('Error calculating total income:', error);
+      return 0;
+    }
+  }, [tripsToday]);
+
+  const totalTripsToday = tripsToday.length;
 
   const handleStartShift = async () => {
-    const success = await startWorkDay();
-    if (success) {
-      toast({ title: "משמרת החלה", description: "המשמרת החלה בהצלחה!" });
-      setStartShiftOpen(false);
+    try {
+      const success = await startWorkDay();
+      if (success) {
+        toast({ title: "משמרת החלה", description: "המשמרת החלה בהצלחה!" });
+        setStartShiftOpen(false);
+      }
+    } catch (error) {
+      console.error('Error starting shift:', error);
+      toast({ 
+        title: "שגיאה", 
+        description: "אירעה שגיאה בהתחלת המשמרת", 
+        variant: "destructive" 
+      });
     }
   };
 
   const handleEndShift = async () => {
-    const success = await endWorkDay();
-    if (success) {
-      toast({ title: "משמרת הסתיימה", description: "המשמרת הסתיימה בהצלחה!" });
-      setEndShiftOpen(false);
+    try {
+      const success = await endWorkDay();
+      if (success) {
+        toast({ title: "משמרת הסתיימה", description: "המשמרת הסתיימה בהצלחה!" });
+        setEndShiftOpen(false);
+      }
+    } catch (error) {
+      console.error('Error ending shift:', error);
+      toast({ 
+        title: "שגיאה", 
+        description: "אירעה שגיאה בסיום המשמרת", 
+        variant: "destructive" 
+      });
     }
   };
 
   const handlePauseShift = async () => {
-    const success = await pauseWorkDay();
-    if (success) {
-      toast({ title: "משמרת הופסקה", description: "המשמרת הופסקה בהצלחה!" });
+    try {
+      const success = await pauseWorkDay();
+      if (success) {
+        toast({ title: "משמרת הופסקה", description: "המשמרת הופסקה בהצלחה!" });
+      }
+    } catch (error) {
+      console.error('Error pausing shift:', error);
+      toast({ 
+        title: "שגיאה", 
+        description: "אירעה שגיאה בהפסקת המשמרת", 
+        variant: "destructive" 
+      });
     }
   };
 
   const handleResumeShift = async () => {
-    const success = await resumeWorkDay();
-    if (success) {
-      toast({ title: "משמרת חודשה", description: "המשמרת חודשה בהצלחה!" });
+    try {
+      const success = await resumeWorkDay();
+      if (success) {
+        toast({ title: "משמרת חודשה", description: "המשמרת חודשה בהצלחה!" });
+      }
+    } catch (error) {
+      console.error('Error resuming shift:', error);
+      toast({ 
+        title: "שגיאה", 
+        description: "אירעה שגיאה בחידוש המשמרת", 
+        variant: "destructive" 
+      });
     }
   };
 
-  const tripsToday = trips.filter(
-    (trip) => new Date(trip.timestamp).toDateString() === new Date().toDateString()
-  );
-
-  const totalIncomeToday = tripsToday.reduce((sum, trip) => sum + trip.amount, 0);
-  const totalTripsToday = tripsToday.length;
-
   const renderTabContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>סיכום יומי</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-lg font-bold">הכנסות: ₪{totalIncomeToday}</div>
-                    <div>נסיעות: {totalTripsToday}</div>
+    try {
+      switch (activeTab) {
+        case 'dashboard':
+          return (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>סיכום יומי</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-lg font-bold">הכנסות: ₪{totalIncomeToday.toLocaleString()}</div>
+                      <div>נסיעות: {totalTripsToday}</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold">יעד הכנסות: ₪{dailyGoals.income_goal.toLocaleString()}</div>
+                      <div>יעד נסיעות: {dailyGoals.trips_goal}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-lg font-bold">יעד הכנסות: ₪{dailyGoals.income_goal}</div>
-                    <div>יעד נסיעות: {dailyGoals.trips_goal}</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {currentWorkDay ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {currentWorkDay ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>משמרת פעילה</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-4">
+                      <div>הכנסה משמרת: ₪{totalIncomeToday.toLocaleString()}</div>
+                      <div>נסיעות משמרת: {totalTripsToday}</div>
+                      <div className="flex gap-2">
+                        <Button onClick={handlePauseShift} variant="secondary">
+                          <CircleSlash className="mr-2 h-4 w-4" />
+                          השהה משמרת
+                        </Button>
+                        <Button onClick={() => setEndShiftOpen(true)} variant="destructive">
+                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                          סיים משמרת
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>אין משמרת פעילה</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Button onClick={() => setStartShiftOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        התחל משמרת
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+
                 <Card>
                   <CardHeader>
-                    <CardTitle>משמרת פעילה</CardTitle>
+                    <CardTitle>פעולות מהירות</CardTitle>
                   </CardHeader>
                   <CardContent className="flex flex-col gap-4">
-                    <div>הכנסה משמרת: ₪{tripsToday.reduce((sum, trip) => sum + trip.amount, 0)}</div>
-                    <div>נסיעות משמרת: {tripsToday.length}</div>
-                    <div className="flex gap-2">
-                      <Button onClick={handlePauseShift} variant="secondary">
-                        <CircleSlash className="mr-2 h-4 w-4" />
-                        השהה משמרת
-                      </Button>
-                      <Button onClick={handleEndShift} variant="destructive">
-                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                        סיים משמרת
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>אין משמרת פעילה</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Button onClick={() => setStartShiftOpen(true)}>
+                    <Button onClick={() => setAddTripOpen(true)} disabled={!currentWorkDay}>
                       <Plus className="mr-2 h-4 w-4" />
-                      התחל משמרת
+                      הוסף נסיעה
+                    </Button>
+                    <Button onClick={() => setEditTripsOpen(true)}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      ערוך נסיעות
+                    </Button>
+                    <Button onClick={() => setAddFuelOpen(true)} variant="secondary" disabled={!currentWorkDay}>
+                      <Car className="mr-2 h-4 w-4" />
+                      הוסף דלק
                     </Button>
                   </CardContent>
                 </Card>
-              )}
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>פעולות מהירות</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <Button onClick={() => setAddTripOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    הוסף נסיעה
-                  </Button>
-                  <Button onClick={() => setEditTripsOpen(true)}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    ערוך נסיעות
-                  </Button>
-                  <Button onClick={() => setAddFuelOpen(true)} variant="secondary">
-                    <Car className="mr-2 h-4 w-4" />
-                    הוסף דלק
-                  </Button>
-                </CardContent>
-              </Card>
+              </div>
             </div>
-          </div>
-        );
+          );
 
-      case 'analytics':
-        return (
-          <div className="space-y-6">
-            <AnalyticsTab trips={trips} />
-          </div>
-        );
+        case 'analytics':
+          return (
+            <div className="space-y-6">
+              <AnalyticsTab trips={trips} />
+            </div>
+          );
 
-      case 'history':
-        return (
-          <div className="space-y-6">
-            <ShiftHistoryTab trips={trips} workDays={workDays} />
-          </div>
-        );
+        case 'history':
+          return (
+            <div className="space-y-6">
+              <ShiftHistoryTab trips={trips} workDays={workDays} />
+            </div>
+          );
 
-      case 'reports':
-        return (
-          <div className="space-y-6">
-            <GoalsPeriodSelector
-              selectedPeriod={selectedPeriod}
-              onPeriodChange={setSelectedPeriod}
-              customDateRange={customDateRange}
-              onCustomDateRangeChange={setCustomDateRange}
-            />
-            <ReportsExport
+        case 'reports':
+          return (
+            <div className="space-y-6">
+              <GoalsPeriodSelector
+                selectedPeriod={selectedPeriod}
+                onPeriodChange={setSelectedPeriod}
+                customDateRange={customDateRange}
+                onCustomDateRangeChange={setCustomDateRange}
+              />
+              <ReportsExport
+                trips={trips}
+                workDays={workDays}
+                selectedPeriod={selectedPeriod}
+                customDateRange={customDateRange && customDateRange.from && customDateRange.to 
+                  ? { from: customDateRange.from, to: customDateRange.to }
+                  : undefined
+                }
+              />
+            </div>
+          );
+
+        case 'settings':
+          return (
+            <SettingsDialog
+              isOpen={true}
+              onClose={() => setActiveTab('dashboard')}
+              goals={dailyGoals}
+              expenses={dailyExpenses}
+              onUpdateGoals={updateGoals}
+              onUpdateExpenses={updateExpenses}
               trips={trips}
               workDays={workDays}
-              selectedPeriod={selectedPeriod}
-              customDateRange={customDateRange && customDateRange.from && customDateRange.to 
-                ? { from: customDateRange.from, to: customDateRange.to }
-                : undefined
-              }
+              currentWorkDay={currentWorkDay}
+              onUpdateTrips={() => {}}
             />
-          </div>
-        );
+          );
 
-      case 'settings':
-        return (
-          <SettingsDialog
-            isOpen={true}
-            onClose={() => setActiveTab('dashboard')}
-            goals={dailyGoals}
-            expenses={dailyExpenses}
-            onUpdateGoals={updateGoals}
-            onUpdateExpenses={updateExpenses}
-            trips={trips}
-            workDays={workDays}
-            currentWorkDay={currentWorkDay}
-            onUpdateTrips={() => {}}
-          />
-        );
-
-      default:
-        return null;
+        default:
+          return (
+            <div className="text-center py-8">
+              <p>נתונים לא זמינים</p>
+            </div>
+          );
+      }
+    } catch (error) {
+      console.error('Error rendering tab content:', error);
+      return (
+        <div className="text-center py-8">
+          <p className="text-destructive">שגיאה בטעינת הנתונים</p>
+          <Button onClick={() => window.location.reload()} className="mt-2">
+            רענן דף
+          </Button>
+        </div>
+      );
     }
   };
 
-  if (loading || dbLoading) {
+  if (authLoading || dbLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/50 flex items-center justify-center">
         <div className="text-center">
@@ -299,11 +376,31 @@ export const SecureTaxiDashboard = () => {
     );
   }
 
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md text-center">
+          <CardHeader>
+            <div className="flex justify-center items-center gap-2 mb-4">
+              <Car className="h-8 w-8 text-primary" />
+            </div>
+            <CardTitle className="text-2xl">מערכת מונית מאובטחת</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate('/auth')} className="w-full" size="lg">
+              התחבר למערכת
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen py-6">
-      <div className="container mx-auto">
+      <div className="container mx-auto px-4">
         <h1 className="text-3xl font-semibold mb-4">
-          שלום {user?.email || 'נהג'}!
+          שלום {user?.email?.split('@')[0] || 'נהג'}!
         </h1>
 
         <ShadcnTabs
