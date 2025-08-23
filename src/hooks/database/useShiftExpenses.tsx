@@ -3,6 +3,8 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ShiftExpense } from './types';
+import { withRetry } from '@/utils/withRetry';
+import { isNetworkError } from '@/utils/networkError';
 
 export function useShiftExpenses(user: any, currentWorkDayId?: string) {
   const { toast } = useToast();
@@ -12,14 +14,16 @@ export function useShiftExpenses(user: any, currentWorkDayId?: string) {
     if (!user || !workDayId) return [];
 
     try {
-      const { data: shiftExpData, error } = await supabase
-        .from('shift_expenses')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('work_day_id', workDayId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const { data: shiftExpData } = await withRetry(async () => {
+        const res = await supabase
+          .from('shift_expenses')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('work_day_id', workDayId)
+          .order('created_at', { ascending: false });
+        if (res.error) throw res.error;
+        return res;
+      }, 2, 700);
 
       const mappedExpenses = (shiftExpData ?? []).map((expense: any) => ({
         id: expense.id,
@@ -34,11 +38,13 @@ export function useShiftExpenses(user: any, currentWorkDayId?: string) {
       return mappedExpenses;
     } catch (error: any) {
       console.error('Error loading shift expenses:', error);
-      toast({
-        title: "שגיאה בטעינת הוצאות",
-        description: error.message,
-        variant: "destructive",
-      });
+      if (!isNetworkError(error)) {
+        toast({
+          title: "שגיאה בטעינת הוצאות",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
       return [];
     }
   }, [user, toast]);

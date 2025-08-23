@@ -3,6 +3,8 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Trip } from './types';
+import { withRetry } from '@/utils/withRetry';
+import { isNetworkError } from '@/utils/networkError';
 
 export function useTrips(user: any) {
   const { toast } = useToast();
@@ -13,14 +15,17 @@ export function useTrips(user: any) {
 
     try {
       const startOfYear = new Date(new Date().getFullYear(), 0, 1);
-      const { data: allTripsData, error } = await supabase
-        .from('trips')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('timestamp', startOfYear.toISOString())
-        .order('timestamp', { ascending: false });
 
-      if (error) throw error;
+      const { data: allTripsData } = await withRetry(async () => {
+        const res = await supabase
+          .from('trips')
+          .select('*')
+          .eq('user_id', user.id)
+          .gte('timestamp', startOfYear.toISOString())
+          .order('timestamp', { ascending: false });
+        if (res.error) throw res.error;
+        return res;
+      }, 2, 700);
 
       const mappedTrips = (allTripsData ?? []).map(trip => ({
         id: trip.id,
@@ -52,11 +57,13 @@ export function useTrips(user: any) {
       return mappedTrips;
     } catch (error: any) {
       console.error('Error loading trips:', error);
-      toast({
-        title: "שגיאה בטעינת נסיעות",
-        description: error.message,
-        variant: "destructive",
-      });
+      if (!isNetworkError(error)) {
+        toast({
+          title: "שגיאה בטעינת נסיעות",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
       return [];
     }
   }, [user, toast]);
@@ -101,7 +108,7 @@ export function useTrips(user: any) {
 
         toast({
           title: 'נסיעה נוספה!',
-          description: `נסיעה בסך ${amount} ₪ נוספה بהצלחה`,
+          description: `נסיעה בסך ${amount} ₪ נוספה בהצלחה`,
         });
 
         return true;

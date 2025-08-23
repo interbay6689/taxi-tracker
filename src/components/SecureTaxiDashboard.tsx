@@ -1,11 +1,9 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarIcon, Car, CheckCircle2, CircleSlash, Plus, Settings, BarChart4, Clock, TrendingUp } from 'lucide-react';
+import { CalendarIcon, Car, CheckCircle2, CircleSlash, Plus, Settings, BarChart4, Clock, TrendingUp, RefreshCcw } from 'lucide-react';
 import { AddTripDialog } from '@/components/AddTripDialog';
 import { EditTripsDialog } from '@/components/EditTripsDialog';
 import { useDatabase } from '@/hooks/useDatabase';
@@ -96,7 +94,8 @@ export const SecureTaxiDashboard = () => {
     shiftExpenses = [],
     addShiftExpense,
     deleteShiftExpense,
-    updateShiftExpense
+    updateShiftExpense,
+    loadUserData
   } = useDatabase();
   const { toast } = useToast();
 
@@ -115,7 +114,6 @@ export const SecureTaxiDashboard = () => {
     }
   }, [user, authLoading, navigate]);
 
-  // Safe trip filtering with error handling
   const tripsToday = React.useMemo(() => {
     try {
       if (!trips || !Array.isArray(trips)) return [];
@@ -399,9 +397,15 @@ export const SecureTaxiDashboard = () => {
   return (
     <div className="min-h-screen py-6">
       <div className="container mx-auto px-4">
-        <h1 className="text-3xl font-semibold mb-4">
-          שלום {user?.email?.split('@')[0] || 'נהג'}!
-        </h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-3xl font-semibold">
+            שלום {user?.email?.split('@')[0] || 'נהג'}!
+          </h1>
+          <Button variant="outline" size="sm" onClick={loadUserData} disabled={dbLoading}>
+            <RefreshCcw className="mr-2 h-4 w-4" />
+            רענן נתונים
+          </Button>
+        </div>
 
         <ShadcnTabs
           tabs={[

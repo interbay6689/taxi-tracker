@@ -3,6 +3,8 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { DailyGoals, DailyExpenses } from './types';
+import { withRetry } from '@/utils/withRetry';
+import { isNetworkError } from '@/utils/networkError';
 
 export function useSettings(user: any) {
   const { toast } = useToast();
@@ -21,26 +23,33 @@ export function useSettings(user: any) {
 
     try {
       // Load goals
-      const { data: goalsData, error: goalsError } = await supabase
-        .from('daily_goals')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (goalsError) throw goalsError;
+      const goalsRes = await withRetry(async () => {
+        const res = await supabase
+          .from('daily_goals')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (res.error) throw res.error;
+        return res;
+      }, 2, 700);
 
       // Load expenses
-      const { data: expensesData, error: expensesError } = await supabase
-        .from('daily_expenses')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const expensesRes = await withRetry(async () => {
+        const res = await supabase
+          .from('daily_expenses')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (res.error) throw res.error;
+        return res;
+      }, 2, 700);
 
-      if (expensesError) throw expensesError;
+      const goalsData = goalsRes.data;
+      const expensesData = expensesRes.data;
 
       if (goalsData) {
         setDailyGoals({
@@ -60,11 +69,13 @@ export function useSettings(user: any) {
       }
     } catch (error: any) {
       console.error('Error loading settings:', error);
-      toast({
-        title: "שגיאה בטעינת הגדרות",
-        description: error.message,
-        variant: "destructive",
-      });
+      if (!isNetworkError(error)) {
+        toast({
+          title: "שגיאה בטעינת הגדרות",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     }
   }, [user, toast]);
 

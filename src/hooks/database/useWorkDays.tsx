@@ -3,6 +3,8 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { WorkDay } from './types';
+import { withRetry } from '@/utils/withRetry';
+import { isNetworkError } from '@/utils/networkError';
 
 export function useWorkDays(user: any) {
   const { toast } = useToast();
@@ -14,44 +16,52 @@ export function useWorkDays(user: any) {
 
     try {
       // Fetch active work day
-      const { data: activeWorkDay, error: activeError } = await supabase
-        .from('work_days')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .order('start_time', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (activeError) throw activeError;
+      const activeRes = await withRetry(async () => {
+        const res = await supabase
+          .from('work_days')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .order('start_time', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (res.error) throw res.error;
+        return res;
+      }, 2, 700);
+      const activeWorkDay = activeRes.data;
 
       // Fetch completed work days
-      const { data: workDaysHistory, error: historyError } = await supabase
-        .from('work_days')
-        .select('*')
-        .eq('user_id', user.id)
-        .neq('is_active', true)
-        .order('start_time', { ascending: false });
-
-      if (historyError) throw historyError;
+      const historyRes = await withRetry(async () => {
+        const res = await supabase
+          .from('work_days')
+          .select('*')
+          .eq('user_id', user.id)
+          .neq('is_active', true)
+          .order('start_time', { ascending: false });
+        if (res.error) throw res.error;
+        return res;
+      }, 2, 700);
+      const workDaysHistory = historyRes.data ?? [];
 
       setCurrentWorkDay(activeWorkDay ?? null);
       
       // Combine active and completed work days
       const combinedWorkDays = [
         ...(activeWorkDay ? [activeWorkDay] : []),
-        ...(workDaysHistory ?? []),
+        ...workDaysHistory,
       ];
       setWorkDays(combinedWorkDays);
 
-      return { activeWorkDay, workDaysHistory: workDaysHistory ?? [] };
+      return { activeWorkDay, workDaysHistory };
     } catch (error: any) {
       console.error('Error loading work days:', error);
-      toast({
-        title: "שגיאה בטעינת ימי עבודה",
-        description: error.message,
-        variant: "destructive",
-      });
+      if (!isNetworkError(error)) {
+        toast({
+          title: "שגיאה בטעינת ימי עבודה",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
       return { activeWorkDay: null, workDaysHistory: [] };
     }
   }, [user, toast]);
