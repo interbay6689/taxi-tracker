@@ -28,6 +28,7 @@ export const CryptoPaymentInterface = ({ tripAmount, onPaymentComplete }: Crypto
   const [cryptoAmount, setCryptoAmount] = useState<number>(0);
   const [exchangeRate, setExchangeRate] = useState<number>(0);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'completed' | 'failed'>('idle');
+  const [selectedWallet, setSelectedWallet] = useState<string>('');
   const { toast } = useToast();
 
   // כתובות ארנק דמה לקבלת תשלומים
@@ -53,6 +54,45 @@ export const CryptoPaymentInterface = ({ tripAmount, onPaymentComplete }: Crypto
     { id: 'LTC', name: 'Litecoin', icon: 'Ł', color: 'text-gray-500' }
   ];
 
+  // ארנקים נתמכים
+  const walletOptions = [
+    { 
+      id: 'metamask', 
+      name: 'MetaMask', 
+      icon: '🦊', 
+      description: 'הארנק הפופולרי ביותר',
+      deepLink: (address: string, amount: string) => `https://metamask.app.link/send/${address}?value=${amount}`
+    },
+    { 
+      id: 'bit', 
+      name: 'ביט (Bit)', 
+      icon: '🇮🇱', 
+      description: 'הארנק הישראלי הפופולרי',
+      deepLink: (address: string, amount: string) => `bit://send?address=${address}&amount=${amount}`
+    },
+    { 
+      id: 'binance', 
+      name: 'Binance', 
+      icon: '🟡', 
+      description: 'ארנק בינאנס',
+      deepLink: (address: string, amount: string) => `binance://send?address=${address}&amount=${amount}`
+    },
+    { 
+      id: 'trust', 
+      name: 'Trust Wallet', 
+      icon: '🛡️', 
+      description: 'ארנק מאובטח',
+      deepLink: (address: string, amount: string) => `trust://send?address=${address}&amount=${amount}`
+    },
+    { 
+      id: 'coinbase', 
+      name: 'Coinbase Wallet', 
+      icon: '🔵', 
+      description: 'ארנק Coinbase',
+      deepLink: (address: string, amount: string) => `coinbase://send?address=${address}&amount=${amount}`
+    }
+  ];
+
   useEffect(() => {
     // חישוב כמות הקריפטו לפי השער
     const rate = exchangeRates[selectedCrypto as keyof typeof exchangeRates];
@@ -62,35 +102,58 @@ export const CryptoPaymentInterface = ({ tripAmount, onPaymentComplete }: Crypto
     }
   }, [selectedCrypto, tripAmount]);
 
-  // חיבור לארנק (MetaMask, WalletConnect וכד')
-  const connectWallet = async () => {
+  // חיבור לארנק או פתיחת אפליקציה
+  const connectToWallet = async (walletId: string) => {
+    const wallet = walletOptions.find(w => w.id === walletId);
+    if (!wallet) return;
+
+    setSelectedWallet(walletId);
+
     try {
-      if (typeof window !== 'undefined' && (window as any).ethereum) {
-        const accounts = await (window as any).ethereum.request({
-          method: 'eth_requestAccounts',
-        });
-        
-        if (accounts.length > 0) {
-          setWalletAddress(accounts[0]);
-          setWalletConnected(true);
+      if (walletId === 'metamask') {
+        // MetaMask - חיבור web3
+        if (typeof window !== 'undefined' && (window as any).ethereum) {
+          const accounts = await (window as any).ethereum.request({
+            method: 'eth_requestAccounts',
+          });
+          
+          if (accounts.length > 0) {
+            setWalletAddress(accounts[0]);
+            setWalletConnected(true);
+            toast({
+              title: "ארנק מחובר",
+              description: `${wallet.name} חובר בהצלחה למערכת`
+            });
+          }
+        } else {
           toast({
-            title: "ארנק מחובר",
-            description: "הארנק חובר בהצלחה למערכת"
+            title: "MetaMask לא מותקן",
+            description: "אנא התקן MetaMask או בחר ארנק אחר",
+            variant: "destructive"
           });
         }
       } else {
-        // אם אין MetaMask, הפנה להתקנה או חלופות
+        // ארנקים אחרים - פתיחת deep link
+        const address = walletAddresses[selectedCrypto as keyof typeof walletAddresses];
+        const amount = cryptoAmount.toFixed(8);
+        const deepLinkUrl = wallet.deepLink(address, amount);
+        
+        // ניסיון פתיחת האפליקציה
+        window.open(deepLinkUrl, '_blank');
+        
+        // סימון כמחובר לדמו
+        setWalletAddress('demo-wallet-' + walletId);
+        setWalletConnected(true);
         toast({
-          title: "ארנק לא זמין",
-          description: "אנא התקן MetaMask או השתמש בכתובת הארנק",
-          variant: "destructive"
+          title: `פתיחת ${wallet.name}`,
+          description: "האפליקציה נפתחת עם פרטי התשלום"
         });
       }
     } catch (error) {
       console.error('Error connecting wallet:', error);
       toast({
         title: "שגיאה בחיבור",
-        description: "נכשל בחיבור לארנק",
+        description: `נכשל בחיבור ל${wallet.name}`,
         variant: "destructive"
       });
     }
@@ -196,20 +259,35 @@ export const CryptoPaymentInterface = ({ tripAmount, onPaymentComplete }: Crypto
 
         {/* אפשרויות תשלום */}
         <div className="space-y-4">
-          {/* חיבור ארנק */}
+          {/* בחירת ארנק */}
           {!walletConnected ? (
-            <Button 
-              onClick={connectWallet} 
-              className="w-full flex items-center gap-2"
-            >
-              <Wallet className="h-4 w-4" />
-              חבר ארנק דיגיטלי
-            </Button>
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium">בחר ארנק דיגיטלי</h4>
+              <div className="grid grid-cols-1 gap-2">
+                {walletOptions.map((wallet) => (
+                  <Button
+                    key={wallet.id}
+                    variant="outline"
+                    onClick={() => connectToWallet(wallet.id)}
+                    className="flex items-center justify-between p-4 h-auto text-right"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">{wallet.icon}</span>
+                      <div>
+                        <div className="text-sm font-medium">{wallet.name}</div>
+                        <div className="text-xs text-muted-foreground">{wallet.description}</div>
+                      </div>
+                    </div>
+                    <Wallet className="h-4 w-4" />
+                  </Button>
+                ))}
+              </div>
+            </div>
           ) : (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm text-green-600">
                 <CheckCircle className="h-4 w-4" />
-                ארנק מחובר
+                ארנק מחובר ({walletOptions.find(w => w.id === selectedWallet)?.name})
               </div>
               <div className="text-xs text-muted-foreground break-all">
                 {walletAddress}
