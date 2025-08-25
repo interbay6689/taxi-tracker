@@ -66,6 +66,7 @@ export const TripsList: React.FC<TripsListProps> = ({ trips, currentWorkDay }) =
 
   const filteredTrips = useMemo(() => {
     const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
     // משמרת נוכחית - רק נסיעות מהמשמרת הפעילה
     const shiftTrips = currentWorkDay ? trips.filter(trip => {
@@ -76,29 +77,19 @@ export const TripsList: React.FC<TripsListProps> = ({ trips, currentWorkDay }) =
       return tripTime >= shiftStartTime && tripTime <= shiftEndTime;
     }) : [];
 
-    // שבוע נוכחי - נתונים היסטוריים (לא כולל משמרת נוכחית)
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
+    // שבוע נוכחי - כל הנסיעות מתחילת השבוע (ראשון) עד היום
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday is day 0
     startOfWeek.setHours(0, 0, 0, 0);
     const weekTrips = trips.filter(trip => {
       const tripTime = new Date(trip.timestamp);
-      // אם יש משמרת פעילה, לא כוללים נסיעות מהמשמרת הנוכחית
-      if (currentWorkDay) {
-        const shiftStartTime = new Date(currentWorkDay.start_time);
-        return tripTime >= startOfWeek && tripTime < shiftStartTime;
-      }
       return tripTime >= startOfWeek && tripTime <= now;
     });
 
-    // מתחילת החודש - נתונים היסטוריים (לא כולל משמרת נוכחית)
+    // חודש נוכחי - כל הנסיעות מתחילת החודש עד היום
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthTrips = trips.filter(trip => {
       const tripTime = new Date(trip.timestamp);
-      // אם יש משמרת פעילה, לא כוללים נסיעות מהמשמרת הנוכחית
-      if (currentWorkDay) {
-        const shiftStartTime = new Date(currentWorkDay.start_time);
-        return tripTime >= startOfMonth && tripTime < shiftStartTime;
-      }
       return tripTime >= startOfMonth && tripTime <= now;
     });
 
@@ -128,9 +119,9 @@ export const TripsList: React.FC<TripsListProps> = ({ trips, currentWorkDay }) =
       case 'shift':
         return currentWorkDay ? 'עדיין לא נוספו נסיעות במשמרת הנוכחית' : 'התחל משמרת כדי לראות נסיעות';
       case 'week':
-        return 'אין נסיעות השבוע (לא כולל משמרת נוכחית)';
+        return 'אין נסיעות השבוע';
       case 'month':
-        return 'אין נסיעות מתחילת החודש (לא כולל משמרת נוכחית)';
+        return 'אין נסיעות מתחילת החודש';
       default:
         return 'אין נסיעות';
     }
