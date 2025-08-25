@@ -76,16 +76,18 @@ export const ShiftHistoryTab = ({ trips, workDays }: ShiftHistoryTabProps) => {
   const totalStats = useMemo(() => {
     const completedShifts = shiftSummaries.filter(shift => !shift.isActive);
     
-    const totalIncome = completedShifts.reduce((sum, shift) => sum + shift.totalIncome, 0);
+    const totalGrossIncome = completedShifts.reduce((sum, shift) => sum + shift.totalIncome, 0);
+    const totalNetIncome = completedShifts.reduce((sum, shift) => sum + shift.netIncome, 0);
     const totalTrips = completedShifts.reduce((sum, shift) => sum + shift.tripsCount, 0);
     const totalDuration = completedShifts.reduce((sum, shift) => sum + shift.duration, 0);
     
-    const avgIncomePerShift = completedShifts.length > 0 ? totalIncome / completedShifts.length : 0;
+    const avgIncomePerShift = completedShifts.length > 0 ? totalNetIncome / completedShifts.length : 0;
     const avgTripsPerShift = completedShifts.length > 0 ? totalTrips / completedShifts.length : 0;
-    const avgIncomePerHour = totalDuration > 0 ? totalIncome / totalDuration : 0;
+    const avgIncomePerHour = totalDuration > 0 ? totalNetIncome / totalDuration : 0;
     
     return {
-      totalIncome,
+      totalGrossIncome,
+      totalNetIncome,
       totalTrips,
       totalShifts: completedShifts.length,
       avgIncomePerShift,
@@ -107,8 +109,8 @@ export const ShiftHistoryTab = ({ trips, workDays }: ShiftHistoryTabProps) => {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <div className="text-sm text-muted-foreground">סה"כ הכנסות</div>
-              <div className="text-xl font-bold text-primary">₪{totalStats.totalIncome.toLocaleString()}</div>
+              <div className="text-sm text-muted-foreground">הכנסה בפועל</div>
+              <div className="text-xl font-bold text-primary">₪{totalStats.totalNetIncome.toLocaleString()}</div>
             </div>
             <div className="text-center p-3 bg-muted/50 rounded-lg">
               <div className="text-sm text-muted-foreground">סה"כ נסיעות</div>
@@ -176,7 +178,7 @@ export const ShiftHistoryTab = ({ trips, workDays }: ShiftHistoryTabProps) => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-lg">₪{shift.totalIncome.toLocaleString()}</div>
+                      <div className="font-bold text-lg">₪{shift.netIncome.toLocaleString()}</div>
                       <div className="text-sm text-muted-foreground">{shift.tripsCount} נסיעות</div>
                     </div>
                   </div>
@@ -208,8 +210,8 @@ export const ShiftHistoryTab = ({ trips, workDays }: ShiftHistoryTabProps) => {
                   
                   {/* נתונים נוספים */}
                   <div className="mt-3 pt-3 border-t border-muted flex justify-between text-sm text-muted-foreground">
-                    <span>ממוצע לנסיעה: ₪{shift.tripsCount > 0 ? (shift.totalIncome / shift.tripsCount).toFixed(0) : '0'}</span>
-                    <span>ממוצע לשעה: ₪{shift.duration > 0 ? (shift.totalIncome / shift.duration).toFixed(0) : '0'}</span>
+                    <span>ממוצע לנסיעה: ₪{shift.tripsCount > 0 ? (shift.netIncome / shift.tripsCount).toFixed(0) : '0'}</span>
+                    <span>ממוצע לשעה: ₪{shift.duration > 0 ? (shift.netIncome / shift.duration).toFixed(0) : '0'}</span>
                   </div>
                 </div>
               ))

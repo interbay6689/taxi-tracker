@@ -16,8 +16,9 @@ import { AnalyticsTab } from '@/components/analytics/AnalyticsTab';
 import { ShiftHistoryTab } from '@/components/analytics/ShiftHistoryTab';
 import { ReportsExport } from '@/components/ReportsExport';
 import { DateRange } from "react-day-picker";
-import { DateRangePicker } from "@/components/date-range-picker"
+import { DateRangePicker } from "@/components/date-range-picker";
 import { SettingsDialog } from '@/components/SettingsDialog';
+import { useCustomPaymentTypes } from '@/hooks/useCustomPaymentTypes';
 
 interface GoalsPeriodSelectorProps {
   selectedPeriod: 'today' | 'week' | 'month' | 'year' | 'custom';
@@ -144,6 +145,36 @@ export const SecureTaxiDashboard = () => {
 
   const totalTripsToday = tripsToday.length;
 
+  // Accurate shift metrics (filter by current work day window)
+  const { getPaymentMethodDetails } = useCustomPaymentTypes();
+
+  const shiftTrips = React.useMemo(() => {
+    if (!currentWorkDay) return [] as typeof trips;
+    const start = new Date(currentWorkDay.start_time);
+    const end = currentWorkDay.end_time ? new Date(currentWorkDay.end_time) : new Date();
+    return trips.filter((t) => {
+      try {
+        const tt = new Date(t.timestamp);
+        return tt >= start && tt <= end;
+      } catch {
+        return false;
+      }
+    });
+  }, [trips, currentWorkDay]);
+
+  const shiftIncomeGross = React.useMemo(() =>
+    shiftTrips.reduce((sum, t) => sum + (t.amount || 0), 0)
+  , [shiftTrips]);
+
+  const shiftIncomeNet = React.useMemo(() =>
+    shiftTrips.reduce((sum, t) => {
+      const details = getPaymentMethodDetails(t.payment_method);
+      return sum + (t.amount * (1 - details.commissionRate));
+    }, 0)
+  , [shiftTrips, getPaymentMethodDetails]);
+
+  const shiftTripsCount = shiftTrips.length;
+
   const handleStartShift = async () => {
     try {
       const success = await startWorkDay();
@@ -241,8 +272,8 @@ export const SecureTaxiDashboard = () => {
                       <CardTitle>משמרת פעילה</CardTitle>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-4">
-                      <div>הכנסה משמרת: ₪{totalIncomeToday.toLocaleString()}</div>
-                      <div>נסיעות משמרת: {totalTripsToday}</div>
+                      <div>הכנסה משמרת: ₪{shiftIncomeGross.toLocaleString()}</div>
+                      <div>נסיעות משמרת: {shiftTripsCount}</div>
                       <div className="flex gap-2">
                         <Button onClick={handlePauseShift} variant="secondary">
                           <CircleSlash className="mr-2 h-4 w-4" />
