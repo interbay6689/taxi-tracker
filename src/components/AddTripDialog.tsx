@@ -20,6 +20,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useCustomPaymentTypes } from "@/hooks/useCustomPaymentTypes";
 import { Trip } from "@/hooks/useDatabase";
 
+const DEFAULT_TAGS = ["שדה", "תחנה", "הזמנה", "שדה תעופה", "נסיעה ארוכה", "עיר"];
+
 /**
  * A dialog for adding a new trip.  In addition to entering an
  * arbitrary amount, the user can pick a payment method from a
@@ -66,7 +68,7 @@ export const AddTripDialog = ({
   onClose,
   onAddTrip,
   tripsToday = [],
-  tags = ["שדה", "תחנה", "הזמנה", "שדה תעופה", "נסיעה ארוכה", "עיר"],
+  tags = DEFAULT_TAGS,
 }: AddTripDialogProps) => {
   const { toast } = useToast();
   // Payment methods come from the custom payment types hook.  Each
