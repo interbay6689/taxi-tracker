@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Clock, TrendingUp, Target } from "lucide-react";
+import { Calendar, Clock, TrendingUp } from "lucide-react";
 import { Trip, WorkDay } from "@/hooks/useDatabase";
 import { useCustomPaymentTypes } from "@/hooks/useCustomPaymentTypes";
 
