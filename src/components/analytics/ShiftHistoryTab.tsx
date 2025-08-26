@@ -39,16 +39,17 @@ export const ShiftHistoryTab = ({ trips, workDays }: ShiftHistoryTabProps) => {
         return isAfterStart && isBeforeEnd;
       });
       
-      // Calculate income metrics
+      // Calculate income metrics - הכנסה בפועל ללא עמלות
       const totals = shiftTrips.reduce(
         (acc, trip) => {
           const paymentDetails = getPaymentMethodDetails(trip.payment_method);
           const netAmount = trip.amount * (1 - paymentDetails.commissionRate);
           acc.gross += trip.amount;
           acc.net += netAmount;
+          acc.actual += trip.amount; // הכנסה בפועל ללא עמלות
           return acc;
         },
-        { gross: 0, net: 0 }
+        { gross: 0, net: 0, actual: 0 }
       );
       
       // Calculate duration
@@ -62,7 +63,7 @@ export const ShiftHistoryTab = ({ trips, workDays }: ShiftHistoryTabProps) => {
         endTime,
         duration,
         tripsCount: shiftTrips.length,
-        totalIncome: totals.gross,
+        totalIncome: totals.gross, // הכנסה בפועל ללא עמלות
         netIncome: totals.net,
         isActive: workDay.is_active,
         trips: shiftTrips
@@ -76,17 +77,17 @@ export const ShiftHistoryTab = ({ trips, workDays }: ShiftHistoryTabProps) => {
   const totalStats = useMemo(() => {
     const completedShifts = shiftSummaries.filter(shift => !shift.isActive);
     
-    const totalGrossIncome = completedShifts.reduce((sum, shift) => sum + shift.totalIncome, 0);
+    const totalActualIncome = completedShifts.reduce((sum, shift) => sum + shift.totalIncome, 0); // הכנסה בפועל ללא עמלות
     const totalNetIncome = completedShifts.reduce((sum, shift) => sum + shift.netIncome, 0);
     const totalTrips = completedShifts.reduce((sum, shift) => sum + shift.tripsCount, 0);
     const totalDuration = completedShifts.reduce((sum, shift) => sum + shift.duration, 0);
     
-    const avgIncomePerShift = completedShifts.length > 0 ? totalNetIncome / completedShifts.length : 0;
+    const avgIncomePerShift = completedShifts.length > 0 ? totalActualIncome / completedShifts.length : 0;
     const avgTripsPerShift = completedShifts.length > 0 ? totalTrips / completedShifts.length : 0;
-    const avgIncomePerHour = totalDuration > 0 ? totalNetIncome / totalDuration : 0;
+    const avgIncomePerHour = totalDuration > 0 ? totalActualIncome / totalDuration : 0;
     
     return {
-      totalGrossIncome,
+      totalActualIncome,
       totalNetIncome,
       totalTrips,
       totalShifts: completedShifts.length,
@@ -110,7 +111,7 @@ export const ShiftHistoryTab = ({ trips, workDays }: ShiftHistoryTabProps) => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-3 bg-muted/50 rounded-lg">
               <div className="text-sm text-muted-foreground">הכנסה בפועל</div>
-              <div className="text-xl font-bold text-primary">₪{totalStats.totalNetIncome.toLocaleString()}</div>
+              <div className="text-xl font-bold text-primary">₪{totalStats.totalActualIncome.toLocaleString()}</div>
             </div>
             <div className="text-center p-3 bg-muted/50 rounded-lg">
               <div className="text-sm text-muted-foreground">סה"כ נסיעות</div>
@@ -178,7 +179,7 @@ export const ShiftHistoryTab = ({ trips, workDays }: ShiftHistoryTabProps) => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-lg">₪{shift.netIncome.toLocaleString()}</div>
+                      <div className="font-bold text-lg">₪{shift.totalIncome.toLocaleString()}</div>
                       <div className="text-sm text-muted-foreground">{shift.tripsCount} נסיעות</div>
                     </div>
                   </div>
@@ -210,8 +211,8 @@ export const ShiftHistoryTab = ({ trips, workDays }: ShiftHistoryTabProps) => {
                   
                   {/* נתונים נוספים */}
                   <div className="mt-3 pt-3 border-t border-muted flex justify-between text-sm text-muted-foreground">
-                    <span>ממוצע לנסיעה: ₪{shift.tripsCount > 0 ? (shift.netIncome / shift.tripsCount).toFixed(0) : '0'}</span>
-                    <span>ממוצע לשעה: ₪{shift.duration > 0 ? (shift.netIncome / shift.duration).toFixed(0) : '0'}</span>
+                    <span>ממוצע לנסיעה: ₪{shift.tripsCount > 0 ? (shift.totalIncome / shift.tripsCount).toFixed(0) : '0'}</span>
+                    <span>ממוצע לשעה: ₪{shift.duration > 0 ? (shift.totalIncome / shift.duration).toFixed(0) : '0'}</span>
                   </div>
                 </div>
               ))
