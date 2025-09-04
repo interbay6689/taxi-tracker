@@ -138,4 +138,70 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+  .hover-scale {
+    transition: var(--transition-smooth);
+  }
+  
+  .hover-scale:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-card);
+  }
+
+  .quick-trip-button {
+    @apply transition-all duration-200 hover:scale-105 hover:shadow-lg;
+    background: var(--gradient-primary);
+  }
+
+  .quick-trip-button:hover {
+    box-shadow: var(--shadow-primary);
+  }
+
+  .progress-bar {
+    background: var(--progress-bg);
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    background: var(--gradient-primary);
+    transition: width 0.5s ease-in-out;
+    height: 100%;
+    border-radius: 9999px;
+  }
+
+  /* שיפור כפתורי הסכומים המהירים */
+  .quick-amount-btn {
+    @apply font-semibold transition-all duration-200;
+    border: 2px solid hsl(var(--border));
+    background: hsl(var(--card));
+  }
+
+  .quick-amount-btn:hover {
+    background: var(--gradient-primary);
+    color: hsl(var(--primary-foreground));
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-primary);
+    border-color: hsl(var(--primary));
+  }
+
+  /* אנימציה להצלחה */
+  .success-pulse {
+    animation: success-pulse 0.6s ease-out;
+  }
+
+  @keyframes success-pulse {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 hsl(var(--success) / 0.7);
+    }
+    70% {
+      transform: scale(1.05);
+      box-shadow: 0 0 0 10px hsl(var(--success) / 0);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 hsl(var(--success) / 0);
+    }
+  }
 }

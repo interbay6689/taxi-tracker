@@ -19,6 +19,8 @@ import { DateRange } from "react-day-picker";
 import { DateRangePicker } from "@/components/date-range-picker";
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { useCustomPaymentTypes } from '@/hooks/useCustomPaymentTypes';
+import { QuickTripDashboard } from '@/components/QuickTripDashboard';
+import { QuickShiftStart } from '@/components/QuickShiftStart';
 
 interface GoalsPeriodSelectorProps {
   selectedPeriod: 'today' | 'week' | 'month' | 'year' | 'custom';
@@ -105,7 +107,7 @@ export const SecureTaxiDashboard = () => {
   const [isStartShiftOpen, setStartShiftOpen] = useState(false);
   const [isEndShiftOpen, setEndShiftOpen] = useState(false);
   const [isAddFuelOpen, setAddFuelOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'analytics' | 'history' | 'reports' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'quick' | 'analytics' | 'history' | 'reports' | 'settings'>('quick');
   const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('today');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
 
@@ -244,6 +246,24 @@ export const SecureTaxiDashboard = () => {
   const renderTabContent = () => {
     try {
       switch (activeTab) {
+        case 'quick':
+          return currentWorkDay ? (
+            <QuickTripDashboard
+              currentWorkDay={currentWorkDay}
+              shiftTrips={shiftTrips}
+              shiftIncomeGross={shiftIncomeGross}
+              shiftTripsCount={shiftTripsCount}
+              dailyGoals={dailyGoals}
+              onAddTrip={addTrip}
+              tripsToday={tripsToday}
+            />
+          ) : (
+            <QuickShiftStart 
+              onStartShift={handleStartShift}
+              loading={dbLoading}
+            />
+          );
+
         case 'dashboard':
           return (
             <div className="space-y-6">
@@ -440,6 +460,7 @@ export const SecureTaxiDashboard = () => {
 
         <ShadcnTabs
           tabs={[
+            { label: 'הוספה מהירה', value: 'quick', icon: Plus },
             { label: 'לוח בקרה', value: 'dashboard', icon: BarChart4 },
             { label: 'אנליטיקה', value: 'analytics', icon: TrendingUp },
             { label: 'היסטוריה', value: 'history', icon: Clock },
