@@ -21,6 +21,8 @@ import { SettingsDialog } from '@/components/SettingsDialog';
 import { useCustomPaymentTypes } from '@/hooks/useCustomPaymentTypes';
 import { QuickTripDashboard } from '@/components/QuickTripDashboard';
 import { QuickShiftStart } from '@/components/QuickShiftStart';
+import { UnifiedDashboard } from '@/components/UnifiedDashboard';
+import { OptionsMenu } from '@/components/OptionsMenu';
 
 interface GoalsPeriodSelectorProps {
   selectedPeriod: 'today' | 'week' | 'month' | 'year' | 'custom';
@@ -107,7 +109,7 @@ export const SecureTaxiDashboard = () => {
   const [isStartShiftOpen, setStartShiftOpen] = useState(false);
   const [isEndShiftOpen, setEndShiftOpen] = useState(false);
   const [isAddFuelOpen, setAddFuelOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'quick' | 'analytics' | 'history' | 'reports' | 'settings'>('quick');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'analytics'>('dashboard');
   const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('today');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
 
@@ -246,101 +248,23 @@ export const SecureTaxiDashboard = () => {
   const renderTabContent = () => {
     try {
       switch (activeTab) {
-        case 'quick':
-          return currentWorkDay ? (
-            <QuickTripDashboard
+        case 'dashboard':
+          return (
+            <UnifiedDashboard
               currentWorkDay={currentWorkDay}
               shiftTrips={shiftTrips}
               shiftIncomeGross={shiftIncomeGross}
               shiftTripsCount={shiftTripsCount}
+              totalIncomeToday={totalIncomeToday}
+              totalTripsToday={totalTripsToday}
               dailyGoals={dailyGoals}
               onAddTrip={addTrip}
-              tripsToday={tripsToday}
-            />
-          ) : (
-            <QuickShiftStart 
               onStartShift={handleStartShift}
+              onEndShift={handleEndShift}
+              onPauseShift={handlePauseShift}
+              tripsToday={tripsToday}
               loading={dbLoading}
             />
-          );
-
-        case 'dashboard':
-          return (
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>סיכום יומי</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-lg font-bold">הכנסות: ₪{totalIncomeToday.toLocaleString()}</div>
-                      <div>נסיעות: {totalTripsToday}</div>
-                    </div>
-                    <div>
-                      <div className="text-lg font-bold">יעד הכנסות: ₪{dailyGoals.income_goal.toLocaleString()}</div>
-                      <div>יעד נסיעות: {dailyGoals.trips_goal}</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {currentWorkDay ? (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>משמרת פעילה</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex flex-col gap-4">
-                      <div>הכנסה משמרת: ₪{shiftIncomeGross.toLocaleString()}</div>
-                      <div>נסיעות משמרת: {shiftTripsCount}</div>
-                      <div className="flex gap-2">
-                        <Button onClick={handlePauseShift} variant="secondary">
-                          <CircleSlash className="mr-2 h-4 w-4" />
-                          השהה משמרת
-                        </Button>
-                        <Button onClick={() => setEndShiftOpen(true)} variant="destructive">
-                          <CheckCircle2 className="mr-2 h-4 w-4" />
-                          סיים משמרת
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>אין משמרת פעילה</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Button onClick={() => setStartShiftOpen(true)}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        התחל משמרת
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>פעולות מהירות</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex flex-col gap-4">
-                    <Button onClick={() => setAddTripOpen(true)} disabled={!currentWorkDay}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      הוסף נסיעה
-                    </Button>
-                    <Button onClick={() => setEditTripsOpen(true)}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      ערוך נסיעות
-                    </Button>
-                    <Button onClick={() => setAddFuelOpen(true)} variant="secondary" disabled={!currentWorkDay}>
-                      <Car className="mr-2 h-4 w-4" />
-                      הוסף דלק
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
           );
 
         case 'analytics':
@@ -348,50 +272,6 @@ export const SecureTaxiDashboard = () => {
             <div className="space-y-6">
               <AnalyticsTab trips={trips} />
             </div>
-          );
-
-        case 'history':
-          return (
-            <div className="space-y-6">
-              <ShiftHistoryTab trips={trips} workDays={workDays} />
-            </div>
-          );
-
-        case 'reports':
-          return (
-            <div className="space-y-6">
-              <GoalsPeriodSelector
-                selectedPeriod={selectedPeriod}
-                onPeriodChange={setSelectedPeriod}
-                customDateRange={customDateRange}
-                onCustomDateRangeChange={setCustomDateRange}
-              />
-              <ReportsExport
-                trips={trips}
-                workDays={workDays}
-                selectedPeriod={selectedPeriod}
-                customDateRange={customDateRange && customDateRange.from && customDateRange.to 
-                  ? { from: customDateRange.from, to: customDateRange.to }
-                  : undefined
-                }
-              />
-            </div>
-          );
-
-        case 'settings':
-          return (
-            <SettingsDialog
-              isOpen={true}
-              onClose={() => setActiveTab('dashboard')}
-              goals={dailyGoals}
-              expenses={dailyExpenses}
-              onUpdateGoals={updateGoals}
-              onUpdateExpenses={updateExpenses}
-              trips={trips}
-              workDays={workDays}
-              currentWorkDay={currentWorkDay}
-              onUpdateTrips={() => {}}
-            />
           );
 
         default:
@@ -448,24 +328,31 @@ export const SecureTaxiDashboard = () => {
   return (
     <div className="min-h-screen py-6">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-semibold">
             שלום {user?.email?.split('@')[0] || 'נהג'}!
           </h1>
-          <Button variant="outline" size="sm" onClick={loadUserData} disabled={dbLoading}>
-            <RefreshCcw className="mr-2 h-4 w-4" />
-            רענן נתונים
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={loadUserData} disabled={dbLoading}>
+              <RefreshCcw className="mr-2 h-4 w-4" />
+              רענן
+            </Button>
+            <OptionsMenu
+              trips={trips}
+              workDays={workDays}
+              currentWorkDay={currentWorkDay}
+              dailyGoals={dailyGoals}
+              dailyExpenses={dailyExpenses}
+              onUpdateGoals={updateGoals}
+              onUpdateExpenses={updateExpenses}
+            />
+          </div>
         </div>
 
         <ShadcnTabs
           tabs={[
-            { label: 'הוספה מהירה', value: 'quick', icon: Plus },
-            { label: 'לוח בקרה', value: 'dashboard', icon: BarChart4 },
+            { label: 'דשבורד', value: 'dashboard', icon: BarChart4 },
             { label: 'אנליטיקה', value: 'analytics', icon: TrendingUp },
-            { label: 'היסטוריה', value: 'history', icon: Clock },
-            { label: 'דוחות', value: 'reports', icon: CalendarIcon },
-            { label: 'הגדרות', value: 'settings', icon: Settings },
           ]}
           activeTab={activeTab}
           setActiveTab={(value) => setActiveTab(value as typeof activeTab)}
