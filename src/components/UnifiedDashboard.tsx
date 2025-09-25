@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Play, CheckCircle2, CircleSlash, Car, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Trip } from '@/hooks/useDatabase';
+import { Trip } from '@/hooks/database/types';
 import { QuickGetButton } from './QuickGetButton';
 
 interface UnifiedDashboardProps {
