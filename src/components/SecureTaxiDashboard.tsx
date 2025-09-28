@@ -274,7 +274,14 @@ export const SecureTaxiDashboard = () => {
         case 'analytics':
           return (
             <div className="space-y-6">
-              <AnalyticsTab trips={trips} shiftExpenses={shiftExpenses} />
+              <AnalyticsTab 
+                trips={trips} 
+                shiftExpenses={shiftExpenses}
+                selectedPeriod={selectedPeriod}
+                customDateRange={customDateRange}
+                onPeriodChange={setSelectedPeriod}
+                onCustomDateRangeChange={setCustomDateRange}
+              />
             </div>
           );
 

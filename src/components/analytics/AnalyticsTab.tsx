@@ -3,16 +3,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tag, TrendingUp, Fuel } from "lucide-react";
 import { Trip, ShiftExpense } from "@/hooks/useDatabase";
 import { useCustomPaymentTypes } from "@/hooks/useCustomPaymentTypes";
-import { PeriodSelector, TimePeriod } from "./PeriodSelector";
+import { DateRange } from "react-day-picker";
+import { DateRangePicker } from "@/components/date-range-picker";
+import { Button } from "@/components/ui/button";
 
 interface AnalyticsTabProps {
   trips: Trip[];
   shiftExpenses?: ShiftExpense[];
+  selectedPeriod?: 'today' | 'week' | 'month' | 'year' | 'custom';
+  customDateRange?: DateRange | undefined;
+  onPeriodChange?: (period: 'today' | 'week' | 'month' | 'year' | 'custom') => void;
+  onCustomDateRangeChange?: (dateRange: DateRange | undefined) => void;
 }
 
-export const AnalyticsTab = ({ trips, shiftExpenses = [] }: AnalyticsTabProps) => {
+export const AnalyticsTab = ({ 
+  trips, 
+  shiftExpenses = [],
+  selectedPeriod = 'today',
+  customDateRange,
+  onPeriodChange = () => {},
+  onCustomDateRangeChange = () => {}
+}: AnalyticsTabProps) => {
   const { getPaymentMethodDetails, allPaymentOptions } = useCustomPaymentTypes();
-  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('today');
   
   // Debug logging
   console.log('AnalyticsTab - trips:', trips?.length || 0);
@@ -20,85 +32,87 @@ export const AnalyticsTab = ({ trips, shiftExpenses = [] }: AnalyticsTabProps) =
   
   const analytics = useMemo(() => {
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
-    // Start of current week (Sunday - Israeli standard)
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday is day 0
-    startOfWeek.setHours(0, 0, 0, 0);
+    // Calculate date ranges based on selected period
+    let startDate: Date;
+    let endDate: Date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     
-    // Start of current month
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    switch (selectedPeriod) {
+      case 'today':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        break;
+      case 'week':
+        // Start of current week (Sunday - Israeli standard)
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay(), 0, 0, 0, 0);
+        endDate = new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      case 'month':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        break;
+      case 'year':
+        startDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+        endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+        break;
+      case 'custom':
+        if (customDateRange?.from && customDateRange?.to) {
+          startDate = new Date(customDateRange.from);
+          startDate.setHours(0, 0, 0, 0);
+          endDate = new Date(customDateRange.to);
+          endDate.setHours(23, 59, 59, 999);
+        } else {
+          // Fallback to today if no custom range selected
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        }
+        break;
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    }
 
-    const todayTrips = trips.filter(trip => new Date(trip.timestamp) >= today);
-    const weekTrips = trips.filter(trip => new Date(trip.timestamp) >= startOfWeek);
-    const monthTrips = trips.filter(trip => new Date(trip.timestamp) >= startOfMonth);
+    console.log('Filtering data - Total trips:', trips.length, 'Total shift expenses:', shiftExpenses.length);
+    console.log('Date range:', { 
+      start: startDate, 
+      end: endDate, 
+      selectedPeriod 
+    });
 
-    // Filter fuel expenses by time periods
-    const todayFuelExpenses = shiftExpenses?.filter(expense => {
+    // Filter trips and expenses by the calculated date range
+    const filteredTrips = trips.filter(trip => {
       try {
-        return new Date(expense.created_at) >= today;
+        const tripDate = new Date(trip.timestamp);
+        return tripDate >= startDate && tripDate <= endDate;
       } catch (error) {
-        console.error('Error filtering fuel expense by date:', error, expense);
+        console.error('Error filtering trip by date:', error, trip);
         return false;
       }
-    }) || [];
-    const weekFuelExpenses = shiftExpenses?.filter(expense => {
+    });
+
+    const filteredExpenses = shiftExpenses.filter(expense => {
       try {
-        return new Date(expense.created_at) >= startOfWeek;
+        const expenseDate = new Date(expense.created_at);
+        return expenseDate >= startDate && expenseDate <= endDate;
       } catch (error) {
-        console.error('Error filtering fuel expense by date:', error, expense);
+        console.error('Error filtering expense by date:', error, expense);
         return false;
       }
-    }) || [];
-    const monthFuelExpenses = shiftExpenses?.filter(expense => {
-      try {
-        return new Date(expense.created_at) >= startOfMonth;
-      } catch (error) {
-        console.error('Error filtering fuel expense by date:', error, expense);
-        return false;
-      }
-    }) || [];
+    });
 
-    console.log('Analytics filters - today fuel:', todayFuelExpenses.length, 'week fuel:', weekFuelExpenses.length, 'month fuel:', monthFuelExpenses.length);
+    console.log('Filtered results:', {
+      tripsInRange: filteredTrips.length,
+      expensesInRange: filteredExpenses.length
+    });
 
-    const todayIncome = todayTrips.reduce((sum, trip) => {
+    const totalIncome = filteredTrips.reduce((sum, trip) => {
       const paymentDetails = getPaymentMethodDetails(trip.payment_method);
       return sum + (trip.amount * (1 - paymentDetails.commissionRate));
     }, 0);
-    const weekIncome = weekTrips.reduce((sum, trip) => {
-      const paymentDetails = getPaymentMethodDetails(trip.payment_method);
-      return sum + (trip.amount * (1 - paymentDetails.commissionRate));
-    }, 0);
-    const monthIncome = monthTrips.reduce((sum, trip) => {
-      const paymentDetails = getPaymentMethodDetails(trip.payment_method);
-      return sum + (trip.amount * (1 - paymentDetails.commissionRate));
-    }, 0);
 
-    // Calculate fuel expenses totals
-    const todayFuelTotal = todayFuelExpenses.reduce((sum, expense) => sum + (expense?.amount || 0), 0);
-    const weekFuelTotal = weekFuelExpenses.reduce((sum, expense) => sum + (expense?.amount || 0), 0);
-    const monthFuelTotal = monthFuelExpenses.reduce((sum, expense) => sum + (expense?.amount || 0), 0);
-
-    console.log('Fuel totals - today:', todayFuelTotal, 'week:', weekFuelTotal, 'month:', monthFuelTotal);
-
-    // Get current period data based on selection
-    const getCurrentPeriodData = () => {
-      switch (selectedPeriod) {
-        case 'week':
-          return { trips: weekTrips, fuelExpenses: weekFuelExpenses, label: 'השבוע' };
-        case 'month':
-          return { trips: monthTrips, fuelExpenses: monthFuelExpenses, label: 'החודש' };
-        default:
-          return { trips: todayTrips, fuelExpenses: todayFuelExpenses, label: 'היום' };
-      }
-    };
-
-    const currentPeriodData = getCurrentPeriodData();
+    const totalFuelExpenses = filteredExpenses.reduce((sum, expense) => sum + (expense?.amount || 0), 0);
 
     // ניתוח תשלומים מתקדם - כולל כל התיוגים עבור התקופה הנבחרת
     const paymentStats = allPaymentOptions.map(option => {
-      const methodTrips = currentPeriodData.trips.filter(trip => trip.payment_method === option.value);
+      const methodTrips = filteredTrips.filter(trip => trip.payment_method === option.value);
       const income = methodTrips.reduce((sum, trip) => {
         const paymentDetails = getPaymentMethodDetails(trip.payment_method);
         return sum + (trip.amount * (1 - paymentDetails.commissionRate));
@@ -116,38 +130,95 @@ export const AnalyticsTab = ({ trips, shiftExpenses = [] }: AnalyticsTabProps) =
     }).filter(stat => stat.count > 0); // הצג רק תשלומים שיש בהם נסיעות
 
     return {
-      todayIncome,
-      weekIncome,
-      monthIncome,
-      todayFuelTotal,
-      weekFuelTotal,
-      monthFuelTotal,
+      totalIncome,
+      totalFuelExpenses,
       paymentStats,
-      todayTrips: todayTrips.length,
-      weekTrips: weekTrips.length,
-      monthTrips: monthTrips.length,
-      currentPeriodData
+      totalTrips: filteredTrips.length,
+      filteredTrips,
+      filteredExpenses,
+      dateRange: { startDate, endDate }
     };
-  }, [trips, shiftExpenses, getPaymentMethodDetails, allPaymentOptions, selectedPeriod]);
+  }, [trips, shiftExpenses, selectedPeriod, customDateRange, getPaymentMethodDetails, allPaymentOptions]);
+
+  const getPeriodLabel = () => {
+    switch (selectedPeriod) {
+      case 'week': return 'השבוע';
+      case 'month': return 'החודש';
+      case 'year': return 'השנה';
+      case 'custom': return customDateRange?.from && customDateRange?.to ? 'תקופה מותאמת' : 'היום';
+      default: return 'היום';
+    }
+  };
 
   return (
     <div className="space-y-6">
+      {/* בחירת תקופה */}
+      <Card>
+        <CardHeader>
+          <CardTitle>בחירת תקופה לאנליטיקה</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
+              <Button
+                variant={selectedPeriod === 'today' ? 'default' : 'outline'}
+                onClick={() => onPeriodChange('today')}
+              >
+                היום
+              </Button>
+              <Button
+                variant={selectedPeriod === 'week' ? 'default' : 'outline'}
+                onClick={() => onPeriodChange('week')}
+              >
+                השבוע
+              </Button>
+              <Button
+                variant={selectedPeriod === 'month' ? 'default' : 'outline'}
+                onClick={() => onPeriodChange('month')}
+              >
+                החודש
+              </Button>
+              <Button
+                variant={selectedPeriod === 'year' ? 'default' : 'outline'}
+                onClick={() => onPeriodChange('year')}
+              >
+                השנה
+              </Button>
+              <Button
+                variant={selectedPeriod === 'custom' ? 'default' : 'outline'}
+                onClick={() => onPeriodChange('custom')}
+              >
+                תקופה מותאמת
+              </Button>
+            </div>
+            
+            {/* Custom Date Range Picker */}
+            {selectedPeriod === 'custom' && (
+              <div className="border rounded-lg p-4 bg-muted/50">
+                <h4 className="text-sm font-medium mb-3">בחר טווח תאריכים:</h4>
+                <DateRangePicker
+                  date={customDateRange}
+                  onDateChange={onCustomDateRangeChange}
+                  placeholder="בחר טווח תאריכים"
+                />
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* ניתוח תיוגי תשלומים */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Tag className="h-5 w-5" />
-            התפלגות תיוגי תשלומים {analytics.currentPeriodData.label}
+            התפלגות תיוגי תשלומים {getPeriodLabel()}
           </CardTitle>
-          <PeriodSelector
-            selectedPeriod={selectedPeriod}
-            onPeriodChange={setSelectedPeriod}
-          />
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {analytics.paymentStats.length === 0 && analytics.currentPeriodData.fuelExpenses.length === 0 ? (
-              <p className="text-center text-muted-foreground py-4">אין נסיעות או הוצאות {analytics.currentPeriodData.label}</p>
+            {analytics.paymentStats.length === 0 && analytics.filteredExpenses.length === 0 ? (
+              <p className="text-center text-muted-foreground py-4">אין נסיעות או הוצאות {getPeriodLabel()}</p>
             ) : (
               <>
                 {/* תיוגי תשלומים */}
@@ -183,7 +254,7 @@ export const AnalyticsTab = ({ trips, shiftExpenses = [] }: AnalyticsTabProps) =
                 ))}
                 
                 {/* הוצאות דלק */}
-                {analytics.currentPeriodData.fuelExpenses && analytics.currentPeriodData.fuelExpenses.length > 0 && (
+                {analytics.filteredExpenses && analytics.filteredExpenses.length > 0 && (
                   <div className="p-3 rounded-lg border bg-red-50 border-red-200">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
@@ -197,10 +268,10 @@ export const AnalyticsTab = ({ trips, shiftExpenses = [] }: AnalyticsTabProps) =
                       </div>
                       <div className="text-right">
                         <div className="font-bold text-red-600">
-                          -₪{analytics.currentPeriodData.fuelExpenses.reduce((sum, exp) => sum + (exp?.amount || 0), 0).toLocaleString()}
+                          -₪{analytics.filteredExpenses.reduce((sum, exp) => sum + (exp?.amount || 0), 0).toLocaleString()}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {analytics.currentPeriodData.fuelExpenses.length} תדלוקים
+                          {analytics.filteredExpenses.length} תדלוקים
                         </div>
                       </div>
                     </div>
@@ -212,62 +283,44 @@ export const AnalyticsTab = ({ trips, shiftExpenses = [] }: AnalyticsTabProps) =
         </CardContent>
       </Card>
 
-
-
-      {/* סיכום תקופות */}
+      {/* סיכום כללי */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            סיכום תקופות
+            סיכום {getPeriodLabel()}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className={`text-center p-4 rounded-lg ${selectedPeriod === 'today' ? 'bg-primary/10 border-2 border-primary/20' : 'bg-muted/50'}`}>
-              <div className="text-lg font-bold">היום</div>
-              <div className="text-2xl font-bold text-primary">₪{analytics.todayIncome.toLocaleString()}</div>
-              <div className="text-sm text-muted-foreground">{analytics.todayTrips} נסיעות</div>
-              {analytics.todayFuelTotal > 0 && (
-                <div className="text-sm text-red-600 mt-1">
-                  דלק: -₪{analytics.todayFuelTotal.toLocaleString()}
-                </div>
-              )}
-              {analytics.todayFuelTotal > 0 && (
-                <div className="text-xs font-medium text-green-700 mt-1">
-                  נטו: ₪{(analytics.todayIncome - analytics.todayFuelTotal).toLocaleString()}
-                </div>
-              )}
-            </div>
-            <div className={`text-center p-4 rounded-lg ${selectedPeriod === 'week' ? 'bg-primary/10 border-2 border-primary/20' : 'bg-muted/50'}`}>
-              <div className="text-lg font-bold">השבוע</div>
-              <div className="text-2xl font-bold text-primary">₪{analytics.weekIncome.toLocaleString()}</div>
-              <div className="text-sm text-muted-foreground">{analytics.weekTrips} נסיעות</div>
-              {analytics.weekFuelTotal > 0 && (
-                <div className="text-sm text-red-600 mt-1">
-                  דלק: -₪{analytics.weekFuelTotal.toLocaleString()}
-                </div>
-              )}
-              {analytics.weekFuelTotal > 0 && (
-                <div className="text-xs font-medium text-green-700 mt-1">
-                  נטו: ₪{(analytics.weekIncome - analytics.weekFuelTotal).toLocaleString()}
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="text-center p-6 rounded-lg bg-primary/10 border border-primary/20">
+              <div className="text-lg font-bold mb-2">סה"כ הכנסות</div>
+              <div className="text-3xl font-bold text-primary mb-2">₪{analytics.totalIncome.toLocaleString()}</div>
+              <div className="text-sm text-muted-foreground">{analytics.totalTrips} נסיעות</div>
+              {analytics.totalFuelExpenses > 0 && (
+                <>
+                  <div className="text-sm text-red-600 mt-2">
+                    דלק: -₪{analytics.totalFuelExpenses.toLocaleString()}
+                  </div>
+                  <div className="text-lg font-bold text-green-700 mt-2 pt-2 border-t border-primary/20">
+                    נטו: ₪{(analytics.totalIncome - analytics.totalFuelExpenses).toLocaleString()}
+                  </div>
+                </>
               )}
             </div>
-            <div className={`text-center p-4 rounded-lg ${selectedPeriod === 'month' ? 'bg-primary/10 border-2 border-primary/20' : 'bg-muted/50'}`}>
-              <div className="text-lg font-bold">החודש</div>
-              <div className="text-2xl font-bold text-primary">₪{analytics.monthIncome.toLocaleString()}</div>
-              <div className="text-sm text-muted-foreground">{analytics.monthTrips} נסיעות</div>
-              {analytics.monthFuelTotal > 0 && (
-                <div className="text-sm text-red-600 mt-1">
-                  דלק: -₪{analytics.monthFuelTotal.toLocaleString()}
-                </div>
-              )}
-              {analytics.monthFuelTotal > 0 && (
-                <div className="text-xs font-medium text-green-700 mt-1">
-                  נטו: ₪{(analytics.monthIncome - analytics.monthFuelTotal).toLocaleString()}
-                </div>
-              )}
+            
+            <div className="text-center p-6 rounded-lg bg-muted/50 border">
+              <div className="text-lg font-bold mb-2">ממוצע לנסיעה</div>
+              <div className="text-3xl font-bold text-secondary-foreground mb-2">
+                ₪{analytics.totalTrips > 0 ? Math.round(analytics.totalIncome / analytics.totalTrips) : 0}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {analytics.dateRange && (
+                  <>
+                    {analytics.dateRange.startDate.toLocaleDateString('he-IL')} - {analytics.dateRange.endDate.toLocaleDateString('he-IL')}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
