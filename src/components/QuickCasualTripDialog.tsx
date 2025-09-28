@@ -35,6 +35,8 @@ export const QuickCasualTripDialog = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('QuickCasualTripDialog: handleSubmit called with amount:', amount);
+    
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
       toast({
@@ -49,6 +51,7 @@ export const QuickCasualTripDialog = ({
     const finalPaymentMethod = paymentMethodOverride || (paymentMethod === 'cash' ? 'מזומן' : 'אשראי');
     
     try {
+      console.log('QuickCasualTripDialog: calling onAddTrip with:', numAmount, finalPaymentMethod);
       await onAddTrip(numAmount, finalPaymentMethod, paymentMethodOverride ? undefined : 'מזדמן');
       setAmount('');
       setPaymentMethod('cash');

@@ -162,6 +162,7 @@ export function useDatabase() {
   // Enhanced addTrip that updates work day totals
   const addTrip = useCallback(
     async (amount: number, paymentMethod: string, tag?: string) => {
+      console.log('useDatabase addTrip called with:', { amount, paymentMethod, tag });
       try {
         const success = await tripsHook.addTrip(amount, paymentMethod, tag);
         if (success && workDaysHook.currentWorkDay) {

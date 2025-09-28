@@ -74,7 +74,11 @@ export function useTrips(user: any) {
 
   const addTrip = useCallback(
     async (amount: number, paymentMethod: string, tag?: string) => {
-      if (!user) return false;
+      console.log('useTrips addTrip called with:', { amount, paymentMethod, tag, user: !!user });
+      if (!user) {
+        console.log('useTrips: No user, returning false');
+        return false;
+      }
 
       try {
         const { data, error } = await supabase
