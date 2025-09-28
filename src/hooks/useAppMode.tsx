@@ -1,36 +1,39 @@
 import { useState, useEffect, useCallback } from "react";
-import { useTheme } from "next-themes";
 
 export type AppMode = 'normal' | 'night' | 'driving';
 
 export const useAppMode = () => {
   const [mode, setMode] = useState<AppMode>('normal');
   const [isAutoNightMode, setIsAutoNightMode] = useState(true);
-  const { setTheme } = useTheme();
+
+  // Apply theme to document
+  const applyTheme = useCallback((theme: 'light' | 'dark') => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, []);
 
   const toggleNightMode = useCallback(() => {
     if (mode === 'night') {
       setMode('normal');
-      setTheme('light');
+      applyTheme('light');
     } else {
       setMode('night');
-      setTheme('dark');
+      applyTheme('dark');
     }
     setIsAutoNightMode(false);
-  }, [mode, setTheme]);
+  }, [mode, applyTheme]);
 
   useEffect(() => {
     if (isAutoNightMode) {
       const hour = new Date().getHours();
       if (hour >= 20 || hour <= 6) {
         setMode('night');
-        setTheme('dark');
+        applyTheme('dark');
       } else {
         setMode('normal');
-        setTheme('light');
+        applyTheme('light');
       }
     }
-  }, [isAutoNightMode, setTheme]);
+  }, [isAutoNightMode, applyTheme]);
 
   const toggleDrivingMode = () => {
     if (mode === 'driving') {
