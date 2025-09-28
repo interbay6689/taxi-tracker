@@ -9,31 +9,23 @@ export const useAppMode = () => {
   const { setTheme } = useTheme();
 
   const toggleNightMode = useCallback(() => {
-    console.log("🌙 toggleNightMode called, current mode:", mode);
     if (mode === 'night') {
-      console.log("🌅 Switching to day mode");
       setMode('normal');
       setTheme('light');
     } else {
-      console.log("🌙 Switching to night mode");
       setMode('night');
       setTheme('dark');
     }
     setIsAutoNightMode(false);
-    console.log("✅ Theme toggle completed");
   }, [mode, setTheme]);
 
   useEffect(() => {
-    console.log("🔄 useAppMode useEffect triggered, isAutoNightMode:", isAutoNightMode);
     if (isAutoNightMode) {
       const hour = new Date().getHours();
-      console.log("⏰ Current hour:", hour);
       if (hour >= 20 || hour <= 6) {
-        console.log("🌙 Auto switching to night mode");
         setMode('night');
         setTheme('dark');
       } else {
-        console.log("🌅 Auto switching to day mode");
         setMode('normal');
         setTheme('light');
       }

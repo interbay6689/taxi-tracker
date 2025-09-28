@@ -11,7 +11,7 @@ import { TripsTab } from "./settings/TripsTab";
 import { PaymentTypesTab } from "./settings/PaymentTypesTab";
 import { AnalyticsTab } from "./analytics/AnalyticsTab";
 import { TagsManagement } from "./TagsManagement";
-import { useTheme } from "next-themes";
+import { useAppMode } from "@/hooks/useAppMode";
 import { useState } from "react";
 import { DateRange } from "react-day-picker";
 
@@ -44,13 +44,9 @@ export const SettingsDialog = ({
   tags = ["שדה", "תחנה", "הזמנה", "שדה תעופה", "נסיעה ארוכה", "עיר"],
   onUpdateTags
 }: SettingsDialogProps) => {
-  const { theme, setTheme } = useTheme();
+  const { mode, toggleNightMode } = useAppMode();
   const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('today');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
-
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -65,10 +61,10 @@ export const SettingsDialog = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={toggleTheme}
+            onClick={toggleNightMode}
             className="hover-scale"
           >
-            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {mode === "night" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
         </div>
 
