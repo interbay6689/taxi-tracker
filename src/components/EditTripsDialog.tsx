@@ -41,6 +41,11 @@ export const EditTripsDialog = ({
   const [editingExpense, setEditingExpense] = useState<string | null>(null);
   const [editExpenseAmount, setEditExpenseAmount] = useState<string>("");
 
+  // Debug logging
+  console.log('EditTripsDialog - trips count:', trips?.length || 0);
+  console.log('EditTripsDialog - expenses count:', expenses?.length || 0);
+  console.log('EditTripsDialog - expenses data:', expenses);
+
   const handleEditStart = (trip: Trip) => {
     setEditingTrip(trip.id);
     setEditAmount(trip.amount.toString());
@@ -276,55 +281,62 @@ export const EditTripsDialog = ({
               ))}
 
               {/* רשימת הוצאות דלק */}
-              {expenses && expenses.length > 0 && expenses.map((expense) => (
-                <Card key={expense.id}>
-                  <CardContent className="p-4">
-                    {editingExpense === expense.id ? (
-                      <div className="space-y-3">
-                        <div>
-                          <Label htmlFor={`edit-expense-${expense.id}`}>סכום (₪)</Label>
-                          <Input
-                            id={`edit-expense-${expense.id}`}
-                            type="number"
-                            value={editExpenseAmount}
-                            onChange={(e) => setEditExpenseAmount(e.target.value)}
-                            placeholder="0"
-                          />
-                        </div>
-                        <div className="flex gap-2">
-                          <Button onClick={() => handleExpenseEditSave(expense.id)} size="sm">
-                            שמור
-                          </Button>
-                          <Button onClick={handleExpenseCancel} variant="outline" size="sm">
-                            ביטול
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-4">
-                          <div className="text-lg font-bold text-red-600">-₪{expense.amount}</div>
-                          <div className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">
-                            דלק
-                          </div>
-                          <div className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {new Date(expense.created_at).toLocaleTimeString('he-IL')}
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button onClick={() => handleExpenseEditStart(expense)} variant="outline" size="sm">
-                            <Edit3 className="h-4 w-4" />
-                          </Button>
-                          <Button onClick={() => handleDeleteExpense(expense.id)} variant="destructive" size="sm">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+              {expenses && expenses.length > 0 && (
+                <div className="mt-6 pt-4 border-t">
+                  <h3 className="text-sm font-medium mb-3 text-red-700">הוצאות דלק</h3>
+                  <div className="space-y-3">
+                    {expenses.map((expense) => (
+                      <Card key={expense.id} className="border-red-200">
+                        <CardContent className="p-4">
+                          {editingExpense === expense.id ? (
+                            <div className="space-y-3">
+                              <div>
+                                <Label htmlFor={`edit-expense-${expense.id}`}>סכום (₪)</Label>
+                                <Input
+                                  id={`edit-expense-${expense.id}`}
+                                  type="number"
+                                  value={editExpenseAmount}
+                                  onChange={(e) => setEditExpenseAmount(e.target.value)}
+                                  placeholder="0"
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <Button onClick={() => handleExpenseEditSave(expense.id)} size="sm">
+                                  שמור
+                                </Button>
+                                <Button onClick={handleExpenseCancel} variant="outline" size="sm">
+                                  ביטול
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex justify-between items-start">
+                              <div className="flex items-center gap-4">
+                                <div className="text-lg font-bold text-red-600">-₪{expense.amount}</div>
+                                <div className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">
+                                  דלק
+                                </div>
+                                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {new Date(expense.created_at).toLocaleTimeString('he-IL')}
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button onClick={() => handleExpenseEditStart(expense)} variant="outline" size="sm">
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                                <Button onClick={() => handleDeleteExpense(expense.id)} variant="destructive" size="sm">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

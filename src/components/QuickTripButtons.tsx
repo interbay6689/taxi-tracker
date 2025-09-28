@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Car, Clock } from 'lucide-react';
 import { QuickGetButton } from './QuickGetButton';
-import { AddTripDialog } from './AddTripDialog';
+import { QuickCasualTripDialog } from './QuickCasualTripDialog';
 
 interface QuickTripButtonsProps {
   onAddTrip: (amount: number, paymentMethod: string, tag?: string) => void;
@@ -11,7 +11,7 @@ interface QuickTripButtonsProps {
 }
 
 export const QuickTripButtons = ({ onAddTrip, disabled = false, tripsToday = [] }: QuickTripButtonsProps) => {
-  const [showAddTrip, setShowAddTrip] = useState(false);
+  const [showCasualTrip, setShowCasualTrip] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -21,7 +21,7 @@ export const QuickTripButtons = ({ onAddTrip, disabled = false, tripsToday = [] 
       {/* כפתור נסיעה מזדמנת */}
       <div className="text-center">
         <Button 
-          onClick={() => setShowAddTrip(true)}
+          onClick={() => setShowCasualTrip(true)}
           variant="outline"
           className="w-full h-14 text-lg border-dashed border-2 hover:border-primary hover:bg-primary/5"
           disabled={disabled}
@@ -31,11 +31,11 @@ export const QuickTripButtons = ({ onAddTrip, disabled = false, tripsToday = [] 
         </Button>
       </div>
 
-      <AddTripDialog
-        isOpen={showAddTrip}
-        onClose={() => setShowAddTrip(false)}
+      <QuickCasualTripDialog
+        isOpen={showCasualTrip}
+        onClose={() => setShowCasualTrip(false)}
         onAddTrip={onAddTrip}
-        tripsToday={tripsToday}
+        disabled={disabled}
       />
     </div>
   );
