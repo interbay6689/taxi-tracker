@@ -43,7 +43,14 @@ export function useDatabase() {
       return;
     }
 
+    // Prevent concurrent loads
+    if (loadGuard.current.running) {
+      console.log('Data loading already in progress, skipping...');
+      return;
+    }
+
     try {
+      loadGuard.current.running = true;
       console.groupCollapsed('🔄 Loading user data (composite)');
       setLoading(true);
       setError(null);
@@ -104,9 +111,18 @@ export function useDatabase() {
         });
       }
     } finally {
+      loadGuard.current.running = false;
       setLoading(false);
     }
   }, [user, workDaysHook, tripsHook, settingsHook, shiftExpensesHook, toast]);
+
+  // Manual refresh function for the refresh button
+  const manualRefresh = useCallback(async () => {
+    // Force reset the guard and load data
+    loadGuard.current.running = false;
+    loadGuard.current.dataLoaded = false;
+    await loadUserData();
+  }, [loadUserData]);
 
   // Load data when user/session is authenticated – optimize for fast initial display
   useEffect(() => {
@@ -119,24 +135,21 @@ export function useDatabase() {
         return;
       }
 
-      // Prevent concurrent loads
-      if (loadGuard.current.running) {
-        return;
-      }
-
       // Set loading to false immediately if we have cached data
       const hasLocalData = tripsHook.trips.length > 0 || workDaysHook.currentWorkDay;
       if (hasLocalData) {
         setLoading(false);
       }
 
-      loadGuard.current.running = true;
       loadUserData()
-        .finally(() => {
-          loadGuard.current.running = false;
+        .then(() => {
           loadGuard.current.sessionKey = sessKey;
           loadGuard.current.dataLoaded = true;
-          setLoading(false);
+        })
+        .catch((error) => {
+          console.error('Error in useEffect loadUserData:', error);
+          // Reset guard on error
+          loadGuard.current.running = false;
         });
     } else {
       // No user – ensure state reset
@@ -263,5 +276,6 @@ export function useDatabase() {
 
     // Utility functions
     loadUserData,
+    manualRefresh,
   };
 }

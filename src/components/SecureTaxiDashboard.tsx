@@ -100,7 +100,8 @@ export const SecureTaxiDashboard = () => {
     addShiftExpense,
     deleteShiftExpense,
     updateShiftExpense,
-    loadUserData
+    loadUserData,
+    manualRefresh
   } = useDatabase();
   const { toast } = useToast();
 
@@ -336,8 +337,8 @@ export const SecureTaxiDashboard = () => {
             שלום {user?.email?.split('@')[0] || 'נהג'}!
           </h1>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={loadUserData} disabled={dbLoading}>
-              <RefreshCcw className="mr-2 h-4 w-4" />
+            <Button variant="outline" size="sm" onClick={manualRefresh} disabled={dbLoading}>
+              <RefreshCcw className={`mr-2 h-4 w-4 ${dbLoading ? 'animate-spin' : ''}`} />
               רענן
             </Button>
             <OptionsMenu
