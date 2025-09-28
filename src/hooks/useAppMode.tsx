@@ -1,27 +1,33 @@
 import { useState, useEffect } from "react";
+import { useTheme } from "next-themes";
 
 export type AppMode = 'normal' | 'night' | 'driving';
 
 export const useAppMode = () => {
   const [mode, setMode] = useState<AppMode>('normal');
   const [isAutoNightMode, setIsAutoNightMode] = useState(true);
+  const { setTheme } = useTheme();
 
   useEffect(() => {
     if (isAutoNightMode) {
       const hour = new Date().getHours();
       if (hour >= 20 || hour <= 6) {
         setMode('night');
+        setTheme('dark');
       } else {
         setMode('normal');
+        setTheme('light');
       }
     }
-  }, [isAutoNightMode]);
+  }, [isAutoNightMode, setTheme]);
 
   const toggleNightMode = () => {
     if (mode === 'night') {
       setMode('normal');
+      setTheme('light');
     } else {
       setMode('night');
+      setTheme('dark');
     }
     setIsAutoNightMode(false);
   };
