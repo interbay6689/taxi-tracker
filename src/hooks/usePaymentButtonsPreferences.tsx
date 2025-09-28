@@ -51,21 +51,10 @@ export const usePaymentButtonsPreferences = () => {
   }, [selectedPaymentButtons, availablePaymentButtons]);
 
   const updateSelectedPaymentButtons = (buttonIds: string[]) => {
-    // Always ensure default buttons are included
-    const defaultButtonIds = availablePaymentButtons
-      .filter(btn => btn.isDefault)
-      .map(btn => btn.id);
-    
-    const uniqueButtonIds = Array.from(new Set([...defaultButtonIds, ...buttonIds]));
-    setSelectedPaymentButtons(uniqueButtonIds);
+    setSelectedPaymentButtons(buttonIds);
   };
 
   const togglePaymentButton = (buttonId: string) => {
-    const isDefault = availablePaymentButtons.find(btn => btn.id === buttonId)?.isDefault;
-    
-    // Don't allow removing default buttons
-    if (isDefault) return;
-
     if (selectedPaymentButtons.includes(buttonId)) {
       setSelectedPaymentButtons(prev => prev.filter(id => id !== buttonId));
     } else {

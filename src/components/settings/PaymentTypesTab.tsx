@@ -111,7 +111,7 @@ export const PaymentTypesTab = () => {
         <CardHeader>
           <CardTitle>כפתורי תשלום מהירים</CardTitle>
           <CardDescription>
-            בחר אילו כפתורי תשלום יוצגו במסך הראשי. כפתורי GET ומזדמן יוצגו תמיד.
+            בחר אילו כפתורי תשלום יוצגו במסך הראשי.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -142,7 +142,6 @@ export const PaymentTypesTab = () => {
                   <Checkbox
                     checked={isSelected}
                     onCheckedChange={() => togglePaymentButton(button.id)}
-                    disabled={isDefault}
                   />
                 </div>
               );

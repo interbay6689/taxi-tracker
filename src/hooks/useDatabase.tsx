@@ -23,10 +23,11 @@ export function useDatabase() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Prevent duplicate loads for the same session and concurrent execution
-  const loadGuard = useRef<{ running: boolean; sessionKey: string | null }>({
+  // Track data loading state and prevent duplicate loads
+  const loadGuard = useRef<{ running: boolean; sessionKey: string | null; dataLoaded: boolean }>({
     running: false,
     sessionKey: null,
+    dataLoaded: false,
   });
 
   // Initialize sub-hooks with error handling
@@ -107,18 +108,26 @@ export function useDatabase() {
     }
   }, [user, workDaysHook, tripsHook, settingsHook, shiftExpensesHook, toast]);
 
-  // Load data when user/session is authenticated – dedupe per session and prevent concurrent calls
+  // Load data when user/session is authenticated – optimize for fast initial display
   useEffect(() => {
     const sessKey = session ? `${session.user?.id}::${session.expires_at || ''}` : null;
 
     if (user && session) {
+      // If data already loaded for this session, skip
+      if (loadGuard.current.sessionKey === sessKey && loadGuard.current.dataLoaded) {
+        setLoading(false);
+        return;
+      }
+
+      // Prevent concurrent loads
       if (loadGuard.current.running) {
         return;
       }
-      if (loadGuard.current.sessionKey === sessKey) {
-        // Already loaded for this session
+
+      // Set loading to false immediately if we have cached data
+      const hasLocalData = tripsHook.trips.length > 0 || workDaysHook.currentWorkDay;
+      if (hasLocalData) {
         setLoading(false);
-        return;
       }
 
       loadGuard.current.running = true;
@@ -126,13 +135,16 @@ export function useDatabase() {
         .finally(() => {
           loadGuard.current.running = false;
           loadGuard.current.sessionKey = sessKey;
+          loadGuard.current.dataLoaded = true;
+          setLoading(false);
         });
     } else {
       // No user – ensure state reset
       setLoading(false);
       loadGuard.current.sessionKey = null;
+      loadGuard.current.dataLoaded = false;
     }
-  }, [user, session, loadUserData]);
+  }, [user, session, loadUserData, tripsHook.trips.length, workDaysHook.currentWorkDay]);
 
   // Enhanced addTrip that updates work day totals
   const addTrip = useCallback(
