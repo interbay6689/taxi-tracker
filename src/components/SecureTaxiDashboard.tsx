@@ -273,7 +273,7 @@ export const SecureTaxiDashboard = () => {
         case 'analytics':
           return (
             <div className="space-y-6">
-              <AnalyticsTab trips={trips} />
+              <AnalyticsTab trips={trips} shiftExpenses={shiftExpenses} />
             </div>
           );
 
