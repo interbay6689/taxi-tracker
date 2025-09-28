@@ -279,8 +279,14 @@ export const SecureTaxiDashboard = () => {
                 shiftExpenses={shiftExpenses}
                 selectedPeriod={selectedPeriod}
                 customDateRange={customDateRange}
-                onPeriodChange={setSelectedPeriod}
-                onCustomDateRangeChange={setCustomDateRange}
+                onPeriodChange={(period) => {
+                  console.log('SecureTaxiDashboard - Period change:', period);
+                  setSelectedPeriod(period);
+                }}
+                onCustomDateRangeChange={(dateRange) => {
+                  console.log('SecureTaxiDashboard - Custom date range change:', dateRange);
+                  setCustomDateRange(dateRange);
+                }}
               />
             </div>
           );

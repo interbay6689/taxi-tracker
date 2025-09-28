@@ -29,6 +29,10 @@ export const AnalyticsTab = ({
   // Debug logging
   console.log('AnalyticsTab - trips:', trips?.length || 0);
   console.log('AnalyticsTab - shiftExpenses:', shiftExpenses?.length || 0);
+  console.log('AnalyticsTab - selectedPeriod:', selectedPeriod);
+  console.log('AnalyticsTab - customDateRange:', customDateRange);
+  console.log('AnalyticsTab - onPeriodChange type:', typeof onPeriodChange);
+  console.log('AnalyticsTab - onCustomDateRangeChange type:', typeof onCustomDateRangeChange);
   
   const analytics = useMemo(() => {
     const now = new Date();
@@ -162,31 +166,46 @@ export const AnalyticsTab = ({
             <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
               <Button
                 variant={selectedPeriod === 'today' ? 'default' : 'outline'}
-                onClick={() => onPeriodChange('today')}
+                onClick={() => {
+                  console.log('Period button clicked: today');
+                  onPeriodChange('today');
+                }}
               >
                 היום
               </Button>
               <Button
                 variant={selectedPeriod === 'week' ? 'default' : 'outline'}
-                onClick={() => onPeriodChange('week')}
+                onClick={() => {
+                  console.log('Period button clicked: week');
+                  onPeriodChange('week');
+                }}
               >
                 השבוע
               </Button>
               <Button
                 variant={selectedPeriod === 'month' ? 'default' : 'outline'}
-                onClick={() => onPeriodChange('month')}
+                onClick={() => {
+                  console.log('Period button clicked: month');
+                  onPeriodChange('month');
+                }}
               >
                 החודש
               </Button>
               <Button
                 variant={selectedPeriod === 'year' ? 'default' : 'outline'}
-                onClick={() => onPeriodChange('year')}
+                onClick={() => {
+                  console.log('Period button clicked: year');
+                  onPeriodChange('year');
+                }}
               >
                 השנה
               </Button>
               <Button
                 variant={selectedPeriod === 'custom' ? 'default' : 'outline'}
-                onClick={() => onPeriodChange('custom')}
+                onClick={() => {
+                  console.log('Period button clicked: custom');
+                  onPeriodChange('custom');
+                }}
               >
                 תקופה מותאמת
               </Button>
@@ -198,7 +217,10 @@ export const AnalyticsTab = ({
                 <h4 className="text-sm font-medium mb-3">בחר טווח תאריכים:</h4>
                 <DateRangePicker
                   date={customDateRange}
-                  onDateChange={onCustomDateRangeChange}
+                  onDateChange={(dateRange) => {
+                    console.log('Date range changed:', dateRange);
+                    onCustomDateRangeChange(dateRange);
+                  }}
                   placeholder="בחר טווח תאריכים"
                 />
               </div>
