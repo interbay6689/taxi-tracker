@@ -264,6 +264,9 @@ export const SecureTaxiDashboard = () => {
               onPauseShift={handlePauseShift}
               tripsToday={tripsToday}
               loading={dbLoading}
+              onEditTrips={() => setEditTripsOpen(true)}
+              onAddFuel={() => setAddFuelOpen(true)}
+              shiftExpenses={shiftExpenses}
             />
           );
 
@@ -391,11 +394,11 @@ export const SecureTaxiDashboard = () => {
           onSubmit={handleEndShift}
         />
 
-        <AddFuelDialog
-          isOpen={isAddFuelOpen}
-          onClose={() => setAddFuelOpen(false)}
-          onAddFuel={addShiftExpense}
-        />
+         <AddFuelDialog
+           isOpen={isAddFuelOpen}
+           onClose={() => setAddFuelOpen(false)}
+           onAddFuel={addShiftExpense}
+         />
       </div>
     </div>
   );

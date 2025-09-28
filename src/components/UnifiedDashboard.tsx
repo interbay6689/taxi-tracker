@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Play, CheckCircle2, CircleSlash, Car, Clock } from 'lucide-react';
+import { Play, CheckCircle2, CircleSlash, Car, Clock, Edit3, Fuel } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Trip } from '@/hooks/database/types';
 import { QuickGetButton } from './QuickGetButton';
@@ -21,6 +21,9 @@ interface UnifiedDashboardProps {
   onPauseShift: () => void;
   tripsToday: Trip[];
   loading?: boolean;
+  onEditTrips?: () => void;
+  onAddFuel?: () => void;
+  shiftExpenses?: any[];
 }
 
 export const UnifiedDashboard = ({
@@ -36,13 +39,24 @@ export const UnifiedDashboard = ({
   onEndShift,
   onPauseShift,
   tripsToday = [],
-  loading = false
+  loading = false,
+  onEditTrips,
+  onAddFuel,
+  shiftExpenses = []
 }: UnifiedDashboardProps) => {
   const { toast } = useToast();
   
   // התקדמות יעדים
   const incomeProgress = Math.min((shiftIncomeGross / dailyGoals.income_goal) * 100, 100);
   const tripsProgress = Math.min((shiftTripsCount / dailyGoals.trips_goal) * 100, 100);
+  
+  // חישוב סה"כ הוצאות דלק במשמרת
+  const shiftFuelExpenses = React.useMemo(() => {
+    return shiftExpenses.reduce((total, expense) => total + expense.amount, 0);
+  }, [shiftExpenses]);
+  
+  // הכנסה נטו (אחרי הוצאות דלק)
+  const shiftIncomeNet = shiftIncomeGross - shiftFuelExpenses;
 
   if (!currentWorkDay) {
     return (
@@ -107,6 +121,11 @@ export const UnifiedDashboard = ({
             <div>
               <div className="text-3xl font-bold text-primary mb-2">₪{shiftIncomeGross.toLocaleString()}</div>
               <div className="text-sm text-muted-foreground mb-3">הכנסות משמרת</div>
+              {shiftFuelExpenses > 0 && (
+                <div className="text-sm text-red-600 mb-2">
+                  דלק: -₪{shiftFuelExpenses.toLocaleString()}
+                </div>
+              )}
               <div className="progress-bar h-3">
                 <div 
                   className="progress-fill"
@@ -116,6 +135,11 @@ export const UnifiedDashboard = ({
               <div className="text-xs text-muted-foreground mt-1">
                 יעד: ₪{dailyGoals.income_goal.toLocaleString()}
               </div>
+              {shiftFuelExpenses > 0 && (
+                <div className="text-xs font-medium text-secondary-foreground mt-1">
+                  נטו: ₪{shiftIncomeNet.toLocaleString()}
+                </div>
+              )}
             </div>
             <div>
               <div className="text-3xl font-bold text-primary mb-2">{shiftTripsCount}</div>
@@ -133,15 +157,31 @@ export const UnifiedDashboard = ({
           </div>
 
           {/* פעולות משמרת */}
-          <div className="flex gap-3">
-            <Button onClick={onPauseShift} variant="secondary" className="flex-1">
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <Button onClick={onPauseShift} variant="secondary">
               <CircleSlash className="mr-2 h-4 w-4" />
               השהה
             </Button>
-            <Button onClick={onEndShift} variant="destructive" className="flex-1">
+            <Button onClick={onEndShift} variant="destructive">
               <CheckCircle2 className="mr-2 h-4 w-4" />
               סיים משמרת
             </Button>
+          </div>
+          
+          {/* פעולות נוספות */}
+          <div className="grid grid-cols-2 gap-3">
+            {onEditTrips && (
+              <Button onClick={onEditTrips} variant="outline" size="sm">
+                <Edit3 className="mr-2 h-4 w-4" />
+                ערוך נסיעות
+              </Button>
+            )}
+            {onAddFuel && (
+              <Button onClick={onAddFuel} variant="outline" size="sm">
+                <Fuel className="mr-2 h-4 w-4" />
+                הוסף דלק
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
