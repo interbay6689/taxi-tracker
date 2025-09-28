@@ -14,6 +14,10 @@ export const AnalyticsTab = ({ trips, shiftExpenses = [] }: AnalyticsTabProps) =
   const { getPaymentMethodDetails, allPaymentOptions } = useCustomPaymentTypes();
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('today');
   
+  // Debug logging
+  console.log('AnalyticsTab - trips:', trips?.length || 0);
+  console.log('AnalyticsTab - shiftExpenses:', shiftExpenses?.length || 0);
+  
   const analytics = useMemo(() => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -31,9 +35,32 @@ export const AnalyticsTab = ({ trips, shiftExpenses = [] }: AnalyticsTabProps) =
     const monthTrips = trips.filter(trip => new Date(trip.timestamp) >= startOfMonth);
 
     // Filter fuel expenses by time periods
-    const todayFuelExpenses = shiftExpenses.filter(expense => new Date(expense.created_at) >= today);
-    const weekFuelExpenses = shiftExpenses.filter(expense => new Date(expense.created_at) >= startOfWeek);
-    const monthFuelExpenses = shiftExpenses.filter(expense => new Date(expense.created_at) >= startOfMonth);
+    const todayFuelExpenses = shiftExpenses?.filter(expense => {
+      try {
+        return new Date(expense.created_at) >= today;
+      } catch (error) {
+        console.error('Error filtering fuel expense by date:', error, expense);
+        return false;
+      }
+    }) || [];
+    const weekFuelExpenses = shiftExpenses?.filter(expense => {
+      try {
+        return new Date(expense.created_at) >= startOfWeek;
+      } catch (error) {
+        console.error('Error filtering fuel expense by date:', error, expense);
+        return false;
+      }
+    }) || [];
+    const monthFuelExpenses = shiftExpenses?.filter(expense => {
+      try {
+        return new Date(expense.created_at) >= startOfMonth;
+      } catch (error) {
+        console.error('Error filtering fuel expense by date:', error, expense);
+        return false;
+      }
+    }) || [];
+
+    console.log('Analytics filters - today fuel:', todayFuelExpenses.length, 'week fuel:', weekFuelExpenses.length, 'month fuel:', monthFuelExpenses.length);
 
     const todayIncome = todayTrips.reduce((sum, trip) => {
       const paymentDetails = getPaymentMethodDetails(trip.payment_method);
@@ -49,9 +76,11 @@ export const AnalyticsTab = ({ trips, shiftExpenses = [] }: AnalyticsTabProps) =
     }, 0);
 
     // Calculate fuel expenses totals
-    const todayFuelTotal = todayFuelExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-    const weekFuelTotal = weekFuelExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-    const monthFuelTotal = monthFuelExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const todayFuelTotal = todayFuelExpenses.reduce((sum, expense) => sum + (expense?.amount || 0), 0);
+    const weekFuelTotal = weekFuelExpenses.reduce((sum, expense) => sum + (expense?.amount || 0), 0);
+    const monthFuelTotal = monthFuelExpenses.reduce((sum, expense) => sum + (expense?.amount || 0), 0);
+
+    console.log('Fuel totals - today:', todayFuelTotal, 'week:', weekFuelTotal, 'month:', monthFuelTotal);
 
     // Get current period data based on selection
     const getCurrentPeriodData = () => {
@@ -154,7 +183,7 @@ export const AnalyticsTab = ({ trips, shiftExpenses = [] }: AnalyticsTabProps) =
                 ))}
                 
                 {/* הוצאות דלק */}
-                {analytics.currentPeriodData.fuelExpenses.length > 0 && (
+                {analytics.currentPeriodData.fuelExpenses && analytics.currentPeriodData.fuelExpenses.length > 0 && (
                   <div className="p-3 rounded-lg border bg-red-50 border-red-200">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
@@ -168,7 +197,7 @@ export const AnalyticsTab = ({ trips, shiftExpenses = [] }: AnalyticsTabProps) =
                       </div>
                       <div className="text-right">
                         <div className="font-bold text-red-600">
-                          -₪{analytics.currentPeriodData.fuelExpenses.reduce((sum, exp) => sum + exp.amount, 0).toLocaleString()}
+                          -₪{analytics.currentPeriodData.fuelExpenses.reduce((sum, exp) => sum + (exp?.amount || 0), 0).toLocaleString()}
                         </div>
                         <div className="text-sm text-muted-foreground">
                           {analytics.currentPeriodData.fuelExpenses.length} תדלוקים

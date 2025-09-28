@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Play, CheckCircle2, CircleSlash, Car, Clock, Edit3, Fuel } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Trip } from '@/hooks/database/types';
-import { QuickGetButton } from './QuickGetButton';
+import { QuickTripButtons } from './QuickTripButtons';
 
 interface UnifiedDashboardProps {
   currentWorkDay: any;
@@ -186,10 +186,14 @@ export const UnifiedDashboard = ({
         </CardContent>
       </Card>
 
-      {/* כפתור GET מרכזי */}
+      {/* כפתורי נסיעות מהירות */}
       <Card>
         <CardContent className="p-6">
-          <QuickGetButton onAddTrip={onAddTrip} disabled={loading} />
+          <QuickTripButtons 
+            onAddTrip={onAddTrip} 
+            disabled={loading} 
+            tripsToday={tripsToday}
+          />
         </CardContent>
       </Card>
 
