@@ -21,7 +21,7 @@ export const QuickGetButton = ({ onAddTrip, disabled }: QuickGetButtonProps) => 
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [amount, setAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<string>('מזומן');
   const [isAdding, setIsAdding] = useState(false);
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -44,7 +44,7 @@ export const QuickGetButton = ({ onAddTrip, disabled }: QuickGetButtonProps) => 
       setIsOpen(false);
       toast({
         title: 'נסיעה נוספה! 🚗',
-        description: `₪${parsedAmount} • ${paymentMethod === 'cash' ? 'מזומן' : 'אשראי'}`,
+        description: `₪${parsedAmount} • ${paymentMethod === 'מזומן' ? 'מזומן' : 'אשראי'}`,
         duration: 2000,
       });
     } catch (error) {
@@ -60,7 +60,7 @@ export const QuickGetButton = ({ onAddTrip, disabled }: QuickGetButtonProps) => 
 
   const resetAndClose = () => {
     setAmount('');
-    setPaymentMethod('cash');
+    setPaymentMethod('מזומן');
     setIsOpen(false);
   };
 
@@ -109,8 +109,8 @@ export const QuickGetButton = ({ onAddTrip, disabled }: QuickGetButtonProps) => 
               <div className="grid grid-cols-2 gap-3">
                 <Button
                   type="button"
-                  variant={paymentMethod === 'cash' ? 'default' : 'outline'}
-                  onClick={() => setPaymentMethod('cash')}
+                  variant={paymentMethod === 'מזומן' ? 'default' : 'outline'}
+                  onClick={() => setPaymentMethod('מזומן')}
                   className="h-16 text-lg"
                 >
                   <Banknote className="mr-2 h-6 w-6" />
@@ -118,8 +118,8 @@ export const QuickGetButton = ({ onAddTrip, disabled }: QuickGetButtonProps) => 
                 </Button>
                 <Button
                   type="button"
-                  variant={paymentMethod === 'credit' ? 'default' : 'outline'}
-                  onClick={() => setPaymentMethod('credit')}
+                  variant={paymentMethod === 'אשראי' ? 'default' : 'outline'}
+                  onClick={() => setPaymentMethod('אשראי')}
                   className="h-16 text-lg"
                 >
                   <CreditCard className="mr-2 h-6 w-6" />

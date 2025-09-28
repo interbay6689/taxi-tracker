@@ -21,7 +21,7 @@ export const QuickCasualTripDialog = ({
   paymentMethodOverride
 }: QuickCasualTripDialogProps) => {
   const [amount, setAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'מזומן' | 'אשראי'>('מזומן');
   const { toast } = useToast();
 
   // Update payment method when override changes
@@ -35,8 +35,6 @@ export const QuickCasualTripDialog = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('QuickCasualTripDialog: handleSubmit called with amount:', amount);
-    
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
       toast({
@@ -48,13 +46,12 @@ export const QuickCasualTripDialog = ({
     }
 
     // Use override payment method if provided, otherwise use selected method
-    const finalPaymentMethod = paymentMethodOverride || (paymentMethod === 'cash' ? 'מזומן' : 'אשראי');
+    const finalPaymentMethod = paymentMethodOverride || paymentMethod;
     
     try {
-      console.log('QuickCasualTripDialog: calling onAddTrip with:', numAmount, finalPaymentMethod);
       await onAddTrip(numAmount, finalPaymentMethod, paymentMethodOverride ? undefined : 'מזדמן');
       setAmount('');
-      setPaymentMethod('cash');
+      setPaymentMethod('מזומן');
       onClose();
       
       toast({
@@ -105,8 +102,8 @@ export const QuickCasualTripDialog = ({
               <div className="grid grid-cols-2 gap-3">
                 <Button
                   type="button"
-                  variant={paymentMethod === 'cash' ? 'default' : 'outline'}
-                  onClick={() => setPaymentMethod('cash')}
+                  variant={paymentMethod === 'מזומן' ? 'default' : 'outline'}
+                  onClick={() => setPaymentMethod('מזומן')}
                   className="h-12 text-base"
                   disabled={disabled}
                 >
@@ -114,8 +111,8 @@ export const QuickCasualTripDialog = ({
                 </Button>
                 <Button
                   type="button"
-                  variant={paymentMethod === 'card' ? 'default' : 'outline'}
-                  onClick={() => setPaymentMethod('card')}
+                  variant={paymentMethod === 'אשראי' ? 'default' : 'outline'}
+                  onClick={() => setPaymentMethod('אשראי')}
                   className="h-12 text-base"
                   disabled={disabled}
                 >
