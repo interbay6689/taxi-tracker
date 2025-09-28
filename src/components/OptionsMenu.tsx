@@ -6,6 +6,7 @@ import { SettingsDialog } from '@/components/SettingsDialog';
 import { ReportsExport } from '@/components/ReportsExport';
 import { ShiftHistoryTab } from '@/components/analytics/ShiftHistoryTab';
 import { DateRange } from "react-day-picker";
+import { DateRangePicker } from '@/components/date-range-picker';
 import { useAuth } from '@/hooks/useAuth';
 
 interface OptionsMenuProps {
@@ -117,31 +118,51 @@ export const OptionsMenu = ({
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-100px)]">
               <div className="space-y-6">
                 {/* Period Selector */}
-                <div className="grid gap-4 grid-cols-4 md:grid-cols-auto">
-                  <Button
-                    variant={selectedPeriod === 'today' ? 'default' : 'outline'}
-                    onClick={() => setSelectedPeriod('today')}
-                  >
-                    היום
-                  </Button>
-                  <Button
-                    variant={selectedPeriod === 'week' ? 'default' : 'outline'}
-                    onClick={() => setSelectedPeriod('week')}
-                  >
-                    השבוע
-                  </Button>
-                  <Button
-                    variant={selectedPeriod === 'month' ? 'default' : 'outline'}
-                    onClick={() => setSelectedPeriod('month')}
-                  >
-                    החודש
-                  </Button>
-                  <Button
-                    variant={selectedPeriod === 'year' ? 'default' : 'outline'}
-                    onClick={() => setSelectedPeriod('year')}
-                  >
-                    השנה
-                  </Button>
+                <div className="space-y-4">
+                  <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
+                    <Button
+                      variant={selectedPeriod === 'today' ? 'default' : 'outline'}
+                      onClick={() => setSelectedPeriod('today')}
+                    >
+                      היום
+                    </Button>
+                    <Button
+                      variant={selectedPeriod === 'week' ? 'default' : 'outline'}
+                      onClick={() => setSelectedPeriod('week')}
+                    >
+                      השבוע
+                    </Button>
+                    <Button
+                      variant={selectedPeriod === 'month' ? 'default' : 'outline'}
+                      onClick={() => setSelectedPeriod('month')}
+                    >
+                      החודש
+                    </Button>
+                    <Button
+                      variant={selectedPeriod === 'year' ? 'default' : 'outline'}
+                      onClick={() => setSelectedPeriod('year')}
+                    >
+                      השנה
+                    </Button>
+                    <Button
+                      variant={selectedPeriod === 'custom' ? 'default' : 'outline'}
+                      onClick={() => setSelectedPeriod('custom')}
+                    >
+                      תקופה מותאמת
+                    </Button>
+                  </div>
+                  
+                  {/* Custom Date Range Picker */}
+                  {selectedPeriod === 'custom' && (
+                    <div className="border rounded-lg p-4 bg-muted/50">
+                      <h4 className="text-sm font-medium mb-3">בחר טווח תאריכים:</h4>
+                      <DateRangePicker
+                        date={customDateRange}
+                        onDateChange={setCustomDateRange}
+                        placeholder="בחר טווח תאריכים"
+                      />
+                    </div>
+                  )}
                 </div>
                 
                 <ReportsExport
