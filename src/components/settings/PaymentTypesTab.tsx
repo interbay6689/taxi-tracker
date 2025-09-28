@@ -6,8 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Trash2, Plus, Edit } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Trash2, Plus, Edit, Car, Clock, MapPin, Coins, HandCoins, CreditCard } from 'lucide-react';
 import { useCustomPaymentTypes, CustomPaymentType } from '@/hooks/useCustomPaymentTypes';
+import { usePaymentButtonsPreferences } from '@/hooks/usePaymentButtonsPreferences';
 
 export const PaymentTypesTab = () => {
   const { 
@@ -17,6 +19,12 @@ export const PaymentTypesTab = () => {
     updateCustomPaymentType, 
     deleteCustomPaymentType 
   } = useCustomPaymentTypes();
+
+  const {
+    availablePaymentButtons,
+    selectedPaymentButtons,
+    togglePaymentButton
+  } = usePaymentButtonsPreferences();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -79,12 +87,69 @@ export const PaymentTypesTab = () => {
     return labels[method] || method;
   };
 
+  const getButtonIcon = (iconName?: string) => {
+    const icons = {
+      'Car': Car,
+      'Clock': Clock,
+      'MapPin': MapPin,
+      'Coins': Coins,
+      'HandCoins': HandCoins,
+      'CreditCard': CreditCard
+    };
+    const IconComponent = iconName ? icons[iconName as keyof typeof icons] : Car;
+    return IconComponent || Car;
+  };
+
   if (loading) {
     return <div className="text-center">טוען...</div>;
   }
 
   return (
     <div className="space-y-6">
+      {/* Payment Buttons Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle>כפתורי תשלום מהירים</CardTitle>
+          <CardDescription>
+            בחר אילו כפתורי תשלום יוצגו במסך הראשי. כפתורי GET ומזדמן יוצגו תמיד.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {availablePaymentButtons.map((button) => {
+              const IconComponent = getButtonIcon(button.icon);
+              const isSelected = selectedPaymentButtons.includes(button.id);
+              const isDefault = button.isDefault;
+              
+              return (
+                <div key={button.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <IconComponent className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <span className="font-medium">{button.label}</span>
+                      {isDefault && (
+                        <Badge variant="secondary" className="mr-2 text-xs">
+                          ברירת מחדל
+                        </Badge>
+                      )}
+                      {button.isCustom && (
+                        <Badge variant="outline" className="mr-2 text-xs">
+                          מותאם אישית
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => togglePaymentButton(button.id)}
+                    disabled={isDefault}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>תיוגי תשלום מותאמים</CardTitle>

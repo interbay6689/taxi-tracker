@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,17 +10,27 @@ interface QuickCasualTripDialogProps {
   onClose: () => void;
   onAddTrip: (amount: number, paymentMethod: string, tag?: string) => void;
   disabled?: boolean;
+  paymentMethodOverride?: string;
 }
 
 export const QuickCasualTripDialog = ({
   isOpen,
   onClose,
   onAddTrip,
-  disabled = false
+  disabled = false,
+  paymentMethodOverride
 }: QuickCasualTripDialogProps) => {
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
   const { toast } = useToast();
+
+  // Update payment method when override changes
+  useEffect(() => {
+    if (paymentMethodOverride) {
+      // For override, we'll use it directly in the submit function
+      return;
+    }
+  }, [paymentMethodOverride]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,16 +45,17 @@ export const QuickCasualTripDialog = ({
       return;
     }
 
-    const hebrewPaymentMethod = paymentMethod === 'cash' ? 'מזומן' : 'אשראי';
+    // Use override payment method if provided, otherwise use selected method
+    const finalPaymentMethod = paymentMethodOverride || (paymentMethod === 'cash' ? 'מזומן' : 'אשראי');
     
     try {
-      await onAddTrip(numAmount, hebrewPaymentMethod, 'מזדמן');
+      await onAddTrip(numAmount, finalPaymentMethod, paymentMethodOverride ? undefined : 'מזדמן');
       setAmount('');
       setPaymentMethod('cash');
       onClose();
       
       toast({
-        title: "נסיעה מזדמנת נוספה!",
+        title: paymentMethodOverride ? `נסיעה ${paymentMethodOverride} נוספה!` : "נסיעה מזדמנת נוספה!",
         description: `נסיעה בסך ${numAmount} ₪ נוספה בהצלחה`,
       });
     } catch (error) {
@@ -61,7 +72,7 @@ export const QuickCasualTripDialog = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center text-xl font-bold">
-            נסיעה מזדמנת
+            {paymentMethodOverride ? `נסיעה ${paymentMethodOverride}` : 'נסיעה מזדמנת'}
           </DialogTitle>
         </DialogHeader>
         
@@ -84,29 +95,32 @@ export const QuickCasualTripDialog = ({
             />
           </div>
 
-          <div className="space-y-3">
-            <Label className="text-base font-medium">אמצעי תשלום</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                type="button"
-                variant={paymentMethod === 'cash' ? 'default' : 'outline'}
-                onClick={() => setPaymentMethod('cash')}
-                className="h-12 text-base"
-                disabled={disabled}
-              >
-                💵 מזומן
-              </Button>
-              <Button
-                type="button"
-                variant={paymentMethod === 'card' ? 'default' : 'outline'}
-                onClick={() => setPaymentMethod('card')}
-                className="h-12 text-base"
-                disabled={disabled}
-              >
-                💳 אשראי
-              </Button>
+          {/* Only show payment method selection if no override */}
+          {!paymentMethodOverride && (
+            <div className="space-y-3">
+              <Label className="text-base font-medium">אמצעי תשלום</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  type="button"
+                  variant={paymentMethod === 'cash' ? 'default' : 'outline'}
+                  onClick={() => setPaymentMethod('cash')}
+                  className="h-12 text-base"
+                  disabled={disabled}
+                >
+                  💵 מזומן
+                </Button>
+                <Button
+                  type="button"
+                  variant={paymentMethod === 'card' ? 'default' : 'outline'}
+                  onClick={() => setPaymentMethod('card')}
+                  className="h-12 text-base"
+                  disabled={disabled}
+                >
+                  💳 אשראי
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="flex gap-3 pt-4">
             <Button

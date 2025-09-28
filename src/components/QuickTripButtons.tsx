@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Car, Clock } from 'lucide-react';
+import { Car, Clock, MapPin, Coins, HandCoins, CreditCard } from 'lucide-react';
 import { QuickGetButton } from './QuickGetButton';
 import { QuickCasualTripDialog } from './QuickCasualTripDialog';
+import { usePaymentButtonsPreferences } from '@/hooks/usePaymentButtonsPreferences';
 
 interface QuickTripButtonsProps {
   onAddTrip: (amount: number, paymentMethod: string, tag?: string) => void;
@@ -12,30 +13,95 @@ interface QuickTripButtonsProps {
 
 export const QuickTripButtons = ({ onAddTrip, disabled = false, tripsToday = [] }: QuickTripButtonsProps) => {
   const [showCasualTrip, setShowCasualTrip] = useState(false);
+  const [showQuickTrip, setShowQuickTrip] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
+  
+  const { selectedPaymentButtonsWithDetails } = usePaymentButtonsPreferences();
+
+  const getButtonIcon = (iconName?: string) => {
+    const icons = {
+      'Car': Car,
+      'Clock': Clock,
+      'MapPin': MapPin,
+      'Coins': Coins,
+      'HandCoins': HandCoins,
+      'CreditCard': CreditCard
+    };
+    return icons[iconName as keyof typeof icons] || Car;
+  };
+
+  const handleQuickPaymentClick = (buttonId: string, label: string) => {
+    if (buttonId === 'get') return; // GET has its own component
+    if (buttonId === 'casual') {
+      setShowCasualTrip(true);
+      return;
+    }
+    
+    // For other payment methods, open quick trip dialog
+    setSelectedPaymentMethod(label);
+    setShowQuickTrip(true);
+  };
+
+  // Determine grid layout based on number of buttons
+  const getGridClass = () => {
+    const buttonCount = selectedPaymentButtonsWithDetails.length;
+    if (buttonCount <= 2) return 'grid-cols-1';
+    if (buttonCount === 3) return 'grid-cols-3';
+    if (buttonCount === 4) return 'grid-cols-2';
+    return 'grid-cols-3'; // For 5+ buttons
+  };
 
   return (
     <div className="space-y-4">
-      {/* כפתור GET הראשי */}
-      <QuickGetButton onAddTrip={onAddTrip} disabled={disabled} />
-      
-      {/* כפתור נסיעה מזדמנת */}
-      <div className="text-center">
-        <Button 
-          onClick={() => setShowCasualTrip(true)}
-          variant="outline"
-          className="w-full h-14 text-lg border-dashed border-2 hover:border-primary hover:bg-primary/5"
-          disabled={disabled}
-        >
-          <Clock className="mr-3 h-5 w-5" />
-          מזדמן
-        </Button>
+      {/* Dynamic Payment Buttons Grid */}
+      <div className={`grid gap-3 ${getGridClass()}`}>
+        {selectedPaymentButtonsWithDetails.map((button) => {
+          const IconComponent = getButtonIcon(button.icon);
+          
+          // Special handling for GET button
+          if (button.id === 'get') {
+            return (
+              <div key={button.id} className="col-span-full">
+                <QuickGetButton onAddTrip={onAddTrip} disabled={disabled} />
+              </div>
+            );
+          }
+          
+          return (
+            <Button
+              key={button.id}
+              onClick={() => handleQuickPaymentClick(button.id, button.label)}
+              variant={button.id === 'casual' ? 'outline' : 'secondary'}
+              className={`h-14 text-sm ${
+                button.id === 'casual' 
+                  ? 'border-dashed border-2 hover:border-primary hover:bg-primary/5' 
+                  : 'hover:bg-secondary/80'
+              }`}
+              disabled={disabled}
+            >
+              <IconComponent className="mr-2 h-5 w-5" />
+              {button.label}
+            </Button>
+          );
+        })}
       </div>
 
+      {/* Dialogs */}
       <QuickCasualTripDialog
         isOpen={showCasualTrip}
         onClose={() => setShowCasualTrip(false)}
         onAddTrip={onAddTrip}
         disabled={disabled}
+      />
+      
+      <QuickCasualTripDialog
+        isOpen={showQuickTrip}
+        onClose={() => setShowQuickTrip(false)}
+        onAddTrip={(amount, paymentMethod, tag) => {
+          onAddTrip(amount, selectedPaymentMethod, tag);
+        }}
+        disabled={disabled}
+        paymentMethodOverride={selectedPaymentMethod}
       />
     </div>
   );
