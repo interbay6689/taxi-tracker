@@ -66,10 +66,7 @@ export default function Auth() {
           title: "ברוכים הבאים!",
           description: "התחברת בהצלחה למערכת",
         });
-        // Wait a moment for auth state to update, then navigate
-        setTimeout(() => {
-          navigate('/', { replace: true });
-        }, 100);
+        navigate('/', { replace: true });
       }
     } catch (error: any) {
       setError(error.message || 'שגיאה בהתחברות');
@@ -111,10 +108,7 @@ export default function Auth() {
           title: "הרשמה הושלמה!",
           description: "נרשמת בהצלחה למערכת",
         });
-        // Wait a moment for auth state to update, then navigate
-        setTimeout(() => {
-          navigate('/', { replace: true });
-        }, 100);
+        navigate('/', { replace: true });
       }
     } catch (error: any) {
       setError(error.message || 'שגיאה בהרשמה');

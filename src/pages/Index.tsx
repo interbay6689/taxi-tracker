@@ -10,7 +10,7 @@ const Index = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect to auth if not authenticated
+  // Redirect to auth if not authenticated (only after loading is complete)
   useEffect(() => {
     if (!loading && !user) {
       navigate('/auth', { replace: true });

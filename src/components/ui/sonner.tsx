@@ -1,10 +1,11 @@
-import { useTheme } from "next-themes"
 import { Toaster as Sonner, toast } from "sonner"
+import { useAppMode } from "@/hooks/useAppMode"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  const { mode } = useAppMode()
+  const theme = mode === 'night' ? 'dark' : 'light'
 
   return (
     <Sonner
