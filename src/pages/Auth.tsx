@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +18,15 @@ export default function Auth() {
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user) {
+      navigate('/', { replace: true });
+    }
+  }, [user, navigate]);
 
   const cleanupAuthState = () => {
     Object.keys(localStorage).forEach((key) => {
@@ -55,7 +66,10 @@ export default function Auth() {
           title: "ברוכים הבאים!",
           description: "התחברת בהצלחה למערכת",
         });
-        window.location.href = '/';
+        // Wait a moment for auth state to update, then navigate
+        setTimeout(() => {
+          navigate('/', { replace: true });
+        }, 100);
       }
     } catch (error: any) {
       setError(error.message || 'שגיאה בהתחברות');
@@ -97,7 +111,10 @@ export default function Auth() {
           title: "הרשמה הושלמה!",
           description: "נרשמת בהצלחה למערכת",
         });
-        window.location.href = '/';
+        // Wait a moment for auth state to update, then navigate
+        setTimeout(() => {
+          navigate('/', { replace: true });
+        }, 100);
       }
     } catch (error: any) {
       setError(error.message || 'שגיאה בהרשמה');
