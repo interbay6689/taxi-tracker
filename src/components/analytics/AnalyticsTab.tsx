@@ -6,13 +6,14 @@ import { useCustomPaymentTypes } from "@/hooks/useCustomPaymentTypes";
 import { DateRange } from "react-day-picker";
 import { DateRangePicker } from "@/components/date-range-picker";
 import { Button } from "@/components/ui/button";
+import { AnalyticsPeriodSelector, AnalyticsPeriod } from './AnalyticsPeriodSelector';
 
 interface AnalyticsTabProps {
   trips: Trip[];
   shiftExpenses?: ShiftExpense[];
-  selectedPeriod?: 'today' | 'week' | 'month' | 'year' | 'custom';
+  selectedPeriod?: AnalyticsPeriod;
   customDateRange?: DateRange | undefined;
-  onPeriodChange?: (period: 'today' | 'week' | 'month' | 'year' | 'custom') => void;
+  onPeriodChange?: (period: AnalyticsPeriod) => void;
   onCustomDateRangeChange?: (dateRange: DateRange | undefined) => void;
 }
 
@@ -26,13 +27,6 @@ export const AnalyticsTab = ({
 }: AnalyticsTabProps) => {
   const { getPaymentMethodDetails, allPaymentOptions } = useCustomPaymentTypes();
   
-  // Debug logging
-  console.log('AnalyticsTab - trips:', trips?.length || 0);
-  console.log('AnalyticsTab - shiftExpenses:', shiftExpenses?.length || 0);
-  console.log('AnalyticsTab - selectedPeriod:', selectedPeriod);
-  console.log('AnalyticsTab - customDateRange:', customDateRange);
-  console.log('AnalyticsTab - onPeriodChange type:', typeof onPeriodChange);
-  console.log('AnalyticsTab - onCustomDateRangeChange type:', typeof onCustomDateRangeChange);
   
   const analytics = useMemo(() => {
     const now = new Date();
@@ -157,77 +151,12 @@ export const AnalyticsTab = ({
   return (
     <div className="space-y-6">
       {/* בחירת תקופה */}
-      <Card>
-        <CardHeader>
-          <CardTitle>בחירת תקופה לאנליטיקה</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
-              <Button
-                variant={selectedPeriod === 'today' ? 'default' : 'outline'}
-                onClick={() => {
-                  console.log('Period button clicked: today');
-                  onPeriodChange('today');
-                }}
-              >
-                היום
-              </Button>
-              <Button
-                variant={selectedPeriod === 'week' ? 'default' : 'outline'}
-                onClick={() => {
-                  console.log('Period button clicked: week');
-                  onPeriodChange('week');
-                }}
-              >
-                השבוע
-              </Button>
-              <Button
-                variant={selectedPeriod === 'month' ? 'default' : 'outline'}
-                onClick={() => {
-                  console.log('Period button clicked: month');
-                  onPeriodChange('month');
-                }}
-              >
-                החודש
-              </Button>
-              <Button
-                variant={selectedPeriod === 'year' ? 'default' : 'outline'}
-                onClick={() => {
-                  console.log('Period button clicked: year');
-                  onPeriodChange('year');
-                }}
-              >
-                השנה
-              </Button>
-              <Button
-                variant={selectedPeriod === 'custom' ? 'default' : 'outline'}
-                onClick={() => {
-                  console.log('Period button clicked: custom');
-                  onPeriodChange('custom');
-                }}
-              >
-                תקופה מותאמת
-              </Button>
-            </div>
-            
-            {/* Custom Date Range Picker */}
-            {selectedPeriod === 'custom' && (
-              <div className="border rounded-lg p-4 bg-muted/50">
-                <h4 className="text-sm font-medium mb-3">בחר טווח תאריכים:</h4>
-                <DateRangePicker
-                  date={customDateRange}
-                  onDateChange={(dateRange) => {
-                    console.log('Date range changed:', dateRange);
-                    onCustomDateRangeChange(dateRange);
-                  }}
-                  placeholder="בחר טווח תאריכים"
-                />
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <AnalyticsPeriodSelector
+        selectedPeriod={selectedPeriod}
+        onPeriodChange={onPeriodChange}
+        customDateRange={customDateRange}
+        onCustomDateRangeChange={onCustomDateRangeChange}
+      />
 
       {/* ניתוח תיוגי תשלומים */}
       <Card>

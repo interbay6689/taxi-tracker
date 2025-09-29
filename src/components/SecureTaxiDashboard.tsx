@@ -23,58 +23,7 @@ import { QuickTripDashboard } from '@/components/QuickTripDashboard';
 import { QuickShiftStart } from '@/components/QuickShiftStart';
 import { UnifiedDashboard } from '@/components/UnifiedDashboard';
 import { OptionsMenu } from '@/components/OptionsMenu';
-
-interface GoalsPeriodSelectorProps {
-  selectedPeriod: 'today' | 'week' | 'month' | 'year' | 'custom';
-  onPeriodChange: (period: 'today' | 'week' | 'month' | 'year' | 'custom') => void;
-  customDateRange?: DateRange | undefined;
-  onCustomDateRangeChange: (dateRange: DateRange | undefined) => void;
-}
-
-const GoalsPeriodSelector: React.FC<GoalsPeriodSelectorProps> = ({
-  selectedPeriod,
-  onPeriodChange,
-  customDateRange,
-  onCustomDateRangeChange
-}) => {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>תקופת זמן</CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-4 grid-cols-4 md:grid-cols-auto">
-        <Button
-          variant={selectedPeriod === 'today' ? 'default' : 'outline'}
-          onClick={() => onPeriodChange('today')}
-        >
-          היום
-        </Button>
-        <Button
-          variant={selectedPeriod === 'week' ? 'default' : 'outline'}
-          onClick={() => onPeriodChange('week')}
-        >
-          השבוע
-        </Button>
-        <Button
-          variant={selectedPeriod === 'month' ? 'default' : 'outline'}
-          onClick={() => onPeriodChange('month')}
-        >
-          החודש
-        </Button>
-        <Button
-          variant={selectedPeriod === 'year' ? 'default' : 'outline'}
-          onClick={() => onPeriodChange('year')}
-        >
-          השנה
-        </Button>
-        <DateRangePicker
-          date={customDateRange}
-          onDateChange={onCustomDateRangeChange}
-        />
-      </CardContent>
-    </Card>
-  );
-};
+import { AnalyticsPeriodSelector, AnalyticsPeriod } from '@/components/analytics/AnalyticsPeriodSelector';
 
 export const SecureTaxiDashboard = () => {
   const { user, loading: authLoading } = useAuth();
@@ -111,7 +60,7 @@ export const SecureTaxiDashboard = () => {
   const [isEndShiftOpen, setEndShiftOpen] = useState(false);
   const [isAddFuelOpen, setAddFuelOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'analytics'>('dashboard');
-  const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('today');
+  const [selectedPeriod, setSelectedPeriod] = useState<AnalyticsPeriod>('today');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
 
   useEffect(() => {
@@ -279,14 +228,8 @@ export const SecureTaxiDashboard = () => {
                 shiftExpenses={shiftExpenses}
                 selectedPeriod={selectedPeriod}
                 customDateRange={customDateRange}
-                onPeriodChange={(period) => {
-                  console.log('SecureTaxiDashboard - Period change:', period);
-                  setSelectedPeriod(period);
-                }}
-                onCustomDateRangeChange={(dateRange) => {
-                  console.log('SecureTaxiDashboard - Custom date range change:', dateRange);
-                  setCustomDateRange(dateRange);
-                }}
+                onPeriodChange={setSelectedPeriod}
+                onCustomDateRangeChange={setCustomDateRange}
               />
             </div>
           );
