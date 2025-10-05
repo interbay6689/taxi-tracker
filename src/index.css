@@ -55,6 +55,23 @@ All colors MUST be HSL.
     
     /* Animation */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Additional colors for UX improvements */
+    --success-light: 142 76% 90%;
+    --warning: 38 92% 50%;
+    --warning-light: 38 92% 90%;
+    --warning-foreground: 48 96% 10%;
+    --info: 199 89% 48%;
+    --info-light: 199 89% 90%;
+    --info-foreground: 199 89% 10%;
+    
+    /* Spacing scale */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
 
     --radius: 0.5rem;
 
@@ -118,6 +135,15 @@ All colors MUST be HSL.
     /* Dark mode shadows */
     --shadow-card: 0 4px 6px -1px hsl(0 0% 0% / 0.3);
     --shadow-primary: 0 10px 25px -3px hsl(188 85% 56% / 0.4);
+    
+    /* Dark mode additional colors */
+    --success-light: 142 76% 20%;
+    --warning: 38 92% 60%;
+    --warning-light: 38 92% 20%;
+    --warning-foreground: 48 96% 90%;
+    --info: 199 89% 68%;
+    --info-light: 199 89% 20%;
+    --info-foreground: 199 89% 90%;
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -203,5 +229,72 @@ All colors MUST be HSL.
       transform: scale(1);
       box-shadow: 0 0 0 0 hsl(var(--success) / 0);
     }
+  }
+  
+  @keyframes fade-slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+  
+  @keyframes bounce-subtle {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+  
+  @keyframes pulse-ring {
+    0% {
+      stroke-dashoffset: 0;
+    }
+    100% {
+      stroke-dashoffset: -100;
+    }
+  }
+  
+  .animate-fade-slide-up {
+    animation: fade-slide-up 0.4s ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scale-in 0.3s ease-out;
+  }
+  
+  .animate-shimmer {
+    animation: shimmer 2s infinite linear;
+    background: linear-gradient(90deg, hsl(var(--muted)) 0%, hsl(var(--muted-foreground) / 0.1) 50%, hsl(var(--muted)) 100%);
+    background-size: 1000px 100%;
+  }
+  
+  .animate-bounce-subtle {
+    animation: bounce-subtle 0.6s ease-in-out;
   }
 }
