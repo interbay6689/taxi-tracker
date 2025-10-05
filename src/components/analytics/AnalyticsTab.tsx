@@ -1,11 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tag, TrendingUp, Fuel, AlertTriangle, BarChart3 } from "lucide-react";
 import { Trip, ShiftExpense } from "@/hooks/useDatabase";
 import { useCustomPaymentTypes } from "@/hooks/useCustomPaymentTypes";
 import { DateRange } from "react-day-picker";
-import { DateRangePicker } from "@/components/date-range-picker";
-import { Button } from "@/components/ui/button";
 import { AnalyticsPeriodSelector, AnalyticsPeriod } from './AnalyticsPeriodSelector';
 import { getDateRangeForPeriod, isDateInRange } from '@/utils/dateRangeUtils';
 import { detectAnomalies } from '@/utils/dataValidation';
@@ -13,8 +11,7 @@ import {
   PieChart, 
   Pie, 
   Cell, 
-  ResponsiveContainer, 
-  Legend, 
+  ResponsiveContainer,
   Tooltip,
   BarChart,
   Bar,
@@ -22,7 +19,6 @@ import {
   YAxis,
   CartesianGrid
 } from 'recharts';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 interface AnalyticsTabProps {
   trips: Trip[];
