@@ -85,15 +85,6 @@ export const PaymentTypesTab = () => {
     }
   };
 
-  const getBaseMethodLabel = (method: string) => {
-    const labels: Record<string, string> = {
-      'cash': 'מזומן',
-      'card': 'כרטיס',
-      'דהרי': 'דהרי'
-    };
-    return labels[method] || method;
-  };
-
   const getButtonIcon = (iconName?: string) => {
     const icons = {
       'Car': Car,
@@ -179,9 +170,14 @@ export const PaymentTypesTab = () => {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>תיוגי תשלום מותאמים</CardTitle>
+          <CardTitle>תיוגי תשלום מותאמים (מקורות הזמנה)</CardTitle>
           <CardDescription>
-            הוסף תיוגי תשלום מותאמים עם עמלות שונות. לדוגמה: "שוטף +" עם בסיס דהרי ועמלה של 5%
+            הוסף מקורות הזמנה מותאמים אישית עם אמצעי תשלום ברירת מחדל.
+            <div className="mt-2 p-3 bg-muted rounded-lg text-sm">
+              <p className="font-medium mb-1">💡 הבדל חשוב:</p>
+              <p>• <strong>מקור הזמנה</strong> = מאיפה הגיעה הנסיעה (גט, דהרי, מזדמן וכו')</p>
+              <p>• <strong>אמצעי תשלום</strong> = איך שילמו (מזומן, אשראי, ביט)</p>
+            </div>
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -196,19 +192,23 @@ export const PaymentTypesTab = () => {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>הוסף תיוג תשלום חדש</DialogTitle>
+                  <DialogTitle>הוסף מקור הזמנה חדש</DialogTitle>
                   <DialogDescription>
-                    צור תיוג תשלום מותאם עם תיוג בסיס ועמלה
+                    צור מקור הזמנה מותאם אישית עם אמצעי תשלום ברירת מחדל.
+                    <br/>
+                    <span className="text-xs text-muted-foreground">
+                      ⚠️ לא ניתן להשתמש בשמות קיימים: גט, דהרי, מזדמן
+                    </span>
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="typeName">שם התיוג</Label>
+                    <Label htmlFor="typeName">שם מקור ההזמנה</Label>
                     <Input
                       id="typeName"
                       value={newTypeName}
                       onChange={(e) => setNewTypeName(e.target.value)}
-                      placeholder="לדוגמה: שוטף +"
+                      placeholder="לדוגמה: יאנגו, תחנה, אפליקציה..."
                     />
                   </div>
                   <div>

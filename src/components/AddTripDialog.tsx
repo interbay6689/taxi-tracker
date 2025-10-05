@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { useCustomPaymentTypes } from "@/hooks/useCustomPaymentTypes";
+import { useCustomOrderSources } from "@/hooks/useCustomOrderSources";
 import { Trip } from "@/hooks/useDatabase";
 
 const DEFAULT_TAGS = ["שדה", "תחנה", "הזמנה", "שדה תעופה", "נסיעה ארוכה", "עיר"];
@@ -71,7 +71,7 @@ export const AddTripDialog = ({
   tags = DEFAULT_TAGS,
 }: AddTripDialogProps) => {
   const { toast } = useToast();
-  const { paymentMethods, allOrderSources } = useCustomPaymentTypes();
+  const { paymentMethods, allOrderSources } = useCustomOrderSources();
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<string>("מזומן");
   const [orderSource, setOrderSource] = useState<string>("מזדמן");

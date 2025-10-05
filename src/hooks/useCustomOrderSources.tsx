@@ -60,6 +60,33 @@ export const useCustomOrderSources = () => {
   ) => {
     if (!user) return false;
 
+    // Validation: Check if name is one of the base order sources
+    const baseSourceNames = ['גט', 'דהרי', 'מזדמן', 'get', 'dahari', 'casual'];
+    const trimmedName = name.trim();
+    
+    if (baseSourceNames.some(base => base.toLowerCase() === trimmedName.toLowerCase())) {
+      toast({
+        title: '❌ שם קיים במערכת',
+        description: `"${trimmedName}" הוא מקור הזמנה קיים במערכת. אנא בחר שם אחר.`,
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    // Validation: Check for duplicates
+    const duplicateExists = customOrderSources.some(
+      source => source.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+    
+    if (duplicateExists) {
+      toast({
+        title: '❌ שם כפול',
+        description: `מקור הזמנה בשם "${trimmedName}" כבר קיים.`,
+        variant: 'destructive',
+      });
+      return false;
+    }
+
     try {
       const { data, error } = await supabase
         .from('custom_order_sources')
@@ -74,11 +101,27 @@ export const useCustomOrderSources = () => {
 
       if (error) {
         console.error('Error adding custom order source:', error);
-        toast({
-          title: "שגיאה",
-          description: "שגיאה בהוספת מקור הזמנה מותאם",
-          variant: "destructive",
-        });
+        
+        // Handle unique constraint violation
+        if (error.code === '23505') {
+          toast({
+            title: "❌ שם כפול",
+            description: "מקור הזמנה בשם זה כבר קיים במערכת",
+            variant: "destructive",
+          });
+        } else if (error.code === '23514') {
+          toast({
+            title: "❌ אמצעי תשלום לא תקין",
+            description: "אמצעי תשלום ברירת מחדל חייב להיות: מזומן, אשראי או ביט",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "שגיאה",
+            description: "שגיאה בהוספת מקור הזמנה מותאם",
+            variant: "destructive",
+          });
+        }
         return false;
       }
 
