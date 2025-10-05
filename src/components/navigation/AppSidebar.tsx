@@ -12,6 +12,7 @@ import {
   LogOut,
   ChevronRight
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import {
   Sidebar,
   SidebarContent,
@@ -22,6 +23,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
+  SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/hooks/useAuth';
@@ -81,8 +83,19 @@ export function AppSidebar() {
   );
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarContent>
+    <Sidebar collapsible="icon" className="border-l">
+      <SidebarContent className="gap-0">
+        {/* Header with toggle */}
+        <div className="p-4 border-b flex items-center justify-between">
+          <h2 className={cn(
+            "font-bold text-lg transition-opacity",
+            collapsed ? "opacity-0 w-0" : "opacity-100"
+          )}>
+            ניהול מונית
+          </h2>
+          <SidebarTrigger className="mr-auto" />
+        </div>
+
         {/* Main Section */}
         <SidebarGroup>
           <SidebarGroupLabel>ראשי</SidebarGroupLabel>
@@ -114,6 +127,7 @@ export function AppSidebar() {
 
       {/* Footer */}
       <SidebarFooter>
+        <Separator />
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive('/settings')}>

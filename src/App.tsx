@@ -36,12 +36,12 @@ const App = () => (
             
             {/* Protected routes with sidebar */}
             <Route path="/*" element={
-              <SidebarProvider>
+              <SidebarProvider defaultOpen={true}>
                 <div className="min-h-screen flex w-full">
                   <AppSidebar />
                   <main className="flex-1 overflow-auto pb-16 md:pb-0">
-                    <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b p-4 flex items-center gap-4 shadow-sm">
-                      <SidebarTrigger />
+                    <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b p-4 flex items-center gap-4 shadow-sm md:hidden">
+                      <SidebarTrigger className="md:hidden" />
                       <h2 className="text-lg font-semibold">מערכת ניהול מונית</h2>
                     </div>
                     <Routes>
