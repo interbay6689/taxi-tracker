@@ -32,6 +32,7 @@ const App = () => (
           <Routes>
             {/* Public routes */}
             <Route path="/auth" element={<Auth />} />
+            <Route path="/" element={<Index />} />
             
             {/* Protected routes with sidebar */}
             <Route path="/*" element={
@@ -39,12 +40,11 @@ const App = () => (
                 <div className="min-h-screen flex w-full">
                   <AppSidebar />
                   <main className="flex-1 overflow-auto pb-16 md:pb-0">
-                    <div className="sticky top-0 z-30 bg-background border-b p-4 flex items-center gap-4">
+                    <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b p-4 flex items-center gap-4 shadow-sm">
                       <SidebarTrigger />
                       <h2 className="text-lg font-semibold">מערכת ניהול מונית</h2>
                     </div>
                     <Routes>
-                      <Route path="/" element={<Index />} />
                       <Route path="/dashboard" element={<Dashboard />} />
                       <Route path="/analytics" element={<Analytics />} />
                       <Route path="/goals" element={<Goals />} />

@@ -17,7 +17,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onQuickAdd }) => {
   ];
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t shadow-lg">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t shadow-lg">
       <div className="flex items-center justify-around h-16 px-2">
         {navItems.map((item, index) => {
           if (item.isCenter) {
@@ -25,9 +25,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onQuickAdd }) => {
               <button
                 key={index}
                 onClick={onQuickAdd}
-                className="flex flex-col items-center justify-center -mt-6"
+                className="flex flex-col items-center justify-center -mt-6 min-h-[44px]"
               >
-                <div className="bg-primary text-primary-foreground rounded-full p-4 shadow-lg hover:scale-110 transition-transform">
+                <div className="bg-primary text-primary-foreground rounded-full p-4 shadow-lg hover:scale-110 active:scale-95 transition-transform">
                   <item.icon className="h-6 w-6" />
                 </div>
               </button>
@@ -40,10 +40,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onQuickAdd }) => {
               to={item.path}
               className={({ isActive }) =>
                 cn(
-                  'flex flex-col items-center justify-center flex-1 py-2 transition-colors',
+                  'flex flex-col items-center justify-center flex-1 py-2 transition-colors min-h-[44px] min-w-[44px]',
                   isActive
                     ? 'text-primary font-medium'
-                    : 'text-muted-foreground hover:text-foreground'
+                    : 'text-muted-foreground hover:text-foreground active:text-primary'
                 )
               }
             >

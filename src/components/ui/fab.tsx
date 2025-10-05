@@ -47,7 +47,7 @@ export const FAB: React.FC<FABProps> = ({
               onClick={() => handleActionClick(action.onClick)}
               variant="secondary"
               size="sm"
-              className="w-full justify-start gap-2 shadow-lg hover:scale-105 transition-transform"
+              className="w-full justify-start gap-2 shadow-lg hover:scale-105 transition-transform min-h-[44px]"
             >
               <action.icon className="h-4 w-4" />
               <span className="text-sm">{action.label}</span>
@@ -61,7 +61,7 @@ export const FAB: React.FC<FABProps> = ({
         onClick={() => setIsOpen(!isOpen)}
         size="lg"
         className={cn(
-          'h-14 w-14 rounded-full shadow-2xl transition-all duration-300',
+          'h-14 w-14 min-h-[44px] min-w-[44px] rounded-full shadow-2xl transition-all duration-300',
           'hover:scale-110 active:scale-95',
           isOpen && 'rotate-45'
         )}

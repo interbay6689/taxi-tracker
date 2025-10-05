@@ -106,7 +106,7 @@ export const UnifiedDashboard = ({
               className="mx-auto"
             />
           </div>
-          <div className="grid grid-cols-2 gap-6 text-center mb-6 hidden">
+          <div className="grid grid-cols-2 gap-6 text-center mb-6 hidden md:grid">
             <div>
               <div className="text-3xl font-bold text-primary mb-2">₪{shiftIncomeGross.toLocaleString()}</div>
               <div className="text-sm text-muted-foreground mb-3">הכנסות משמרת</div>

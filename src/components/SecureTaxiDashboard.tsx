@@ -25,6 +25,7 @@ import { UnifiedDashboard } from '@/components/UnifiedDashboard';
 import { OptionsMenu } from '@/components/OptionsMenu';
 import { AnalyticsPeriodSelector, AnalyticsPeriod } from '@/components/analytics/AnalyticsPeriodSelector';
 import { DashboardSkeleton, AnalyticsSkeleton } from '@/components/SkeletonLoader';
+import { FAB } from '@/components/ui/fab';
 
 export const SecureTaxiDashboard = () => {
   const { user, loading: authLoading } = useAuth();
@@ -366,6 +367,15 @@ export const SecureTaxiDashboard = () => {
            onClose={() => setAddFuelOpen(false)}
            onAddFuel={addShiftExpense}
          />
+
+        {/* Floating Action Button */}
+        <FAB
+          onAddTrip={() => setAddTripOpen(true)}
+          onAddFuel={() => setAddFuelOpen(true)}
+          onStartShift={() => setStartShiftOpen(true)}
+          onEndShift={() => setEndShiftOpen(true)}
+          hasActiveShift={!!currentWorkDay}
+        />
       </div>
     </div>
   );
