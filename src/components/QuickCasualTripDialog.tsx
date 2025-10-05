@@ -11,6 +11,7 @@ interface QuickCasualTripDialogProps {
   onAddTrip: (amount: number, paymentMethod: string, orderSource: string, tag?: string) => void;
   disabled?: boolean;
   orderSourceOverride?: string;
+  defaultPaymentMethod?: 'מזומן' | 'אשראי' | 'ביט';
 }
 
 export const QuickCasualTripDialog = ({
@@ -18,11 +19,19 @@ export const QuickCasualTripDialog = ({
   onClose,
   onAddTrip,
   disabled = false,
-  orderSourceOverride
+  orderSourceOverride,
+  defaultPaymentMethod
 }: QuickCasualTripDialogProps) => {
   const [amount, setAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'מזומן' | 'אשראי' | 'ביט'>('מזומן');
+  const [paymentMethod, setPaymentMethod] = useState<'מזומן' | 'אשראי' | 'ביט'>(defaultPaymentMethod || 'מזומן');
   const { toast } = useToast();
+
+  // Update payment method when dialog opens with defaultPaymentMethod
+  useEffect(() => {
+    if (isOpen && defaultPaymentMethod) {
+      setPaymentMethod(defaultPaymentMethod);
+    }
+  }, [isOpen, defaultPaymentMethod]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

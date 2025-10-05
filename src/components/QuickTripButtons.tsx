@@ -96,10 +96,16 @@ export const QuickTripButtons = ({ onAddTrip, disabled = false, tripsToday = [] 
       
       <QuickCasualTripDialog
         isOpen={showQuickTrip}
-        onClose={() => setShowQuickTrip(false)}
+        onClose={() => {
+          setShowQuickTrip(false);
+          setSelectedOrderSource('');
+        }}
         onAddTrip={onAddTrip}
         disabled={disabled}
         orderSourceOverride={selectedOrderSource}
+        defaultPaymentMethod={
+          selectedPaymentButtonsWithDetails.find(b => b.orderSource === selectedOrderSource)?.defaultPaymentMethod
+        }
       />
     </div>
   );

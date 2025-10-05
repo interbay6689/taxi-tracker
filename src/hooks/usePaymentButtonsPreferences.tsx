@@ -20,7 +20,7 @@ export const usePaymentButtonsPreferences = () => {
   const availablePaymentButtons = useMemo((): PaymentButtonOption[] => {
     const defaultButtons: PaymentButtonOption[] = [
       { id: 'get', label: 'GET', icon: 'Car', isDefault: true, orderSource: 'גט' },
-      { id: 'dahari', label: 'דהרי', icon: 'Truck', isDefault: true, orderSource: 'דהרי' },
+      { id: 'dahari', label: 'דהרי', icon: 'Truck', isDefault: true, orderSource: 'דהרי', defaultPaymentMethod: 'אשראי' },
       { id: 'casual', label: 'מזדמן', icon: 'Clock', isDefault: true, orderSource: 'מזדמן' },
     ];
 

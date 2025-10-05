@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tag, TrendingUp, Fuel, AlertTriangle, BarChart3 } from "lucide-react";
 import { Trip, ShiftExpense } from "@/hooks/useDatabase";
-import { useCustomPaymentTypes } from "@/hooks/useCustomPaymentTypes";
+import { useCustomOrderSources } from '@/hooks/useCustomOrderSources';
 import { DateRange } from "react-day-picker";
 import { AnalyticsPeriodSelector, AnalyticsPeriod } from './AnalyticsPeriodSelector';
 import { getDateRangeForPeriod, isDateInRange } from '@/utils/dateRangeUtils';
@@ -38,7 +38,7 @@ export const AnalyticsTab = ({
   onPeriodChange = () => {},
   onCustomDateRangeChange = () => {}
 }: AnalyticsTabProps) => {
-  const { getPaymentMethodDetails, allPaymentOptions } = useCustomPaymentTypes();
+  const { allOrderSources } = useCustomOrderSources();
   
   
   const analytics = useMemo(() => {
@@ -70,19 +70,36 @@ export const AnalyticsTab = ({
     // זיהוי חריגות
     const anomalies = detectAnomalies(filteredTrips, filteredExpenses);
 
-    // קיבוץ נסיעות לפי אמצעי תשלום מנורמל (מאחד aliases)
-    const tripsByPaymentMethod = groupTripsByPaymentMethod(filteredTrips);
+    // קיבוץ נסיעות לפי מקור הזמנה
+    const tripsByOrderSource = new Map<string, Trip[]>();
+    filteredTrips.forEach(trip => {
+      const source = trip.order_source || 'מזדמן';
+      if (!tripsByOrderSource.has(source)) {
+        tripsByOrderSource.set(source, []);
+      }
+      tripsByOrderSource.get(source)!.push(trip);
+    });
 
-    // בניית סטטיסטיקות לכל אמצעי תשלום (ללא עמלות)
-    const paymentStats = Array.from(tripsByPaymentMethod.entries()).map(([method, methodTrips]) => {
-      const income = methodTrips.reduce((sum, trip) => sum + trip.amount, 0);
+    // בניית סטטיסטיקות לפי מקור הזמנה
+    const orderSourceStats = Array.from(tripsByOrderSource.entries()).map(([source, sourceTrips]) => {
+      const income = sourceTrips.reduce((sum, trip) => sum + trip.amount, 0);
+      
+      // חישוב פילוח אמצעי תשלום בתוך כל מקור הזמנה
+      const paymentMethodBreakdown = {
+        'מזומן': sourceTrips.filter(t => t.payment_method === 'מזומן').reduce((sum, t) => sum + t.amount, 0),
+        'אשראי': sourceTrips.filter(t => t.payment_method === 'אשראי').reduce((sum, t) => sum + t.amount, 0),
+        'ביט': sourceTrips.filter(t => t.payment_method === 'ביט').reduce((sum, t) => sum + t.amount, 0),
+      };
       
       return {
-        method: method,
+        method: source,
         income,
-        count: methodTrips.length,
+        count: sourceTrips.length,
+        paymentMethodBreakdown
       };
-    }).sort((a, b) => b.income - a.income); // מיון לפי הכנסה
+    }).sort((a, b) => b.income - a.income);
+
+    const paymentStats = orderSourceStats;
 
     const totalIncome = paymentStats.reduce((sum, stat) => sum + stat.income, 0);
     const totalFuelExpenses = filteredExpenses.reduce((sum, expense) => sum + (expense?.amount || 0), 0);
@@ -114,7 +131,7 @@ export const AnalyticsTab = ({
       pieChartData,
       barChartData
     };
-  }, [trips, shiftExpenses, selectedPeriod, customDateRange, getPaymentMethodDetails, allPaymentOptions]);
+  }, [trips, shiftExpenses, selectedPeriod, customDateRange]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -178,7 +195,7 @@ export const AnalyticsTab = ({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5" />
-                התפלגות הכנסות לפי תשלום
+                התפלגות הכנסות לפי מקור הזמנה
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -264,7 +281,7 @@ export const AnalyticsTab = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Tag className="h-5 w-5" />
-            התפלגות תיוגי תשלומים - {analytics.periodLabel}
+            התפלגות מקורות הזמנה - {analytics.periodLabel}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             {analytics.dateRange.start.toLocaleDateString('he-IL')} - {analytics.dateRange.end.toLocaleDateString('he-IL')}
@@ -279,7 +296,7 @@ export const AnalyticsTab = ({
               </div>
             ) : (
               <>
-                {/* תיוגי תשלומים */}
+                {/* מקורות הזמנה */}
                 {analytics.paymentStats.map((stat, index) => (
                   <div 
                     key={index} 
@@ -287,9 +304,31 @@ export const AnalyticsTab = ({
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 mb-2">
                           <span className="font-medium">{stat.method}</span>
                         </div>
+                        {stat.paymentMethodBreakdown && (
+                          <div className="text-xs text-muted-foreground space-y-1 mt-2">
+                            {stat.paymentMethodBreakdown['מזומן'] > 0 && (
+                              <div className="flex justify-between">
+                                <span>💵 מזומן</span>
+                                <span>₪{stat.paymentMethodBreakdown['מזומן'].toLocaleString()}</span>
+                              </div>
+                            )}
+                            {stat.paymentMethodBreakdown['אשראי'] > 0 && (
+                              <div className="flex justify-between">
+                                <span>💳 אשראי</span>
+                                <span>₪{stat.paymentMethodBreakdown['אשראי'].toLocaleString()}</span>
+                              </div>
+                            )}
+                            {stat.paymentMethodBreakdown['ביט'] > 0 && (
+                              <div className="flex justify-between">
+                                <span>📱 ביט</span>
+                                <span>₪{stat.paymentMethodBreakdown['ביט'].toLocaleString()}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="text-right">
                         <div className="font-bold">₪{stat.income.toLocaleString()}</div>
