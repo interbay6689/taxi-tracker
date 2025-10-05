@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, Edit3, Plus, MapPin, ArrowLeft, Clock } from "lucide-react";
 import { Trip, ShiftExpense } from "@/hooks/useDatabase";
 import { useToast } from "@/hooks/use-toast";
+import { normalizePaymentMethod } from "@/utils/paymentMethodsHelper";
 
 interface EditTripsDialogProps {
   isOpen: boolean;
@@ -122,21 +123,6 @@ export const EditTripsDialog = ({
     });
   };
 
-  const getPaymentMethodText = (method: string) => {
-    switch (method) {
-      case 'cash':
-      case 'מזומן': return 'מזומן';
-      case 'card':
-      case 'כרטיס':
-      case 'אשראי': return 'כרטיס';
-      case 'app':
-      case 'אפליקציה':
-      case 'GetTaxi': return 'אפליקציה';
-      case 'דהרי': return 'דהרי';
-      default: return method;
-    }
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -218,7 +204,7 @@ export const EditTripsDialog = ({
                                 {new Date(trip.timestamp).toLocaleTimeString('he-IL')}
                               </div>
                               <div className="text-xs bg-primary/10 px-2 py-1 rounded">
-                                {getPaymentMethodText(trip.payment_method)}
+                                {normalizePaymentMethod(trip.payment_method)}
                               </div>
                               {/* תיוג */}
                               {trip.trip_status && trip.trip_status !== 'completed' && trip.trip_status !== 'active' && (

@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Car, Trash2, Edit, MapPin, Clock } from 'lucide-react';
 import { Trip } from "@/hooks/useDatabase";
+import { getPaymentMethodDisplayLabel } from '@/utils/paymentMethodsHelper';
 
 interface TripsTabProps {
   trips: Trip[];
@@ -56,11 +57,7 @@ export const TripsTab: React.FC<TripsTabProps> = ({ trips, currentWorkDay, onDel
                 <div className="flex items-center gap-2">
                   <span className="text-lg font-bold">₪{trip.amount.toLocaleString()}</span>
                   <Badge variant="outline">
-                    {trip.payment_method === 'cash' || trip.payment_method === 'מזומן' ? 'מזומן' : 
-                     trip.payment_method === 'card' || trip.payment_method === 'אשראי' ? 'כרטיס' : 
-                     trip.payment_method === 'ביט' ? 'ביט' :
-                     trip.payment_method === 'app' || trip.payment_method === 'GetTaxi' ? 'אפליקציה' : 
-                     trip.payment_method === 'דהרי' ? 'דהרי' : trip.payment_method}
+                    {getPaymentMethodDisplayLabel(trip.payment_method)}
                   </Badge>
                 </div>
               </div>

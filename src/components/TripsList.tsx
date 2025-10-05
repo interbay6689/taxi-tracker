@@ -2,45 +2,14 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { CreditCard, Banknote, Smartphone, MapPin, ArrowLeft, Clock, Car } from 'lucide-react';
-
+import { MapPin, ArrowLeft, Clock, Car } from 'lucide-react';
+import { getPaymentMethodDisplayLabel, normalizePaymentMethod } from '@/utils/paymentMethodsHelper';
 import { Trip } from '@/hooks/useDatabase';
 
 interface TripsListProps {
   trips: Trip[];
   currentWorkDay?: any;
 }
-
-const getPaymentMethodIcon = (method: string) => {
-  switch (method) {
-    case 'card':
-      return <CreditCard className="h-3 w-3" />;
-    case 'app':
-      return <Smartphone className="h-3 w-3" />;
-    case 'cash':
-    default:
-      return <Banknote className="h-3 w-3" />;
-  }
-};
-
-const getPaymentMethodText = (method: string) => {
-  switch (method) {
-    case 'card':
-    case 'כרטיס':
-    case 'אשראי':
-      return 'כרטיס';
-    case 'app':
-    case 'אפליקציה':
-    case 'GetTaxi':
-      return 'אפליקציה';
-    case 'דהרי':
-      return 'דהרי';
-    case 'cash':
-    case 'מזומן':
-    default:
-      return 'מזומן';
-  }
-};
 
 const formatLocationForDisplay = (city?: string, address?: string) => {
   if (!city && !address) return 'מיקום לא זמין';
@@ -176,8 +145,7 @@ export const TripsList: React.FC<TripsListProps> = ({ trips, currentWorkDay }) =
                                 ₪{trip.amount.toLocaleString()}
                               </span>
                               <Badge variant="outline" className="flex items-center gap-1">
-                                {getPaymentMethodIcon(trip.payment_method)}
-                                {getPaymentMethodText(trip.payment_method)}
+                                {getPaymentMethodDisplayLabel(trip.payment_method)}
                               </Badge>
                             </div>
                             {/* תיוג */}

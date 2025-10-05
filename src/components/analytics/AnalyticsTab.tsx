@@ -7,6 +7,7 @@ import { DateRange } from "react-day-picker";
 import { AnalyticsPeriodSelector, AnalyticsPeriod } from './AnalyticsPeriodSelector';
 import { getDateRangeForPeriod, isDateInRange } from '@/utils/dateRangeUtils';
 import { detectAnomalies } from '@/utils/dataValidation';
+import { normalizePaymentMethod, groupTripsByPaymentMethod } from '@/utils/paymentMethodsHelper';
 import { 
   PieChart, 
   Pie, 
@@ -66,58 +67,37 @@ export const AnalyticsTab = ({
       }
     });
 
-    const totalIncome = filteredTrips.reduce((sum, trip) => {
-      const paymentDetails = getPaymentMethodDetails(trip.payment_method);
-      return sum + (trip.amount * (1 - paymentDetails.commissionRate));
-    }, 0);
-
-    const totalFuelExpenses = filteredExpenses.reduce((sum, expense) => sum + (expense?.amount || 0), 0);
-
     // זיהוי חריגות
     const anomalies = detectAnomalies(filteredTrips, filteredExpenses);
 
-    // ניתוח תשלומים מתקדם - כולל כל התיוגים עבור התקופה הנבחרת
-    const paymentStats = allPaymentOptions.map(option => {
-      let methodTrips;
-      
-      if (option.isCustom && option.basePaymentMethod) {
-        // עבור תיוגים מותאמים - כלול גם נסיעות עם אמצעי התשלום הבסיסי
-        const baseAliases: Record<string, string[]> = {
-          'cash': ['מזומן', 'cash'],
-          'card': ['אשראי', 'card', 'כרטיס'],
-          'דהרי': ['דהרי']
-        };
-        
-        const baseMethods = baseAliases[option.basePaymentMethod] || [option.basePaymentMethod];
-        methodTrips = filteredTrips.filter(trip => 
-          trip.payment_method === option.value || baseMethods.includes(trip.payment_method)
-        );
-      } else {
-        // עבור אופציות בסיסיות - חפש רק נסיעות עם שם זהה או aliases
-        const aliases: Record<string, string[]> = {
-          'מזומן': ['מזומן', 'cash'],
-          'אשראי': ['אשראי', 'card', 'כרטיס'],
-          'דהרי': ['דהרי']
-        };
-        const validValues = aliases[option.value] || [option.value];
-        methodTrips = filteredTrips.filter(trip => validValues.includes(trip.payment_method));
-      }
-      
+    // קיבוץ נסיעות לפי אמצעי תשלום מנורמל (מאחד aliases)
+    const tripsByPaymentMethod = groupTripsByPaymentMethod(filteredTrips);
+
+    // בניית סטטיסטיקות לכל אמצעי תשלום
+    const paymentStats = Array.from(tripsByPaymentMethod.entries()).map(([method, methodTrips]) => {
       const income = methodTrips.reduce((sum, trip) => {
         const paymentDetails = getPaymentMethodDetails(trip.payment_method);
         return sum + (trip.amount * (1 - paymentDetails.commissionRate));
       }, 0);
+      
       const rawIncome = methodTrips.reduce((sum, trip) => sum + trip.amount, 0);
-      const paymentDetails = getPaymentMethodDetails(option.value);
+      const paymentDetails = getPaymentMethodDetails(method);
+      
+      // בדיקה אם זה תיוג מותאם
+      const customOption = allPaymentOptions.find(opt => opt.value === method && opt.isCustom);
+      
       return {
-        method: option.label,
+        method: method,
         income,
         rawIncome,
         count: methodTrips.length,
         commissionRate: paymentDetails.commissionRate,
-        isCustom: option.isCustom
+        isCustom: !!customOption
       };
-    }).filter(stat => stat.count > 0); // הצג רק תשלומים שיש בהם נסיעות
+    }).sort((a, b) => b.income - a.income); // מיון לפי הכנסה
+
+    const totalIncome = paymentStats.reduce((sum, stat) => sum + stat.income, 0);
+    const totalFuelExpenses = filteredExpenses.reduce((sum, expense) => sum + (expense?.amount || 0), 0);
 
     // נתונים לגרפים
     const pieChartData = paymentStats.map((stat, index) => ({

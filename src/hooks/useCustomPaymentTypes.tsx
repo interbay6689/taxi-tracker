@@ -199,6 +199,7 @@ export const useCustomPaymentTypes = () => {
 
   // Helper function to get payment method details
   const getPaymentMethodDetails = (paymentMethod: string) => {
+    // בדוק אם זה תיוג מותאם
     const customType = customPaymentTypes.find(type => type.name === paymentMethod);
     if (customType) {
       return {
@@ -209,20 +210,29 @@ export const useCustomPaymentTypes = () => {
       };
     }
 
-    // Base payment methods
+    // Aliases לאמצעי תשלום בסיסיים
     const baseLabels: Record<string, string> = {
       'cash': 'מזומן',
       'מזומן': 'מזומן',
       'card': 'אשראי',
       'אשראי': 'אשראי',
-      'דהרי': 'דהרי'
+      'כרטיס': 'אשראי',
+      'דהרי': 'דהרי',
+      'ביט': 'ביט',
+      'גט': 'גט',
+      'GetTaxi': 'גט',
+      'app': 'גט',
+      'אפליקציה': 'גט'
     };
 
+    // החזר פרטים לפי הזיהוי או את השם המקורי
+    const displayName = baseLabels[paymentMethod] || paymentMethod;
+    
     return {
       isCustom: false,
       basePaymentMethod: paymentMethod as 'cash' | 'card' | 'דהרי',
       commissionRate: 0,
-      displayName: baseLabels[paymentMethod] || paymentMethod
+      displayName
     };
   };
 
