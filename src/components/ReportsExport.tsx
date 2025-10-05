@@ -3,12 +3,13 @@ import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Download, TrendingUp, Car, Clock, DollarSign } from "lucide-react";
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { he } from "date-fns/locale";
 import { Trip, WorkDay } from "@/hooks/useDatabase";
 import { useCustomPaymentTypes } from "@/hooks/useCustomPaymentTypes";
 import { DateRange } from "react-day-picker";
 import { DateRangePicker } from "@/components/date-range-picker";
+import { getDateRangeForPeriod, isDateInRange } from "@/utils/dateRangeUtils";
 
 interface ReportsExportProps {
   trips: Trip[];
@@ -30,70 +31,24 @@ export const ReportsExport: React.FC<ReportsExportProps> = ({
   const [isExporting, setIsExporting] = useState(false);
   const { getPaymentMethodDetails } = useCustomPaymentTypes();
 
-  // Helper function to get date range based on selected period
-  const getDateRange = () => {
-    const now = new Date();
-    
-    switch (selectedPeriod) {
-      case 'today':
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const endOfToday = new Date(today);
-        endOfToday.setHours(23, 59, 59, 999);
-        return { start: today, end: endOfToday };
-      
-      case 'week':
-        return { 
-          start: startOfWeek(now, { weekStartsOn: 0 }), 
-          end: endOfWeek(now, { weekStartsOn: 0 }) 
-        };
-      
-      case 'month':
-        return { 
-          start: startOfMonth(now), 
-          end: endOfMonth(now) 
-        };
-      
-      case 'year':
-        return { 
-          start: startOfYear(now), 
-          end: endOfYear(now) 
-        };
-      
-      case 'custom':
-        if (customDateRange?.from && customDateRange?.to) {
-          return { 
-            start: customDateRange.from, 
-            end: customDateRange.to 
-          };
-        }
-        // Fallback to current year if custom range is invalid
-        return { 
-          start: startOfYear(now), 
-          end: endOfYear(now) 
-        };
-      
-      default:
-        // Default to all time (current year)
-        return { 
-          start: startOfYear(now), 
-          end: endOfYear(now) 
-        };
-    }
-  };
-
   // Filter data based on selected period
-  const { filteredTrips, filteredWorkDays } = useMemo(() => {
-    console.log('Filtering data - Total trips:', trips.length, 'Total work days:', workDays.length);
+  const { filteredTrips, filteredWorkDays, dateRange } = useMemo(() => {
+    console.log('Reports filtering - Total trips:', trips.length, 'Total work days:', workDays.length);
     
-    const { start, end } = getDateRange();
-    console.log('Date range:', { start, end, selectedPeriod });
+    const range = getDateRangeForPeriod(
+      selectedPeriod,
+      customDateRange ? { from: customDateRange.from, to: customDateRange.to } : undefined
+    );
+    
+    console.log('Date range:', { 
+      range, 
+      selectedPeriod,
+      isValid: range.isValid 
+    });
     
     const tripsInRange = trips.filter(trip => {
       try {
-        const tripDate = parseISO(trip.timestamp);
-        const isInRange = isWithinInterval(tripDate, { start, end });
-        return isInRange;
+        return isDateInRange(trip.timestamp, range);
       } catch (error) {
         console.error('Error parsing trip date:', trip.timestamp, error);
         return false;
@@ -102,9 +57,7 @@ export const ReportsExport: React.FC<ReportsExportProps> = ({
 
     const workDaysInRange = workDays.filter(workDay => {
       try {
-        const workDayDate = parseISO(workDay.start_time);
-        const isInRange = isWithinInterval(workDayDate, { start, end });
-        return isInRange;
+        return isDateInRange(workDay.start_time, range);
       } catch (error) {
         console.error('Error parsing work day date:', workDay.start_time, error);
         return false;
@@ -118,7 +71,8 @@ export const ReportsExport: React.FC<ReportsExportProps> = ({
 
     return {
       filteredTrips: tripsInRange,
-      filteredWorkDays: workDaysInRange
+      filteredWorkDays: workDaysInRange,
+      dateRange: range
     };
   }, [trips, workDays, selectedPeriod, customDateRange]);
 
@@ -216,24 +170,16 @@ export const ReportsExport: React.FC<ReportsExportProps> = ({
     }
   };
 
-  const getPeriodDisplayName = () => {
-    switch (selectedPeriod) {
-      case 'today': return 'היום';
-      case 'week': return 'השבוע';
-      case 'month': return 'החודש';
-      case 'year': return 'השנה';
-      case 'custom': return 'תקופה מותאמת אישית';
-      default: return 'כל הזמן';
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Period Selector */}
       {onPeriodChange && onCustomDateRangeChange && (
         <Card>
           <CardHeader>
-            <CardTitle>תקופת זמן</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>תקופת זמן</span>
+              <span className="text-sm font-normal text-muted-foreground">{dateRange.label}</span>
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 grid-cols-3 md:grid-cols-5">
             <Button
@@ -294,6 +240,17 @@ export const ReportsExport: React.FC<ReportsExportProps> = ({
         </Card>
       )}
 
+      {/* אזהרה אם טווח התאריכים לא תקין */}
+      {!dateRange.isValid && (
+        <Card className="border-orange-500 bg-orange-50">
+          <CardContent className="p-4">
+            <p className="text-sm text-orange-800">
+              ⚠️ טווח התאריכים שנבחר לא תקין או לא הוגדר. מוצגים נתוני {dateRange.label}.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
@@ -309,7 +266,7 @@ export const ReportsExport: React.FC<ReportsExportProps> = ({
                 <span className="text-destructive mr-2">(-₪{summaryStats.totalCommission.toFixed(0)})</span>
               </div>
             )}
-            <p className="text-xs text-muted-foreground mt-1">{getPeriodDisplayName()}</p>
+            <p className="text-xs text-muted-foreground mt-1">{dateRange.label}</p>
           </CardContent>
         </Card>
 
@@ -394,7 +351,10 @@ export const ReportsExport: React.FC<ReportsExportProps> = ({
         <CardContent>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              יצא את כל הנתונים עבור {getPeriodDisplayName()} לקובץ CSV
+              יצא את כל הנתונים עבור {dateRange.label} לקובץ CSV
+            </p>
+            <p className="text-xs text-muted-foreground">
+              טווח: {dateRange.start.toLocaleDateString('he-IL')} - {dateRange.end.toLocaleDateString('he-IL')}
             </p>
             <Button 
               onClick={exportToCSV} 

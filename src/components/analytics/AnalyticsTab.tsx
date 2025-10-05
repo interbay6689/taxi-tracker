@@ -7,6 +7,7 @@ import { DateRange } from "react-day-picker";
 import { DateRangePicker } from "@/components/date-range-picker";
 import { Button } from "@/components/ui/button";
 import { AnalyticsPeriodSelector, AnalyticsPeriod } from './AnalyticsPeriodSelector';
+import { getDateRangeForPeriod, isDateInRange } from '@/utils/dateRangeUtils';
 
 interface AnalyticsTabProps {
   trips: Trip[];
@@ -29,57 +30,23 @@ export const AnalyticsTab = ({
   
   
   const analytics = useMemo(() => {
-    const now = new Date();
-    
-    // Calculate date ranges based on selected period
-    let startDate: Date;
-    let endDate: Date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-    
-    switch (selectedPeriod) {
-      case 'today':
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-        break;
-      case 'week':
-        // Start of current week (Sunday - Israeli standard)
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay(), 0, 0, 0, 0);
-        endDate = new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      case 'month':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-        break;
-      case 'year':
-        startDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
-        endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-        break;
-      case 'custom':
-        if (customDateRange?.from && customDateRange?.to) {
-          startDate = new Date(customDateRange.from);
-          startDate.setHours(0, 0, 0, 0);
-          endDate = new Date(customDateRange.to);
-          endDate.setHours(23, 59, 59, 999);
-        } else {
-          // Fallback to today if no custom range selected
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-        }
-        break;
-      default:
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    }
+    // חישוב טווח תאריכים מנורמל
+    const dateRange = getDateRangeForPeriod(
+      selectedPeriod, 
+      customDateRange ? { from: customDateRange.from!, to: customDateRange.to! } : undefined
+    );
 
-    console.log('Filtering data - Total trips:', trips.length, 'Total shift expenses:', shiftExpenses.length);
-    console.log('Date range:', { 
-      start: startDate, 
-      end: endDate, 
-      selectedPeriod 
+    console.log('Analytics filtering:', {
+      period: selectedPeriod,
+      range: dateRange,
+      totalTrips: trips.length,
+      totalExpenses: shiftExpenses.length
     });
 
-    // Filter trips and expenses by the calculated date range
+    // סינון נסיעות והוצאות לפי טווח התאריכים
     const filteredTrips = trips.filter(trip => {
       try {
-        const tripDate = new Date(trip.timestamp);
-        return tripDate >= startDate && tripDate <= endDate;
+        return isDateInRange(trip.timestamp, dateRange);
       } catch (error) {
         console.error('Error filtering trip by date:', error, trip);
         return false;
@@ -88,8 +55,7 @@ export const AnalyticsTab = ({
 
     const filteredExpenses = shiftExpenses.filter(expense => {
       try {
-        const expenseDate = new Date(expense.created_at);
-        return expenseDate >= startDate && expenseDate <= endDate;
+        return isDateInRange(expense.created_at, dateRange);
       } catch (error) {
         console.error('Error filtering expense by date:', error, expense);
         return false;
@@ -98,7 +64,8 @@ export const AnalyticsTab = ({
 
     console.log('Filtered results:', {
       tripsInRange: filteredTrips.length,
-      expensesInRange: filteredExpenses.length
+      expensesInRange: filteredExpenses.length,
+      dateRangeValid: dateRange.isValid
     });
 
     const totalIncome = filteredTrips.reduce((sum, trip) => {
@@ -134,19 +101,10 @@ export const AnalyticsTab = ({
       totalTrips: filteredTrips.length,
       filteredTrips,
       filteredExpenses,
-      dateRange: { startDate, endDate }
+      dateRange,
+      periodLabel: dateRange.label
     };
   }, [trips, shiftExpenses, selectedPeriod, customDateRange, getPaymentMethodDetails, allPaymentOptions]);
-
-  const getPeriodLabel = () => {
-    switch (selectedPeriod) {
-      case 'week': return 'השבוע';
-      case 'month': return 'החודש';
-      case 'year': return 'השנה';
-      case 'custom': return customDateRange?.from && customDateRange?.to ? 'תקופה מותאמת' : 'היום';
-      default: return 'היום';
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -158,18 +116,35 @@ export const AnalyticsTab = ({
         onCustomDateRangeChange={onCustomDateRangeChange}
       />
 
+      {/* אזהרה אם טווח התאריכים לא תקין */}
+      {!analytics.dateRange.isValid && (
+        <Card className="border-orange-500 bg-orange-50">
+          <CardContent className="p-4">
+            <p className="text-sm text-orange-800">
+              ⚠️ טווח התאריכים שנבחר לא תקין. מוצגים נתוני {analytics.periodLabel}.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* ניתוח תיוגי תשלומים */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Tag className="h-5 w-5" />
-            התפלגות תיוגי תשלומים {getPeriodLabel()}
+            התפלגות תיוגי תשלומים - {analytics.periodLabel}
           </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {analytics.dateRange.start.toLocaleDateString('he-IL')} - {analytics.dateRange.end.toLocaleDateString('he-IL')}
+          </p>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {analytics.paymentStats.length === 0 && analytics.filteredExpenses.length === 0 ? (
-              <p className="text-center text-muted-foreground py-4">אין נסיעות או הוצאות {getPeriodLabel()}</p>
+              <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                <p className="text-lg font-medium">אין נסיעות או הוצאות</p>
+                <p className="text-sm mt-1">{analytics.periodLabel}</p>
+              </div>
             ) : (
               <>
                 {/* תיוגי תשלומים */}
@@ -239,7 +214,7 @@ export const AnalyticsTab = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            סיכום {getPeriodLabel()}
+            סיכום - {analytics.periodLabel}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -266,11 +241,7 @@ export const AnalyticsTab = ({
                 ₪{analytics.totalTrips > 0 ? Math.round(analytics.totalIncome / analytics.totalTrips) : 0}
               </div>
               <div className="text-sm text-muted-foreground">
-                {analytics.dateRange && (
-                  <>
-                    {analytics.dateRange.startDate.toLocaleDateString('he-IL')} - {analytics.dateRange.endDate.toLocaleDateString('he-IL')}
-                  </>
-                )}
+                {analytics.dateRange.start.toLocaleDateString('he-IL')} - {analytics.dateRange.end.toLocaleDateString('he-IL')}
               </div>
             </div>
           </div>
