@@ -40,6 +40,18 @@ export const PaymentTypesTab = () => {
     const success = await addCustomPaymentType(newTypeName.trim(), newTypeBase, commissionRate);
     
     if (success) {
+      // Auto-add the new payment type to selected buttons
+      const newButtonId = `custom-${Date.now()}`; // Will be replaced with actual ID after refresh
+      setTimeout(() => {
+        // Find the newly added button and add it to selected buttons
+        const newButton = availablePaymentButtons.find(btn => 
+          btn.isCustom && btn.label === newTypeName.trim()
+        );
+        if (newButton && !selectedPaymentButtons.includes(newButton.id)) {
+          togglePaymentButton(newButton.id);
+        }
+      }, 100);
+      
       setNewTypeName('');
       setNewTypeBase('דהרי');
       setNewTypeCommission('0');
@@ -75,7 +87,16 @@ export const PaymentTypesTab = () => {
   };
 
   const handleDeleteType = async (id: string) => {
-    await deleteCustomPaymentType(id);
+    const typeToDelete = customPaymentTypes.find(t => t.id === id);
+    const success = await deleteCustomPaymentType(id);
+    
+    // Also remove from selected buttons if it was selected
+    if (success && typeToDelete) {
+      const buttonId = `custom-${id}`;
+      if (selectedPaymentButtons.includes(buttonId)) {
+        togglePaymentButton(buttonId);
+      }
+    }
   };
 
   const getBaseMethodLabel = (method: string) => {
@@ -123,26 +144,47 @@ export const PaymentTypesTab = () => {
               
               return (
                 <div key={button.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-1">
                     <IconComponent className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <span className="font-medium">{button.label}</span>
-                      {isDefault && (
-                        <Badge variant="secondary" className="mr-2 text-xs">
-                          ברירת מחדל
-                        </Badge>
-                      )}
-                      {button.isCustom && (
-                        <Badge variant="outline" className="mr-2 text-xs">
-                          מותאם אישית
-                        </Badge>
-                      )}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{button.label}</span>
+                        {isDefault && (
+                          <Badge variant="secondary" className="text-xs">
+                            ברירת מחדל
+                          </Badge>
+                        )}
+                        {button.isCustom && (
+                          <Badge variant="outline" className="text-xs">
+                            מותאם אישית
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <Checkbox
-                    checked={isSelected}
-                    onCheckedChange={() => togglePaymentButton(button.id)}
-                  />
+                  <div className="flex items-center gap-2">
+                    {button.isCustom && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const customType = customPaymentTypes.find(
+                            t => `custom-${t.id}` === button.id
+                          );
+                          if (customType) {
+                            handleDeleteType(customType.id);
+                          }
+                        }}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => togglePaymentButton(button.id)}
+                    />
+                  </div>
                 </div>
               );
             })}
