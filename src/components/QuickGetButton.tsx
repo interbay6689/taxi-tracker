@@ -13,7 +13,7 @@ import { Car, CreditCard, Banknote } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface QuickGetButtonProps {
-  onAddTrip: (amount: number, paymentMethod: string) => void;
+  onAddTrip: (amount: number, paymentMethod: string, orderSource: string) => void;
   disabled?: boolean;
 }
 
@@ -39,12 +39,12 @@ export const QuickGetButton = ({ onAddTrip, disabled }: QuickGetButtonProps) => 
 
     setIsAdding(true);
     try {
-      await onAddTrip(parsedAmount, paymentMethod);
+      await onAddTrip(parsedAmount, paymentMethod, 'גט');
       setAmount('');
       setIsOpen(false);
       toast({
-        title: 'נסיעה נוספה! 🚗',
-        description: `₪${parsedAmount} • ${paymentMethod === 'מזומן' ? 'מזומן' : 'אשראי'}`,
+        title: 'נסיעה גט נוספה! 🚗',
+        description: `₪${parsedAmount} • ${paymentMethod === 'מזומן' ? '💵 מזומן' : paymentMethod === 'אשראי' ? '💳 אשראי' : '📱 ביט'}`,
         duration: 2000,
       });
     } catch (error) {
@@ -103,27 +103,35 @@ export const QuickGetButton = ({ onAddTrip, disabled }: QuickGetButtonProps) => 
               />
             </div>
 
-            {/* Payment Method Selection */}
             <div className="space-y-3">
               <Label className="text-lg font-medium">אמצעי תשלום</Label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-2">
                 <Button
                   type="button"
                   variant={paymentMethod === 'מזומן' ? 'default' : 'outline'}
                   onClick={() => setPaymentMethod('מזומן')}
-                  className="h-16 text-lg"
+                  className="h-14 text-sm"
                 >
-                  <Banknote className="mr-2 h-6 w-6" />
+                  <Banknote className="mr-1 h-5 w-5" />
                   מזומן
                 </Button>
                 <Button
                   type="button"
                   variant={paymentMethod === 'אשראי' ? 'default' : 'outline'}
                   onClick={() => setPaymentMethod('אשראי')}
-                  className="h-16 text-lg"
+                  className="h-14 text-sm"
                 >
-                  <CreditCard className="mr-2 h-6 w-6" />
+                  <CreditCard className="mr-1 h-5 w-5" />
                   אשראי
+                </Button>
+                <Button
+                  type="button"
+                  variant={paymentMethod === 'ביט' ? 'default' : 'outline'}
+                  onClick={() => setPaymentMethod('ביט')}
+                  className="h-14 text-sm"
+                >
+                  📱
+                  ביט
                 </Button>
               </div>
             </div>

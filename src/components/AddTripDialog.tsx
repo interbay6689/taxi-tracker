@@ -42,7 +42,7 @@ interface AddTripDialogProps {
    * parameter is optional and will be undefined when the user
    * chooses not to specify a tag.
    */
-  onAddTrip: (amount: number, paymentMethod: string, tag?: string) => void;
+  onAddTrip: (amount: number, paymentMethod: string, orderSource: string, tag?: string) => void;
   /**
    * A list of today's trips.  Used to derive quick amount buttons
    * based on recently entered values.  Pass an empty array if
@@ -71,22 +71,12 @@ export const AddTripDialog = ({
   tags = DEFAULT_TAGS,
 }: AddTripDialogProps) => {
   const { toast } = useToast();
-  // Payment methods come from the custom payment types hook.  Each
-  // option has a value used internally and a label shown to the user.
-  const { allPaymentOptions } = useCustomPaymentTypes();
+  const { paymentMethods, allOrderSources } = useCustomPaymentTypes();
   const [amount, setAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<string>("cash");
-  // Selected tag value.  Use the special value "none" to denote no tag
-  // instead of an empty string.  Radix UI's Select.Item does not
-  // allow an empty string value, so we represent an unselected tag
-  // with "none" internally.
+  const [paymentMethod, setPaymentMethod] = useState<string>("מזומן");
+  const [orderSource, setOrderSource] = useState<string>("מזדמן");
   const [selectedTag, setSelectedTag] = useState<string>("none");
-  // Normalize payment options to avoid calling .map on undefined
-  const paymentOptions = Array.isArray(allPaymentOptions) ? allPaymentOptions : [];
-  // Maintain a local copy of tags to allow the user to add new tags on the fly.
   const [localTags, setLocalTags] = useState<string[]>(Array.isArray(tags) ? tags : []);
-  // New tag input for adding tags inline.  This state stores the value
-  // typed into the new tag input field.
   const [newTag, setNewTag] = useState<string>("");
 
   // Handler to add a new tag from the newTag input.  It trims the
@@ -124,8 +114,8 @@ export const AddTripDialog = ({
 
   const resetState = () => {
     setAmount("");
-    setPaymentMethod("cash");
-    // Reset to "none" to represent no tag selected
+    setPaymentMethod("מזומן");
+    setOrderSource("מזדמן");
     setSelectedTag("none");
   };
 
@@ -148,12 +138,12 @@ export const AddTripDialog = ({
       return;
     }
     // Interpret the special value "none" as an undefined tag
-    onAddTrip(parsedAmount, paymentMethod, selectedTag === "none" ? undefined : selectedTag);
+    onAddTrip(parsedAmount, paymentMethod, orderSource, selectedTag === "none" ? undefined : selectedTag);
     resetState();
     onClose();
     toast({
       title: "נסיעה נוספה",
-      description: `נוספה נסיעה בסכום ₪${parsedAmount} (${paymentMethod})`,
+      description: `נוספה נסיעה בסכום ₪${parsedAmount} (${orderSource} - ${paymentMethod})`,
     });
   };
 
@@ -164,12 +154,12 @@ export const AddTripDialog = ({
    * component resets its state.
    */
   const handleQuickClick = (value: number) => {
-    onAddTrip(value, paymentMethod, selectedTag === "none" ? undefined : selectedTag);
+    onAddTrip(value, paymentMethod, orderSource, selectedTag === "none" ? undefined : selectedTag);
     resetState();
     onClose();
     toast({
       title: "נסיעה נוספה",
-      description: `נוספה נסיעה בסכום ₪${value} (${paymentMethod})`,
+      description: `נוספה נסיעה בסכום ₪${value} (${orderSource} - ${paymentMethod})`,
     });
   };
 
@@ -196,6 +186,26 @@ export const AddTripDialog = ({
               dir="ltr"
             />
           </div>
+          {/* Order source dropdown */}
+          <div className="space-y-3">
+            <Label className="text-base">מקור הזמנה</Label>
+            <Select
+              value={orderSource}
+              onValueChange={(value) => setOrderSource(value)}
+            >
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="בחר מקור הזמנה" />
+              </SelectTrigger>
+              <SelectContent>
+                {allOrderSources.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Payment method dropdown */}
           <div className="space-y-3">
             <Label className="text-base">אמצעי תשלום</Label>
@@ -207,7 +217,7 @@ export const AddTripDialog = ({
                 <SelectValue placeholder="בחר אמצעי תשלום" />
               </SelectTrigger>
               <SelectContent>
-                {paymentOptions.map((option) => (
+                {paymentMethods.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>

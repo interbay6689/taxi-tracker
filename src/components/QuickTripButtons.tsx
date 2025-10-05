@@ -6,7 +6,7 @@ import { QuickCasualTripDialog } from './QuickCasualTripDialog';
 import { usePaymentButtonsPreferences } from '@/hooks/usePaymentButtonsPreferences';
 
 interface QuickTripButtonsProps {
-  onAddTrip: (amount: number, paymentMethod: string, tag?: string) => void;
+  onAddTrip: (amount: number, paymentMethod: string, orderSource: string, tag?: string) => void;
   disabled?: boolean;
   tripsToday?: any[];
 }
@@ -14,7 +14,7 @@ interface QuickTripButtonsProps {
 export const QuickTripButtons = ({ onAddTrip, disabled = false, tripsToday = [] }: QuickTripButtonsProps) => {
   const [showCasualTrip, setShowCasualTrip] = useState(false);
   const [showQuickTrip, setShowQuickTrip] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
+  const [selectedOrderSource, setSelectedOrderSource] = useState<string>('');
   
   const { selectedPaymentButtonsWithDetails } = usePaymentButtonsPreferences();
 
@@ -30,16 +30,15 @@ export const QuickTripButtons = ({ onAddTrip, disabled = false, tripsToday = [] 
     return icons[iconName as keyof typeof icons] || Car;
   };
 
-  const handleQuickPaymentClick = (buttonId: string, label: string, isCustom?: boolean) => {
-    if (buttonId === 'get') return; // GET has its own component
-    if (buttonId === 'casual') {
+  const handleQuickPaymentClick = (button: any) => {
+    if (button.id === 'get') return; // GET has its own component
+    if (button.id === 'casual') {
       setShowCasualTrip(true);
       return;
     }
     
-    // For custom payment types, use the name directly
-    // For standard buttons, use the label
-    setSelectedPaymentMethod(label);
+    // For all other buttons, set the order source
+    setSelectedOrderSource(button.orderSource || button.label);
     setShowQuickTrip(true);
   };
 
@@ -71,7 +70,7 @@ export const QuickTripButtons = ({ onAddTrip, disabled = false, tripsToday = [] 
           return (
             <Button
               key={button.id}
-              onClick={() => handleQuickPaymentClick(button.id, button.label, button.isCustom)}
+              onClick={() => handleQuickPaymentClick(button)}
               variant={button.id === 'casual' ? 'outline' : 'secondary'}
               className={`h-14 text-sm ${
                 button.id === 'casual' 
@@ -98,11 +97,9 @@ export const QuickTripButtons = ({ onAddTrip, disabled = false, tripsToday = [] 
       <QuickCasualTripDialog
         isOpen={showQuickTrip}
         onClose={() => setShowQuickTrip(false)}
-        onAddTrip={(amount, paymentMethod, tag) => {
-          onAddTrip(amount, selectedPaymentMethod, tag);
-        }}
+        onAddTrip={onAddTrip}
         disabled={disabled}
-        paymentMethodOverride={selectedPaymentMethod}
+        orderSourceOverride={selectedOrderSource}
       />
     </div>
   );
