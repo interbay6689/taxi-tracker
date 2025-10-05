@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
+import { validateTrip, AnomalyDetection } from "@/utils/dataValidation";
+import { Trip } from "@/hooks/useDatabase";
 
 interface UseNotificationsProps {
   dailyGoals: { income_goal: number; trips_goal: number };
@@ -8,6 +10,7 @@ interface UseNotificationsProps {
   tripsCount: number;
   workDayStartTime?: string;
   goalMet: boolean;
+  lastTrip?: Trip;
 }
 
 export const useNotifications = ({
@@ -15,11 +18,13 @@ export const useNotifications = ({
   totalIncome,
   tripsCount,
   workDayStartTime,
-  goalMet
+  goalMet,
+  lastTrip
 }: UseNotificationsProps) => {
   const { toast } = useToast();
   const lastGoalMet = useRef(false);
   const longShiftNotified = useRef(false);
+  const lastValidatedTripId = useRef<string | null>(null);
 
   // התראה למטרה יומית
   useEffect(() => {
@@ -78,4 +83,31 @@ export const useNotifications = ({
       longShiftNotified.current = false;
     }
   }, [workDayStartTime]);
+
+  // בדיקת validation לנסיעה אחרונה
+  useEffect(() => {
+    if (!lastTrip || lastValidatedTripId.current === lastTrip.id) return;
+    
+    const validation = validateTrip(lastTrip);
+    
+    // הצגת אזהרות אם יש
+    if (validation.warnings.length > 0) {
+      validation.warnings.forEach(warning => {
+        toast({
+          title: "⚠️ שים לב",
+          description: warning,
+          duration: 4000,
+        });
+      });
+      
+      // רטט קל
+      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {
+        if (navigator.vibrate) {
+          navigator.vibrate(100);
+        }
+      });
+    }
+    
+    lastValidatedTripId.current = lastTrip.id;
+  }, [lastTrip, toast]);
 };

@@ -24,6 +24,7 @@ import { QuickShiftStart } from '@/components/QuickShiftStart';
 import { UnifiedDashboard } from '@/components/UnifiedDashboard';
 import { OptionsMenu } from '@/components/OptionsMenu';
 import { AnalyticsPeriodSelector, AnalyticsPeriod } from '@/components/analytics/AnalyticsPeriodSelector';
+import { DashboardSkeleton, AnalyticsSkeleton } from '@/components/SkeletonLoader';
 
 export const SecureTaxiDashboard = () => {
   const { user, loading: authLoading } = useAuth();
@@ -196,6 +197,11 @@ export const SecureTaxiDashboard = () => {
   };
 
   const renderTabContent = () => {
+    if (dbLoading) {
+      // הצגת skeleton loaders מותאמים לפי הטאב
+      return activeTab === 'dashboard' ? <DashboardSkeleton /> : <AnalyticsSkeleton />;
+    }
+
     try {
       switch (activeTab) {
         case 'dashboard':
@@ -254,13 +260,10 @@ export const SecureTaxiDashboard = () => {
     }
   };
 
-  if (authLoading || dbLoading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/50 flex items-center justify-center">
-        <div className="text-center">
-          <Car className="h-12 w-12 text-primary mx-auto mb-4 animate-pulse" />
-          <p className="text-lg">טוען...</p>
-        </div>
+        <DashboardSkeleton />
       </div>
     );
   }
