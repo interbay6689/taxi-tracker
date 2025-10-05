@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Plus, Zap, Clock, Target, TrendingUp, CreditCard, Banknote } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useCustomPaymentTypes } from '@/hooks/useCustomPaymentTypes';
+import { useCustomOrderSources } from '@/hooks/useCustomOrderSources';
 import { Trip } from '@/hooks/useDatabase';
 
 interface QuickTripDashboardProps {
@@ -15,7 +15,7 @@ interface QuickTripDashboardProps {
   shiftIncomeGross: number;
   shiftTripsCount: number;
   dailyGoals: { income_goal: number; trips_goal: number };
-  onAddTrip: (amount: number, paymentMethod: string, tag?: string) => void;
+  onAddTrip: (amount: number, paymentMethod: string, orderSource: string, tag?: string) => void;
   tripsToday: Trip[];
 }
 
@@ -31,10 +31,11 @@ export const QuickTripDashboard = ({
   tripsToday = []
 }: QuickTripDashboardProps) => {
   const { toast } = useToast();
-  const { allPaymentOptions } = useCustomPaymentTypes();
+  const { allOrderSources, paymentMethods } = useCustomOrderSources();
   
   const [customAmount, setCustomAmount] = useState('');
-  const [selectedPayment, setSelectedPayment] = useState('cash');
+  const [selectedOrderSource, setSelectedOrderSource] = useState('מזדמן');
+  const [selectedPayment, setSelectedPayment] = useState('מזומן');
   const [selectedTag, setSelectedTag] = useState<string | undefined>(undefined);
   const [isAdding, setIsAdding] = useState(false);
 
@@ -62,10 +63,10 @@ export const QuickTripDashboard = ({
     setIsAdding(true);
     
     try {
-      await onAddTrip(amount, selectedPayment, selectedTag);
+      await onAddTrip(amount, selectedPayment, selectedOrderSource, selectedTag);
       toast({
         title: 'נסיעה נוספה! 🚗',
-        description: `₪${amount} • ${getPaymentLabel(selectedPayment)}`,
+        description: `₪${amount} • ${getOrderSourceLabel(selectedOrderSource)} • ${getPaymentLabel(selectedPayment)}`,
         duration: 2000,
       });
     } catch (error) {
@@ -91,11 +92,11 @@ export const QuickTripDashboard = ({
     }
 
     try {
-      await onAddTrip(amount, selectedPayment, selectedTag);
+      await onAddTrip(amount, selectedPayment, selectedOrderSource, selectedTag);
       setCustomAmount('');
       toast({
         title: 'נסיעה נוספה! 🚗',
-        description: `₪${amount} • ${getPaymentLabel(selectedPayment)}`,
+        description: `₪${amount} • ${getOrderSourceLabel(selectedOrderSource)} • ${getPaymentLabel(selectedPayment)}`,
         duration: 2000,
       });
     } catch (error) {
@@ -107,13 +108,18 @@ export const QuickTripDashboard = ({
     }
   };
 
+  const getOrderSourceLabel = (source: string) => {
+    const option = allOrderSources.find(opt => opt.value === source);
+    return option?.label || source;
+  };
+
   const getPaymentLabel = (method: string) => {
-    const option = allPaymentOptions.find(opt => opt.value === method);
+    const option = paymentMethods.find(opt => opt.value === method);
     return option?.label || method;
   };
 
   const getPaymentIcon = (method: string) => {
-    if (method === 'cash') return <Banknote className="h-4 w-4" />;
+    if (method === 'מזומן') return <Banknote className="h-4 w-4" />;
     return <CreditCard className="h-4 w-4" />;
   };
 
@@ -157,28 +163,46 @@ export const QuickTripDashboard = ({
         </CardContent>
       </Card>
 
-      {/* בחירת אמצעי תשלום ותיוג */}
+      {/* בחירת מקור הזמנה ואמצעי תשלום */}
       <Card>
         <CardContent className="p-4 space-y-3">
-          <div className="flex gap-2">
-            <Select value={selectedPayment} onValueChange={setSelectedPayment}>
-              <SelectTrigger className="flex-1">
-                <div className="flex items-center gap-2">
-                  {getPaymentIcon(selectedPayment)}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">מקור הזמנה</label>
+              <Select value={selectedOrderSource} onValueChange={setSelectedOrderSource}>
+                <SelectTrigger>
                   <SelectValue />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                {allPaymentOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    <div className="flex items-center gap-2">
-                      {getPaymentIcon(option.value)}
-                      {option.label}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                </SelectTrigger>
+                <SelectContent>
+                  {allOrderSources.map((source) => (
+                    <SelectItem key={source.value} value={source.value}>
+                      {source.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">אמצעי תשלום</label>
+              <Select value={selectedPayment} onValueChange={setSelectedPayment}>
+                <SelectTrigger>
+                  <div className="flex items-center gap-2">
+                    {getPaymentIcon(selectedPayment)}
+                    <SelectValue />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentMethods.map((method) => (
+                    <SelectItem key={method.value} value={method.value}>
+                      <div className="flex items-center gap-2">
+                        {getPaymentIcon(method.value)}
+                        {method.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* תיוגים מהירים */}

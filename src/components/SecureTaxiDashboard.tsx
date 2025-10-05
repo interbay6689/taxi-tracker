@@ -70,6 +70,16 @@ export const SecureTaxiDashboard = () => {
     }
   }, [user, authLoading, navigate]);
 
+  // Wrapper function להתאמת החתימה של updateTrip ל-EditTripsDialog
+  const handleUpdateTrip = async (tripId: string, updates: { amount?: number; payment_method?: string; order_source?: string; }) => {
+    await updateTrip(
+      tripId, 
+      updates.amount || 0, 
+      updates.payment_method, 
+      updates.order_source
+    );
+  };
+
   const tripsToday = React.useMemo(() => {
     try {
       if (!trips || !Array.isArray(trips)) return [];
@@ -333,7 +343,7 @@ export const SecureTaxiDashboard = () => {
           trips={tripsToday}
           expenses={shiftExpenses}
           onDeleteTrip={deleteTrip}
-          onUpdateTrip={updateTrip}
+          onUpdateTrip={handleUpdateTrip}
           onDeleteExpense={deleteShiftExpense}
           onUpdateExpense={updateShiftExpense}
           onAddTrip={() => setAddTripOpen(true)}

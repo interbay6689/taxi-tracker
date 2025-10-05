@@ -1,14 +1,14 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tag, TrendingUp, Fuel, AlertTriangle, BarChart3 } from "lucide-react";
+import { Tag, TrendingUp, Fuel, AlertTriangle, BarChart3, CreditCard } from "lucide-react";
 import { Trip, ShiftExpense } from "@/hooks/useDatabase";
 import { useCustomOrderSources } from '@/hooks/useCustomOrderSources';
 import { DateRange } from "react-day-picker";
 import { AnalyticsPeriodSelector, AnalyticsPeriod } from './AnalyticsPeriodSelector';
 import { getDateRangeForPeriod, isDateInRange } from '@/utils/dateRangeUtils';
 import { detectAnomalies } from '@/utils/dataValidation';
-import { normalizePaymentMethod, groupTripsByPaymentMethod } from '@/utils/paymentMethodsHelper';
-import { 
+import { calculateOrderSourceStats, calculatePaymentMethodStats } from '@/utils/analyticsHelper';
+import {
   PieChart, 
   Pie, 
   Cell, 
@@ -70,46 +70,29 @@ export const AnalyticsTab = ({
     // זיהוי חריגות
     const anomalies = detectAnomalies(filteredTrips, filteredExpenses);
 
-    // קיבוץ נסיעות לפי מקור הזמנה
-    const tripsByOrderSource = new Map<string, Trip[]>();
-    filteredTrips.forEach(trip => {
-      const source = trip.order_source || 'מזדמן';
-      if (!tripsByOrderSource.has(source)) {
-        tripsByOrderSource.set(source, []);
-      }
-      tripsByOrderSource.get(source)!.push(trip);
-    });
-
-    // בניית סטטיסטיקות לפי מקור הזמנה
-    const orderSourceStats = Array.from(tripsByOrderSource.entries()).map(([source, sourceTrips]) => {
-      const income = sourceTrips.reduce((sum, trip) => sum + trip.amount, 0);
-      
-      // חישוב פילוח אמצעי תשלום בתוך כל מקור הזמנה
-      const paymentMethodBreakdown = {
-        'מזומן': sourceTrips.filter(t => t.payment_method === 'מזומן').reduce((sum, t) => sum + t.amount, 0),
-        'אשראי': sourceTrips.filter(t => t.payment_method === 'אשראי').reduce((sum, t) => sum + t.amount, 0),
-        'ביט': sourceTrips.filter(t => t.payment_method === 'ביט').reduce((sum, t) => sum + t.amount, 0),
-      };
-      
-      return {
-        method: source,
-        income,
-        count: sourceTrips.length,
-        paymentMethodBreakdown
-      };
-    }).sort((a, b) => b.income - a.income);
-
+    // חישוב סטטיסטיקות מפורטות
+    const orderSourceStats = calculateOrderSourceStats(filteredTrips);
+    const paymentMethodStats = calculatePaymentMethodStats(filteredTrips);
+    
     const paymentStats = orderSourceStats;
 
     const totalIncome = paymentStats.reduce((sum, stat) => sum + stat.income, 0);
     const totalFuelExpenses = filteredExpenses.reduce((sum, expense) => sum + (expense?.amount || 0), 0);
 
-    // נתונים לגרפים
-    const pieChartData = paymentStats.map((stat, index) => ({
+    // נתונים לגרף מקורות הזמנה
+    const orderSourcePieData = orderSourceStats.map((stat, index) => ({
       name: stat.method,
       value: stat.income,
       count: stat.count,
-      fill: `hsl(${(index * 360) / paymentStats.length}, 70%, 50%)`
+      fill: `hsl(${(index * 360) / orderSourceStats.length}, 70%, 50%)`
+    }));
+
+    // נתונים לגרף אמצעי תשלום
+    const paymentMethodPieData = paymentMethodStats.map((stat, index) => ({
+      name: stat.method,
+      value: stat.income,
+      count: stat.count,
+      fill: `hsl(${120 + (index * 360) / paymentMethodStats.length}, 70%, 50%)`
     }));
 
     const barChartData = paymentStats.map(stat => ({
@@ -122,13 +105,16 @@ export const AnalyticsTab = ({
       totalIncome,
       totalFuelExpenses,
       paymentStats,
+      orderSourceStats,
+      paymentMethodStats,
       totalTrips: filteredTrips.length,
       filteredTrips,
       filteredExpenses,
       dateRange,
       periodLabel: dateRange.label,
       anomalies,
-      pieChartData,
+      orderSourcePieData,
+      paymentMethodPieData,
       barChartData
     };
   }, [trips, shiftExpenses, selectedPeriod, customDateRange]);
@@ -190,19 +176,19 @@ export const AnalyticsTab = ({
       {/* גרפים ויזואליים */}
       {analytics.paymentStats.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in">
-          {/* Pie Chart - התפלגות הכנסות */}
+          {/* Pie Chart 1 - התפלגות לפי מקור הזמנה */}
           <Card className="hover-scale">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5" />
-                התפלגות הכנסות לפי מקור הזמנה
+                התפלגות לפי מקור הזמנה
               </CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
-                    data={analytics.pieChartData}
+                    data={analytics.orderSourcePieData}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
@@ -211,7 +197,51 @@ export const AnalyticsTab = ({
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {analytics.pieChartData.map((entry, index) => (
+                    {analytics.orderSourcePieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-card border rounded-lg p-3 shadow-lg">
+                            <p className="font-medium">{payload[0].name}</p>
+                            <p className="text-sm text-primary">₪{payload[0].value?.toLocaleString()}</p>
+                            <p className="text-xs text-muted-foreground">{payload[0].payload.count} נסיעות</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Pie Chart 2 - התפלגות לפי אמצעי תשלום */}
+          <Card className="hover-scale">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                התפלגות לפי אמצעי תשלום
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={analytics.paymentMethodPieData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {analytics.paymentMethodPieData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Pie>

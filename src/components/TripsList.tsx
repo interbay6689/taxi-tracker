@@ -3,7 +3,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { MapPin, ArrowLeft, Clock, Car } from 'lucide-react';
-import { getPaymentMethodDisplayLabel, normalizePaymentMethod } from '@/utils/paymentMethodsHelper';
+import { getPaymentMethodDisplayLabel } from '@/utils/paymentMethodsHelper';
+import { getOrderSourceDisplayLabel } from '@/utils/orderSourceHelper';
 import { Trip } from '@/hooks/useDatabase';
 
 interface TripsListProps {
@@ -137,13 +138,16 @@ export const TripsList: React.FC<TripsListProps> = ({ trips, currentWorkDay }) =
                         key={trip.id}
                         className="p-3 bg-muted/50 rounded-lg border border-muted-foreground/20"
                       >
-                        {/* סכום ואמצעי תשלום */}
+                        {/* סכום, מקור הזמנה ואמצעי תשלום */}
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-lg font-bold text-primary">
                                 ₪{trip.amount.toLocaleString()}
                               </span>
+                              <Badge variant="default" className="flex items-center gap-1">
+                                {getOrderSourceDisplayLabel(trip.order_source)}
+                              </Badge>
                               <Badge variant="outline" className="flex items-center gap-1">
                                 {getPaymentMethodDisplayLabel(trip.payment_method)}
                               </Badge>

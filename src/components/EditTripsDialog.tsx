@@ -8,7 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, Edit3, Plus, MapPin, ArrowLeft, Clock } from "lucide-react";
 import { Trip, ShiftExpense } from "@/hooks/useDatabase";
 import { useToast } from "@/hooks/use-toast";
-import { normalizePaymentMethod } from "@/utils/paymentMethodsHelper";
+import { getPaymentMethodDisplayLabel } from "@/utils/paymentMethodsHelper";
+import { getOrderSourceDisplayLabel } from "@/utils/orderSourceHelper";
+import { useCustomOrderSources } from '@/hooks/useCustomOrderSources';
 
 interface EditTripsDialogProps {
   isOpen: boolean;
@@ -16,7 +18,7 @@ interface EditTripsDialogProps {
   trips: Trip[];
   expenses?: ShiftExpense[];
   onDeleteTrip: (id: string) => void;
-  onUpdateTrip: (id: string, amount: number, paymentMethod: 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי') => void;
+  onUpdateTrip: (id: string, updates: { amount?: number; payment_method?: string; order_source?: string }) => void;
   onDeleteExpense?: (id: string) => void;
   onUpdateExpense?: (id: string, amount: number) => void;
   onAddTrip: () => void;
@@ -35,8 +37,10 @@ export const EditTripsDialog = ({
 }: EditTripsDialogProps) => {
   const [editingTrip, setEditingTrip] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState("");
-  const [editPaymentMethod, setEditPaymentMethod] = useState<'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי'>('מזומן');
+  const [editPaymentMethod, setEditPaymentMethod] = useState<string>('מזומן');
+  const [editOrderSource, setEditOrderSource] = useState<string>('מזדמן');
   const { toast } = useToast();
+  const { allOrderSources, paymentMethods } = useCustomOrderSources();
 
   // State for editing a shift expense (e.g. fuel)
   const [editingExpense, setEditingExpense] = useState<string | null>(null);
@@ -51,6 +55,7 @@ export const EditTripsDialog = ({
     setEditingTrip(trip.id);
     setEditAmount(trip.amount.toString());
     setEditPaymentMethod(trip.payment_method);
+    setEditOrderSource(trip.order_source || 'מזדמן');
   };
 
   const handleEditSave = (tripId: string) => {
@@ -64,7 +69,11 @@ export const EditTripsDialog = ({
       return;
     }
 
-    onUpdateTrip(tripId, amount, editPaymentMethod);
+    onUpdateTrip(tripId, {
+      amount,
+      payment_method: editPaymentMethod,
+      order_source: editOrderSource
+    });
     setEditingTrip(null);
     toast({
       title: "נסיעה עודכנה",
@@ -76,6 +85,7 @@ export const EditTripsDialog = ({
     setEditingTrip(null);
     setEditAmount("");
     setEditPaymentMethod('מזומן');
+    setEditOrderSource('מזדמן');
   };
 
   const handleDelete = (tripId: string) => {
@@ -153,10 +163,10 @@ export const EditTripsDialog = ({
               {trips.map((trip) => (
                 <Card key={trip.id}>
                   <CardContent className="p-4">
-                    {editingTrip === trip.id ? (
+                      {editingTrip === trip.id ? (
                       // מצב עריכה
                       <div className="space-y-3">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-3 gap-4">
                           <div>
                             <Label htmlFor="edit-amount">סכום (₪)</Label>
                             <Input
@@ -168,17 +178,32 @@ export const EditTripsDialog = ({
                             />
                           </div>
                           <div>
-                            <Label htmlFor="edit-payment">אמצעי תשלום</Label>
-                            <Select value={editPaymentMethod} onValueChange={(value: 'cash' | 'card' | 'app' | 'מזומן' | 'ביט' | 'אשראי' | 'GetTaxi' | 'דהרי') => setEditPaymentMethod(value)}>
+                            <Label htmlFor="edit-order-source">מקור הזמנה</Label>
+                            <Select value={editOrderSource} onValueChange={setEditOrderSource}>
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="מזומן">מזומן</SelectItem>
-                                <SelectItem value="ביט">ביט</SelectItem>
-                                <SelectItem value="אשראי">אשראי</SelectItem>
-                                <SelectItem value="GetTaxi">GetTaxi</SelectItem>
-                                <SelectItem value="דהרי">דהרי</SelectItem>
+                                {allOrderSources.map((source) => (
+                                  <SelectItem key={source.value} value={source.value}>
+                                    {source.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label htmlFor="edit-payment">אמצעי תשלום</Label>
+                            <Select value={editPaymentMethod} onValueChange={setEditPaymentMethod}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {paymentMethods.map((method) => (
+                                  <SelectItem key={method.value} value={method.value}>
+                                    {method.label}
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </div>
@@ -197,18 +222,21 @@ export const EditTripsDialog = ({
                       <div>
                         <div className="flex justify-between items-start mb-2">
                           <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4 flex-wrap">
                               <div className="text-lg font-bold">₪{trip.amount}</div>
                               <div className="text-sm text-muted-foreground flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
                                 {new Date(trip.timestamp).toLocaleTimeString('he-IL')}
                               </div>
-                              <div className="text-xs bg-primary/10 px-2 py-1 rounded">
-                                {normalizePaymentMethod(trip.payment_method)}
+                              <div className="text-xs bg-primary/10 px-2 py-1 rounded font-medium">
+                                {getOrderSourceDisplayLabel(trip.order_source)}
+                              </div>
+                              <div className="text-xs bg-secondary/30 px-2 py-1 rounded">
+                                {getPaymentMethodDisplayLabel(trip.payment_method)}
                               </div>
                               {/* תיוג */}
                               {trip.trip_status && trip.trip_status !== 'completed' && trip.trip_status !== 'active' && (
-                                <div className="text-xs bg-secondary px-2 py-1 rounded">
+                                <div className="text-xs bg-accent px-2 py-1 rounded">
                                   {trip.trip_status}
                                 </div>
                               )}

@@ -2,14 +2,12 @@ import { Trip } from "@/hooks/useDatabase";
 
 /**
  * מפת aliases של אמצעי תשלום - מיפוי משמות שונים לשם אחיד
+ * שים לב: קובץ זה מטפל רק באמצעי תשלום, לא במקורות הזמנה
  */
 export const PAYMENT_METHOD_ALIASES: Record<string, string> = {
   'cash': 'מזומן',
   'card': 'אשראי',
-  'כרטיס': 'אשראי',
-  'GetTaxi': 'גט',
-  'app': 'גט',
-  'אפליקציה': 'גט'
+  'כרטיס': 'אשראי'
 };
 
 /**
