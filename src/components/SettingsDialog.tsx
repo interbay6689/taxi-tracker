@@ -69,7 +69,7 @@ export const SettingsDialog = ({
         </div>
 
         <Tabs defaultValue="goals" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6 text-xs gap-1">
+          <TabsList className="grid w-full grid-cols-7 text-xs gap-1">
             <TabsTrigger value="goals" className="text-xs">
               <Target className="h-3 w-3 ml-1" />
               יעדים
