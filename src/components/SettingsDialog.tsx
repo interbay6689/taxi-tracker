@@ -45,8 +45,10 @@ export const SettingsDialog = ({
   onUpdateTags
 }: SettingsDialogProps) => {
   const { mode, toggleNightMode } = useAppMode();
-  const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('today');
-  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
+  const [selectedAnalyticsPeriod, setSelectedAnalyticsPeriod] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('today');
+  const [analyticsDateRange, setAnalyticsDateRange] = useState<DateRange | undefined>(undefined);
+  const [selectedReportsPeriod, setSelectedReportsPeriod] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('today');
+  const [reportsDateRange, setReportsDateRange] = useState<DateRange | undefined>(undefined);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -135,37 +137,26 @@ export const SettingsDialog = ({
           </TabsContent>
 
           <TabsContent value="analytics">
-            <div className="space-y-4">
-              <Tabs defaultValue="daily" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="daily">ניתוח יומי</TabsTrigger>
-                  <TabsTrigger value="shifts">היסטוריית משמרות</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="daily">
-                  <AnalyticsTab trips={trips} />
-                </TabsContent>
-                
-                <TabsContent value="shifts">
-                  <div className="mt-4">
-                    <div className="text-center p-6 text-muted-foreground border-2 border-dashed rounded-lg">
-                      ניתוח משמרות יוצג כאן בעדכון הבא
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </div>
+            <AnalyticsTab 
+              trips={trips}
+              selectedPeriod={selectedAnalyticsPeriod}
+              customDateRange={analyticsDateRange}
+              onPeriodChange={setSelectedAnalyticsPeriod}
+              onCustomDateRangeChange={setAnalyticsDateRange}
+            />
           </TabsContent>
 
           <TabsContent value="reports">
             <ReportsExport 
               trips={trips} 
               workDays={workDays} 
-              selectedPeriod={selectedPeriod}
-              customDateRange={customDateRange && customDateRange.from && customDateRange.to 
-                ? { from: customDateRange.from, to: customDateRange.to }
+              selectedPeriod={selectedReportsPeriod}
+              customDateRange={reportsDateRange && reportsDateRange.from && reportsDateRange.to 
+                ? { from: reportsDateRange.from, to: reportsDateRange.to }
                 : undefined
               }
+              onPeriodChange={setSelectedReportsPeriod}
+              onCustomDateRangeChange={setReportsDateRange}
             />
           </TabsContent>
         </Tabs>
