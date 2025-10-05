@@ -77,7 +77,22 @@ export const AnalyticsTab = ({
 
     // ניתוח תשלומים מתקדם - כולל כל התיוגים עבור התקופה הנבחרת
     const paymentStats = allPaymentOptions.map(option => {
-      const methodTrips = filteredTrips.filter(trip => trip.payment_method === option.value);
+      // עבור אפשרויות בסיסיות, חפש גם aliases (cash, card וכו')
+      let methodTrips;
+      if (!option.isCustom) {
+        // עבור אפשרויות בסיסיות, חפש את כל הvarianטים
+        const aliases: Record<string, string[]> = {
+          'מזומן': ['מזומן', 'cash'],
+          'אשראי': ['אשראי', 'card', 'כרטיס'],
+          'דהרי': ['דהרי']
+        };
+        const validValues = aliases[option.value] || [option.value];
+        methodTrips = filteredTrips.filter(trip => validValues.includes(trip.payment_method));
+      } else {
+        // עבור תיוגים מותאמים, חפש בדיוק את השם
+        methodTrips = filteredTrips.filter(trip => trip.payment_method === option.value);
+      }
+      
       const income = methodTrips.reduce((sum, trip) => {
         const paymentDetails = getPaymentMethodDetails(trip.payment_method);
         return sum + (trip.amount * (1 - paymentDetails.commissionRate));
