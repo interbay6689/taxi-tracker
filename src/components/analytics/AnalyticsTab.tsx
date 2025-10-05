@@ -78,10 +78,22 @@ export const AnalyticsTab = ({
 
     // ניתוח תשלומים מתקדם - כולל כל התיוגים עבור התקופה הנבחרת
     const paymentStats = allPaymentOptions.map(option => {
-      // עבור אפשרויות בסיסיות, חפש גם aliases (cash, card וכו')
       let methodTrips;
-      if (!option.isCustom) {
-        // עבור אפשרויות בסיסיות, חפש את כל הvarianטים
+      
+      if (option.isCustom && option.basePaymentMethod) {
+        // עבור תיוגים מותאמים - כלול גם נסיעות עם אמצעי התשלום הבסיסי
+        const baseAliases: Record<string, string[]> = {
+          'cash': ['מזומן', 'cash'],
+          'card': ['אשראי', 'card', 'כרטיס'],
+          'דהרי': ['דהרי']
+        };
+        
+        const baseMethods = baseAliases[option.basePaymentMethod] || [option.basePaymentMethod];
+        methodTrips = filteredTrips.filter(trip => 
+          trip.payment_method === option.value || baseMethods.includes(trip.payment_method)
+        );
+      } else {
+        // עבור אופציות בסיסיות - חפש רק נסיעות עם שם זהה או aliases
         const aliases: Record<string, string[]> = {
           'מזומן': ['מזומן', 'cash'],
           'אשראי': ['אשראי', 'card', 'כרטיס'],
@@ -89,9 +101,6 @@ export const AnalyticsTab = ({
         };
         const validValues = aliases[option.value] || [option.value];
         methodTrips = filteredTrips.filter(trip => validValues.includes(trip.payment_method));
-      } else {
-        // עבור תיוגים מותאמים, חפש בדיוק את השם
-        methodTrips = filteredTrips.filter(trip => trip.payment_method === option.value);
       }
       
       const income = methodTrips.reduce((sum, trip) => {

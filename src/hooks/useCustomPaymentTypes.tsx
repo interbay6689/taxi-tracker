@@ -172,9 +172,9 @@ export const useCustomPaymentTypes = () => {
   // Combine base payment methods with custom ones for display
   const allPaymentOptions = useMemo(() => {
     const baseOptions = [
-      { value: 'מזומן', label: 'מזומן', isCustom: false },
-      { value: 'אשראי', label: 'אשראי', isCustom: false },
-      { value: 'דהרי', label: 'דהרי', isCustom: false }
+      { value: 'מזומן', label: 'מזומן', isCustom: false, basePaymentMethod: 'cash' as const },
+      { value: 'אשראי', label: 'אשראי', isCustom: false, basePaymentMethod: 'card' as const },
+      { value: 'דהרי', label: 'דהרי', isCustom: false, basePaymentMethod: 'דהרי' as const }
     ];
 
     const customOptions = customPaymentTypes.map(type => ({
@@ -185,7 +185,16 @@ export const useCustomPaymentTypes = () => {
       commissionRate: type.commission_rate
     }));
 
-    return [...baseOptions, ...customOptions];
+    // סנן אופציות בסיסיות שיש להן תיוגים מותאמים
+    const baseMethodsWithCustomTags = new Set(
+      customPaymentTypes.map(t => t.base_payment_method)
+    );
+
+    const filteredBaseOptions = baseOptions.filter(
+      option => !baseMethodsWithCustomTags.has(option.basePaymentMethod)
+    );
+
+    return [...filteredBaseOptions, ...customOptions];
   }, [customPaymentTypes]);
 
   // Helper function to get payment method details
