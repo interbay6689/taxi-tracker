@@ -36,21 +36,15 @@ export const PaymentTypesTab = () => {
   const handleAddType = async () => {
     if (!newTypeName.trim()) return;
 
-    const commissionRate = parseFloat(newTypeCommission) / 100; // Convert percentage to decimal
-    const success = await addCustomPaymentType(newTypeName.trim(), newTypeBase, commissionRate);
+    const commissionRate = parseFloat(newTypeCommission) / 100;
+    const newTypeId = await addCustomPaymentType(newTypeName.trim(), newTypeBase, commissionRate);
     
-    if (success) {
+    if (newTypeId) {
       // Auto-add the new payment type to selected buttons
-      const newButtonId = `custom-${Date.now()}`; // Will be replaced with actual ID after refresh
-      setTimeout(() => {
-        // Find the newly added button and add it to selected buttons
-        const newButton = availablePaymentButtons.find(btn => 
-          btn.isCustom && btn.label === newTypeName.trim()
-        );
-        if (newButton && !selectedPaymentButtons.includes(newButton.id)) {
-          togglePaymentButton(newButton.id);
-        }
-      }, 100);
+      const newButtonId = `custom-${newTypeId}`;
+      if (!selectedPaymentButtons.includes(newButtonId)) {
+        togglePaymentButton(newButtonId);
+      }
       
       setNewTypeName('');
       setNewTypeBase('דהרי');

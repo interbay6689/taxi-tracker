@@ -53,7 +53,7 @@ export const useCustomPaymentTypes = () => {
 
   useEffect(() => {
     loadCustomPaymentTypes();
-  }, [user]);
+  }, [user?.id]);
 
   const addCustomPaymentType = async (
     name: string,
@@ -85,12 +85,13 @@ export const useCustomPaymentTypes = () => {
         return false;
       }
 
-      setCustomPaymentTypes(prev => [...prev, data as CustomPaymentType]);
+      const newType = data as CustomPaymentType;
+      setCustomPaymentTypes(prev => [...prev, newType]);
       toast({
         title: "הצלחה",
         description: `תיוג התשלום "${name}" נוסף בהצלחה`,
       });
-      return true;
+      return newType.id;
     } catch (error) {
       console.error('Error adding custom payment type:', error);
       return false;
