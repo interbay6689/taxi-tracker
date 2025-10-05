@@ -30,14 +30,15 @@ export const QuickTripButtons = ({ onAddTrip, disabled = false, tripsToday = [] 
     return icons[iconName as keyof typeof icons] || Car;
   };
 
-  const handleQuickPaymentClick = (buttonId: string, label: string) => {
+  const handleQuickPaymentClick = (buttonId: string, label: string, isCustom?: boolean) => {
     if (buttonId === 'get') return; // GET has its own component
     if (buttonId === 'casual') {
       setShowCasualTrip(true);
       return;
     }
     
-    // For other payment methods, open quick trip dialog
+    // For custom payment types, use the name directly
+    // For standard buttons, use the label
     setSelectedPaymentMethod(label);
     setShowQuickTrip(true);
   };
@@ -70,7 +71,7 @@ export const QuickTripButtons = ({ onAddTrip, disabled = false, tripsToday = [] 
           return (
             <Button
               key={button.id}
-              onClick={() => handleQuickPaymentClick(button.id, button.label)}
+              onClick={() => handleQuickPaymentClick(button.id, button.label, button.isCustom)}
               variant={button.id === 'casual' ? 'outline' : 'secondary'}
               className={`h-14 text-sm ${
                 button.id === 'casual' 

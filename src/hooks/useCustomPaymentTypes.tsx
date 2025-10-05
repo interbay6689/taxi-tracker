@@ -172,8 +172,8 @@ export const useCustomPaymentTypes = () => {
   // Combine base payment methods with custom ones for display
   const allPaymentOptions = useMemo(() => {
     const baseOptions = [
-      { value: 'cash', label: 'מזומן', isCustom: false },
-      { value: 'card', label: 'כרטיס', isCustom: false },
+      { value: 'מזומן', label: 'מזומן', isCustom: false },
+      { value: 'אשראי', label: 'אשראי', isCustom: false },
       { value: 'דהרי', label: 'דהרי', isCustom: false }
     ];
 
@@ -203,7 +203,9 @@ export const useCustomPaymentTypes = () => {
     // Base payment methods
     const baseLabels: Record<string, string> = {
       'cash': 'מזומן',
-      'card': 'כרטיס',
+      'מזומן': 'מזומן',
+      'card': 'אשראי',
+      'אשראי': 'אשראי',
       'דהרי': 'דהרי'
     };
 
