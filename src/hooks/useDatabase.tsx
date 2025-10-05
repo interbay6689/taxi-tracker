@@ -199,15 +199,33 @@ export function useDatabase() {
     [addTrip]
   );
 
-  // Enhanced endWorkDay
+  // Calculate shift totals from actual trips within the shift timeframe
+  const calculateShiftTotals = useCallback(() => {
+    if (!workDaysHook.currentWorkDay) return { totalIncome: 0, totalTrips: 0 };
+
+    const startTime = new Date(workDaysHook.currentWorkDay.start_time);
+    const endTime = new Date(); // Current time for active shifts
+
+    // Filter trips that fall within the shift timeframe
+    const shiftTrips = tripsHook.trips.filter(trip => {
+      const tripTime = new Date(trip.timestamp);
+      return tripTime >= startTime && tripTime <= endTime;
+    });
+
+    const totalIncome = shiftTrips.reduce((sum, trip) => sum + trip.amount, 0);
+    const totalTrips = shiftTrips.length;
+
+    return { totalIncome, totalTrips };
+  }, [workDaysHook.currentWorkDay, tripsHook.trips]);
+
+  // Enhanced endWorkDay - calculate totals from actual shift trips
   const endWorkDay = useCallback(async () => {
     try {
       if (!workDaysHook.currentWorkDay) return false;
 
-      const tripSum = tripsHook.trips.reduce((sum, trip) => sum + trip.amount, 0);
-      const tripCount = tripsHook.trips.length;
+      const { totalIncome, totalTrips } = calculateShiftTotals();
 
-      const success = await workDaysHook.endWorkDay(tripSum, tripCount);
+      const success = await workDaysHook.endWorkDay(totalIncome, totalTrips);
       if (success) {
         tripsHook.setTrips([]);
         shiftExpensesHook.setShiftExpenses([]);
@@ -217,7 +235,7 @@ export function useDatabase() {
       console.error('Error in endWorkDay:', error);
       return false;
     }
-  }, [workDaysHook, tripsHook, shiftExpensesHook]);
+  }, [workDaysHook, tripsHook, shiftExpensesHook, calculateShiftTotals]);
 
   // Pause and resume work day functions
   const pauseWorkDay = useCallback(async () => {

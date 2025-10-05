@@ -155,6 +155,7 @@ export function useWorkDays(user: any) {
     if (!currentWorkDay) return false;
 
     try {
+      // Calculate new totals by adding to current values
       const newTotalIncome = currentWorkDay.total_income + additionalIncome;
       const newTotalTrips = currentWorkDay.total_trips + additionalTrips;
 
