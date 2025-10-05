@@ -122,11 +122,8 @@ export const SecureTaxiDashboard = () => {
   , [shiftTrips]);
 
   const shiftIncomeNet = React.useMemo(() =>
-    shiftTrips.reduce((sum, t) => {
-      const details = getPaymentMethodDetails(t.payment_method);
-      return sum + (t.amount * (1 - details.commissionRate));
-    }, 0)
-  , [shiftTrips, getPaymentMethodDetails]);
+    shiftTrips.reduce((sum, t) => sum + t.amount, 0)
+  , [shiftTrips]);
 
   const shiftTripsCount = shiftTrips.length;
 

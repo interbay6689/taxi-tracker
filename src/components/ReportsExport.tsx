@@ -233,12 +233,6 @@ export const ReportsExport: React.FC<ReportsExportProps> = ({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">₪{summaryStats.totalIncome.toLocaleString()}</div>
-            {summaryStats.totalCommission > 0 && (
-              <div className="text-xs text-muted-foreground mt-1">
-                <span className="line-through">₪{summaryStats.totalRawIncome.toLocaleString()}</span>
-                <span className="text-destructive mr-2">(-₪{summaryStats.totalCommission.toFixed(0)})</span>
-              </div>
-            )}
             <p className="text-xs text-muted-foreground mt-1">{dateRange.label}</p>
           </CardContent>
         </Card>
@@ -294,19 +288,9 @@ export const ReportsExport: React.FC<ReportsExportProps> = ({
                 <div key={method} className="flex justify-between items-center p-3 rounded-lg border bg-muted/30">
                   <div className="flex-1">
                     <span className="font-medium">{method}</span>
-                    {data.commission > 0 && (
-                      <div className="text-xs text-destructive mt-1">
-                        עמלה: -₪{data.commission.toFixed(0)}
-                      </div>
-                    )}
                   </div>
                   <div className="text-left">
                     <div className="font-bold text-primary">₪{data.amount.toLocaleString()}</div>
-                    {data.commission > 0 && (
-                      <div className="text-xs text-muted-foreground line-through">
-                        ₪{data.rawAmount.toLocaleString()}
-                      </div>
-                    )}
                     <div className="text-sm text-muted-foreground">{data.count} נסיעות</div>
                   </div>
                 </div>

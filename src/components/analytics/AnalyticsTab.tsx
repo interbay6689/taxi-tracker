@@ -283,33 +283,16 @@ export const AnalyticsTab = ({
                 {analytics.paymentStats.map((stat, index) => (
                   <div 
                     key={index} 
-                    className={`p-3 rounded-lg border transition-all duration-200 hover:shadow-md ${
-                      stat.isCustom ? 'bg-primary/5 border-primary/20' : 'bg-muted/30'
-                    }`}
+                    className="p-3 rounded-lg border transition-all duration-200 hover:shadow-md bg-muted/30"
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className={`font-medium ${stat.isCustom ? 'text-primary' : ''}`}>
-                            {stat.method}
-                          </span>
-                          {stat.isCustom && <Tag className="h-3 w-3 text-primary" />}
+                          <span className="font-medium">{stat.method}</span>
                         </div>
-                        {stat.commissionRate !== 0 && (
-                          <div className="text-xs mt-1">
-                            {stat.commissionRate > 0 ? (
-                              <span className="text-destructive">עמלה: {(stat.commissionRate * 100).toFixed(1)}%</span>
-                            ) : (
-                              <span className="text-green-600 dark:text-green-400">בונוס: +{Math.abs(stat.commissionRate * 100).toFixed(1)}%</span>
-                            )}
-                          </div>
-                        )}
                       </div>
                       <div className="text-right">
                         <div className="font-bold">₪{stat.income.toLocaleString()}</div>
-                        {stat.commissionRate !== 0 && (
-                          <div className="text-xs text-muted-foreground line-through">₪{stat.rawIncome.toLocaleString()}</div>
-                        )}
                         <div className="text-sm text-muted-foreground">{stat.count} נסיעות</div>
                       </div>
                     </div>

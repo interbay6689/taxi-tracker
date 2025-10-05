@@ -39,14 +39,12 @@ export const ShiftHistoryTab = ({ trips, workDays }: ShiftHistoryTabProps) => {
         return isAfterStart && isBeforeEnd;
       });
       
-      // Calculate income metrics - הכנסה בפועל ללא עמלות
       const totals = shiftTrips.reduce(
         (acc, trip) => {
-          const paymentDetails = getPaymentMethodDetails(trip.payment_method);
-          const netAmount = trip.amount * (1 - paymentDetails.commissionRate);
+          const netAmount = trip.amount;
           acc.gross += trip.amount;
           acc.net += netAmount;
-          acc.actual += trip.amount; // הכנסה בפועל ללא עמלות
+          acc.actual += trip.amount;
           return acc;
         },
         { gross: 0, net: 0, actual: 0 }

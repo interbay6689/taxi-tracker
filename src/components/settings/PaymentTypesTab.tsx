@@ -30,25 +30,21 @@ export const PaymentTypesTab = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingType, setEditingType] = useState<CustomPaymentType | null>(null);
   const [newTypeName, setNewTypeName] = useState('');
-  const [newTypeBase, setNewTypeBase] = useState<'cash' | 'card' | 'דהרי'>('דהרי');
-  const [newTypeCommission, setNewTypeCommission] = useState('0');
+  const [newTypeDefault, setNewTypeDefault] = useState<'מזומן' | 'אשראי' | 'ביט'>('מזומן');
 
   const handleAddType = async () => {
     if (!newTypeName.trim()) return;
 
-    const commissionRate = parseFloat(newTypeCommission) / 100;
-    const newTypeId = await addCustomPaymentType(newTypeName.trim(), newTypeBase, commissionRate);
+    const newTypeId = await addCustomPaymentType(newTypeName.trim(), newTypeDefault);
     
     if (newTypeId) {
-      // Auto-add the new payment type to selected buttons
       const newButtonId = `custom-${newTypeId}`;
       if (!selectedPaymentButtons.includes(newButtonId)) {
         togglePaymentButton(newButtonId);
       }
       
       setNewTypeName('');
-      setNewTypeBase('דהרי');
-      setNewTypeCommission('0');
+      setNewTypeDefault('מזומן');
       setIsAddDialogOpen(false);
     }
   };
@@ -56,18 +52,15 @@ export const PaymentTypesTab = () => {
   const handleEditType = async () => {
     if (!editingType || !newTypeName.trim()) return;
 
-    const commissionRate = parseFloat(newTypeCommission) / 100; // Convert percentage to decimal
     const success = await updateCustomPaymentType(editingType.id, {
       name: newTypeName.trim(),
-      base_payment_method: newTypeBase,
-      commission_rate: commissionRate
+      default_payment_method: newTypeDefault
     });
     
     if (success) {
       setEditingType(null);
       setNewTypeName('');
-      setNewTypeBase('דהרי');
-      setNewTypeCommission('0');
+      setNewTypeDefault('מזומן');
       setIsEditDialogOpen(false);
     }
   };
@@ -75,8 +68,7 @@ export const PaymentTypesTab = () => {
   const handleEditClick = (type: CustomPaymentType) => {
     setEditingType(type);
     setNewTypeName(type.name);
-    setNewTypeBase(type.base_payment_method);
-    setNewTypeCommission((type.commission_rate * 100).toString());
+    setNewTypeDefault(type.default_payment_method || 'מזומן');
     setIsEditDialogOpen(true);
   };
 
@@ -220,33 +212,17 @@ export const PaymentTypesTab = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="baseMethod">תיוג בסיס</Label>
-                    <Select value={newTypeBase} onValueChange={(value: 'cash' | 'card' | 'דהרי') => setNewTypeBase(value)}>
+                    <Label htmlFor="defaultMethod">אמצעי תשלום ברירת מחדל (אופציונלי)</Label>
+                    <Select value={newTypeDefault} onValueChange={(value: 'מזומן' | 'אשראי' | 'ביט') => setNewTypeDefault(value)}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="cash">מזומן</SelectItem>
-                        <SelectItem value="card">כרטיס</SelectItem>
-                        <SelectItem value="דהרי">דהרי</SelectItem>
+                        <SelectItem value="מזומן">💵 מזומן</SelectItem>
+                        <SelectItem value="אשראי">💳 אשראי</SelectItem>
+                        <SelectItem value="ביט">📱 ביט</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="commission">עמלה (%)</Label>
-                    <Input
-                      id="commission"
-                      type="number"
-                      value={newTypeCommission}
-                      onChange={(e) => setNewTypeCommission(e.target.value)}
-                      placeholder="0"
-                      step="0.1"
-                      min="-100"
-                      max="100"
-                    />
-                    <p className="text-sm text-muted-foreground mt-1">
-                      עמלה חיובית = קיזוז מהסכום, עמלה שלילית = תוספת לסכום
-                    </p>
                   </div>
                   <div className="flex gap-2 pt-4">
                     <Button onClick={handleAddType} className="flex-1">
@@ -273,17 +249,13 @@ export const PaymentTypesTab = () => {
                   <div className="flex items-center gap-3">
                     <div>
                       <h4 className="font-medium">{type.name}</h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-xs">
-                          בסיס: {getBaseMethodLabel(type.base_payment_method)}
-                        </Badge>
-                        {type.commission_rate !== 0 && (
-                          <Badge variant={type.commission_rate > 0 ? "destructive" : "default"} className="text-xs">
-                            {type.commission_rate > 0 ? '-' : '+'}
-                            {Math.abs(type.commission_rate * 100)}%
+                      {type.default_payment_method && (
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-xs">
+                            ברירת מחדל: {type.default_payment_method}
                           </Badge>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -329,33 +301,17 @@ export const PaymentTypesTab = () => {
               />
             </div>
             <div>
-              <Label htmlFor="editBaseMethod">תיוג בסיס</Label>
-              <Select value={newTypeBase} onValueChange={(value: 'cash' | 'card' | 'דהרי') => setNewTypeBase(value)}>
+              <Label htmlFor="editDefaultMethod">אמצעי תשלום ברירת מחדל (אופציונלי)</Label>
+              <Select value={newTypeDefault} onValueChange={(value: 'מזומן' | 'אשראי' | 'ביט') => setNewTypeDefault(value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cash">מזומן</SelectItem>
-                  <SelectItem value="card">כרטיס</SelectItem>
-                  <SelectItem value="דהרי">דהרי</SelectItem>
+                  <SelectItem value="מזומן">💵 מזומן</SelectItem>
+                  <SelectItem value="אשראי">💳 אשראי</SelectItem>
+                  <SelectItem value="ביט">📱 ביט</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <Label htmlFor="editCommission">עמלה (%)</Label>
-              <Input
-                id="editCommission"
-                type="number"
-                value={newTypeCommission}
-                onChange={(e) => setNewTypeCommission(e.target.value)}
-                placeholder="0"
-                step="0.1"
-                min="-100"
-                max="100"
-              />
-              <p className="text-sm text-muted-foreground mt-1">
-                עמלה חיובית = קיזוז מהסכום, עמלה שלילית = תוספת לסכום
-              </p>
             </div>
             <div className="flex gap-2 pt-4">
               <Button onClick={handleEditType} className="flex-1">
