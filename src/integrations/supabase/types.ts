@@ -14,11 +14,10 @@ export type Database = {
   }
   public: {
     Tables: {
-      custom_payment_types: {
+      custom_order_sources: {
         Row: {
-          base_payment_method: string
-          commission_rate: number | null
           created_at: string
+          default_payment_method: string
           id: string
           is_active: boolean | null
           name: string
@@ -26,9 +25,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          base_payment_method: string
-          commission_rate?: number | null
           created_at?: string
+          default_payment_method: string
           id?: string
           is_active?: boolean | null
           name: string
@@ -36,9 +34,8 @@ export type Database = {
           user_id: string
         }
         Update: {
-          base_payment_method?: string
-          commission_rate?: number | null
           created_at?: string
+          default_payment_method?: string
           id?: string
           is_active?: boolean | null
           name?: string
@@ -176,6 +173,7 @@ export type Database = {
           end_location_lat: number | null
           end_location_lng: number | null
           id: string
+          order_source: string
           payment_method: string
           start_location_address: string | null
           start_location_city: string | null
@@ -195,6 +193,7 @@ export type Database = {
           end_location_lat?: number | null
           end_location_lng?: number | null
           id?: string
+          order_source?: string
           payment_method: string
           start_location_address?: string | null
           start_location_city?: string | null
@@ -214,6 +213,7 @@ export type Database = {
           end_location_lat?: number | null
           end_location_lng?: number | null
           id?: string
+          order_source?: string
           payment_method?: string
           start_location_address?: string | null
           start_location_city?: string | null

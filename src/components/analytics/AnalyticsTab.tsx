@@ -73,26 +73,14 @@ export const AnalyticsTab = ({
     // קיבוץ נסיעות לפי אמצעי תשלום מנורמל (מאחד aliases)
     const tripsByPaymentMethod = groupTripsByPaymentMethod(filteredTrips);
 
-    // בניית סטטיסטיקות לכל אמצעי תשלום
+    // בניית סטטיסטיקות לכל אמצעי תשלום (ללא עמלות)
     const paymentStats = Array.from(tripsByPaymentMethod.entries()).map(([method, methodTrips]) => {
-      const income = methodTrips.reduce((sum, trip) => {
-        const paymentDetails = getPaymentMethodDetails(trip.payment_method);
-        return sum + (trip.amount * (1 - paymentDetails.commissionRate));
-      }, 0);
-      
-      const rawIncome = methodTrips.reduce((sum, trip) => sum + trip.amount, 0);
-      const paymentDetails = getPaymentMethodDetails(method);
-      
-      // בדיקה אם זה תיוג מותאם
-      const customOption = allPaymentOptions.find(opt => opt.value === method && opt.isCustom);
+      const income = methodTrips.reduce((sum, trip) => sum + trip.amount, 0);
       
       return {
         method: method,
         income,
-        rawIncome,
         count: methodTrips.length,
-        commissionRate: paymentDetails.commissionRate,
-        isCustom: !!customOption
       };
     }).sort((a, b) => b.income - a.income); // מיון לפי הכנסה
 

@@ -210,16 +210,6 @@ export const AddTripDialog = ({
                 {paymentOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
-                    {option.isCustom &&
-                      "commissionRate" in option &&
-                      typeof option.commissionRate === "number" &&
-                      option.commissionRate !== 0 && (
-                        <span className="ml-1 text-xs">
-                          {option.commissionRate > 0
-                            ? `(-${option.commissionRate * 100}%)`
-                            : `(+${Math.abs(option.commissionRate) * 100}%)`}
-                        </span>
-                      )}
                   </SelectItem>
                 ))}
               </SelectContent>

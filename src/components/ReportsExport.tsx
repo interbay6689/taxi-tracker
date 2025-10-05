@@ -76,47 +76,31 @@ export const ReportsExport: React.FC<ReportsExportProps> = ({
     };
   }, [trips, workDays, selectedPeriod, customDateRange]);
 
-  // Calculate summary statistics with commission deductions
+  // Calculate summary statistics (no commissions)
   const summaryStats = useMemo(() => {
-    // Calculate total income after commissions
-    const totalIncome = filteredTrips.reduce((sum, trip) => {
-      const paymentDetails = getPaymentMethodDetails(trip.payment_method);
-      const netAmount = trip.amount * (1 - paymentDetails.commissionRate);
-      return sum + netAmount;
-    }, 0);
-    
-    const totalRawIncome = filteredTrips.reduce((sum, trip) => sum + trip.amount, 0);
-    const totalCommission = totalRawIncome - totalIncome;
+    const totalIncome = filteredTrips.reduce((sum, trip) => sum + trip.amount, 0);
     
     const totalTrips = filteredTrips.length;
     const totalWorkDays = filteredWorkDays.length;
     const completedShifts = filteredWorkDays.filter(wd => !wd.is_active).length;
     const activeShifts = filteredWorkDays.filter(wd => wd.is_active).length;
     
-    // Calculate average income per trip and per work day
     const avgIncomePerTrip = totalTrips > 0 ? totalIncome / totalTrips : 0;
     const avgIncomePerWorkDay = totalWorkDays > 0 ? totalIncome / totalWorkDays : 0;
 
-    // Calculate payment method breakdown with commission
     const paymentMethodBreakdown = filteredTrips.reduce((acc, trip) => {
       const method = trip.payment_method;
-      const paymentDetails = getPaymentMethodDetails(trip.payment_method);
-      const netAmount = trip.amount * (1 - paymentDetails.commissionRate);
       
       if (!acc[method]) {
-        acc[method] = { count: 0, amount: 0, rawAmount: 0, commission: 0 };
+        acc[method] = { count: 0, amount: 0 };
       }
       acc[method].count += 1;
-      acc[method].amount += netAmount;
-      acc[method].rawAmount += trip.amount;
-      acc[method].commission += (trip.amount - netAmount);
+      acc[method].amount += trip.amount;
       return acc;
-    }, {} as Record<string, { count: number; amount: number; rawAmount: number; commission: number }>);
+    }, {} as Record<string, { count: number; amount: number }>);
 
     return {
       totalIncome,
-      totalRawIncome,
-      totalCommission,
       totalTrips,
       totalWorkDays,
       completedShifts,
@@ -125,34 +109,23 @@ export const ReportsExport: React.FC<ReportsExportProps> = ({
       avgIncomePerWorkDay,
       paymentMethodBreakdown
     };
-  }, [filteredTrips, filteredWorkDays, getPaymentMethodDetails]);
+  }, [filteredTrips, filteredWorkDays]);
 
   const exportToCSV = async () => {
     setIsExporting(true);
     
     try {
-      // Create CSV content with commission calculations
       const csvContent = [
-        // Header
-        ['תאריך', 'שעה', 'סכום גולמי', 'עמלה', 'סכום נטו', 'אמצעי תשלום', 'תיוג', 'עיר התחלה', 'עיר סיום'].join(','),
-        // Data rows
-        ...filteredTrips.map(trip => {
-          const paymentDetails = getPaymentMethodDetails(trip.payment_method);
-          const netAmount = trip.amount * (1 - paymentDetails.commissionRate);
-          const commission = trip.amount - netAmount;
-          
-          return [
+        ['תאריך', 'שעה', 'סכום', 'אמצעי תשלום', 'תיוג', 'עיר התחלה', 'עיר סיום'].join(','),
+        ...filteredTrips.map(trip => [
             format(parseISO(trip.timestamp), 'dd/MM/yyyy', { locale: he }),
             format(parseISO(trip.timestamp), 'HH:mm', { locale: he }),
             trip.amount.toFixed(2),
-            commission.toFixed(2),
-            netAmount.toFixed(2),
             trip.payment_method,
             trip.trip_status || '',
             trip.start_location_city || '',
             trip.end_location_city || ''
-          ].join(',');
-        })
+          ].join(','))
       ].join('\n');
 
       // Create and download file

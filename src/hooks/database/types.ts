@@ -4,15 +4,8 @@
 export interface Trip {
   id: string;
   amount: number;
-  payment_method:
-    | 'cash'
-    | 'card'
-    | 'app'
-    | 'מזומן'
-    | 'ביט'
-    | 'אשראי'
-    | 'GetTaxi'
-    | 'דהרי';
+  payment_method: 'מזומן' | 'אשראי' | 'ביט';
+  order_source: string;
   timestamp: string;
   start_location_address?: string;
   start_location_city?: string;

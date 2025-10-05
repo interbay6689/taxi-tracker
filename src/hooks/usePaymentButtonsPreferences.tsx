@@ -1,5 +1,5 @@
 import { useLocalStorage } from './useLocalStorage';
-import { useCustomPaymentTypes } from './useCustomPaymentTypes';
+import { useCustomOrderSources } from './useCustomOrderSources';
 import { useMemo } from 'react';
 
 export interface PaymentButtonOption {
@@ -8,40 +8,39 @@ export interface PaymentButtonOption {
   icon?: string;
   isDefault?: boolean;
   isCustom?: boolean;
-  basePaymentMethod?: 'cash' | 'card' | 'דהרי';
-  commissionRate?: number;
+  orderSource?: string;
+  defaultPaymentMethod?: 'מזומן' | 'אשראי' | 'ביט';
 }
 
 export const usePaymentButtonsPreferences = () => {
-  const { customPaymentTypes, allPaymentOptions } = useCustomPaymentTypes();
+  const { customOrderSources, allOrderSources, paymentMethods } = useCustomOrderSources();
   const [selectedPaymentButtons, setSelectedPaymentButtons] = useLocalStorage<string[]>('selected-payment-buttons', ['get', 'casual']);
 
   // Define all available payment button options
   const availablePaymentButtons = useMemo((): PaymentButtonOption[] => {
     const defaultButtons: PaymentButtonOption[] = [
-      { id: 'get', label: 'GET', icon: 'Car', isDefault: true },
-      { id: 'casual', label: 'מזדמן', icon: 'Clock', isDefault: true },
+      { id: 'get', label: 'GET', icon: 'Car', isDefault: true, orderSource: 'גט' },
+      { id: 'dahari', label: 'דהרי', icon: 'Truck', isDefault: true, orderSource: 'דהרי' },
+      { id: 'casual', label: 'מזדמן', icon: 'Clock', isDefault: true, orderSource: 'מזדמן' },
     ];
 
     const additionalButtons: PaymentButtonOption[] = [
-      { id: 'yango', label: 'יאנגו', icon: 'Car' },
-      { id: 'station', label: 'תחנה', icon: 'MapPin' },
-      { id: 'crypto', label: 'קריפטו', icon: 'Coins' },
-      { id: 'manual', label: 'תשלום ידני', icon: 'HandCoins' },
+      { id: 'yango', label: 'יאנגו', icon: 'Car', orderSource: 'יאנגו' },
+      { id: 'station', label: 'תחנה', icon: 'MapPin', orderSource: 'תחנה' },
     ];
 
-    // Add custom payment types as button options
-    const customButtons: PaymentButtonOption[] = customPaymentTypes.map(type => ({
-      id: `custom-${type.id}`,
-      label: type.name,
-      icon: 'CreditCard',
+    // Add custom order sources as button options
+    const customButtons: PaymentButtonOption[] = customOrderSources.map(source => ({
+      id: `custom-${source.id}`,
+      label: source.name,
+      icon: 'Tag',
       isCustom: true,
-      basePaymentMethod: type.base_payment_method,
-      commissionRate: type.commission_rate
+      orderSource: source.name,
+      defaultPaymentMethod: source.default_payment_method
     }));
 
     return [...defaultButtons, ...additionalButtons, ...customButtons];
-  }, [customPaymentTypes]);
+  }, [customOrderSources]);
 
   // Get selected payment buttons with their details
   const selectedPaymentButtonsWithDetails = useMemo(() => {
@@ -67,6 +66,8 @@ export const usePaymentButtonsPreferences = () => {
     selectedPaymentButtons,
     selectedPaymentButtonsWithDetails,
     updateSelectedPaymentButtons,
-    togglePaymentButton
+    togglePaymentButton,
+    allOrderSources,
+    paymentMethods
   };
 };

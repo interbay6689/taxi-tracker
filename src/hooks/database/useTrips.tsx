@@ -30,15 +30,8 @@ export function useTrips(user: any) {
       const mappedTrips = (allTripsData ?? []).map(trip => ({
         id: trip.id,
         amount: Number(trip.amount),
-        payment_method: trip.payment_method as
-          | 'cash'
-          | 'card'
-          | 'app'
-          | 'מזומן'
-          | 'ביט'
-          | 'אשראי'
-          | 'GetTaxi'
-          | 'דהרי',
+        payment_method: trip.payment_method as 'מזומן' | 'אשראי' | 'ביט',
+        order_source: trip.order_source || 'מזדמן',
         timestamp: trip.timestamp,
         start_location_address: trip.start_location_address,
         start_location_city: trip.start_location_city,
@@ -73,7 +66,7 @@ export function useTrips(user: any) {
   }, [user, toast]);
 
   const addTrip = useCallback(
-    async (amount: number, paymentMethod: string, tag?: string) => {
+    async (amount: number, paymentMethod: string, orderSource: string, tag?: string) => {
       if (!user) return false;
 
       try {
@@ -82,6 +75,7 @@ export function useTrips(user: any) {
           .insert({
             amount,
             payment_method: paymentMethod,
+            order_source: orderSource,
             user_id: user.id,
             trip_status: tag ?? null,
           })
@@ -93,7 +87,8 @@ export function useTrips(user: any) {
         const newTrip: Trip = {
           id: data.id,
           amount: Number(data.amount),
-          payment_method: data.payment_method as any,
+          payment_method: data.payment_method as 'מזומן' | 'אשראי' | 'ביט',
+          order_source: data.order_source || 'מזדמן',
           timestamp: data.timestamp,
           start_location_address: data.start_location_address,
           start_location_city: data.start_location_city,
@@ -164,6 +159,7 @@ export function useTrips(user: any) {
       tripId: string,
       amount: number,
       paymentMethod?: string,
+      orderSource?: string,
       tag?: string
     ) => {
       if (!user) return false;
@@ -172,6 +168,9 @@ export function useTrips(user: any) {
         const updateObject: any = { amount };
         if (paymentMethod) {
           updateObject.payment_method = paymentMethod;
+        }
+        if (orderSource) {
+          updateObject.order_source = orderSource;
         }
         if (typeof tag !== 'undefined') {
           updateObject.trip_status = tag;
@@ -190,7 +189,8 @@ export function useTrips(user: any) {
               ? {
                   ...trip,
                   amount,
-                  ...(paymentMethod ? { payment_method: paymentMethod as any } : {}),
+                  ...(paymentMethod ? { payment_method: paymentMethod as 'מזומן' | 'אשראי' | 'ביט' } : {}),
+                  ...(orderSource ? { order_source: orderSource } : {}),
                   ...(typeof tag !== 'undefined' ? { trip_status: tag ?? undefined } : {}),
                 }
               : trip
