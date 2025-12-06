@@ -24,9 +24,31 @@ export default function Auth() {
   // Redirect if already authenticated
   useEffect(() => {
     if (user) {
-      navigate('/', { replace: true });
+      navigate('/dashboard', { replace: true });
     }
   }, [user, navigate]);
+
+  // Translate common Supabase errors to Hebrew
+  const translateError = (errorMessage: string): string => {
+    const errorMap: Record<string, string> = {
+      'Invalid login credentials': 'פרטי התחברות שגויים',
+      'Email not confirmed': 'האימייל לא אומת',
+      'User already registered': 'משתמש כבר קיים במערכת',
+      'Password should be at least 6 characters': 'הסיסמה חייבת להכיל לפחות 6 תווים',
+      'Invalid email': 'כתובת אימייל לא תקינה',
+      'Signup requires a valid password': 'נדרשת סיסמה תקינה להרשמה',
+      'Email address': 'כתובת האימייל',
+      'is invalid': 'לא תקינה',
+    };
+    
+    let translated = errorMessage;
+    Object.entries(errorMap).forEach(([key, value]) => {
+      if (translated.includes(key)) {
+        translated = translated.replace(key, value);
+      }
+    });
+    return translated;
+  };
 
   const cleanupAuthState = () => {
     Object.keys(localStorage).forEach((key) => {
@@ -66,10 +88,10 @@ export default function Auth() {
           title: "ברוכים הבאים!",
           description: "התחברת בהצלחה למערכת",
         });
-        navigate('/', { replace: true });
+        navigate('/dashboard', { replace: true });
       }
     } catch (error: any) {
-      setError(error.message || 'שגיאה בהתחברות');
+      setError(translateError(error.message) || 'שגיאה בהתחברות');
     } finally {
       setLoading(false);
     }
@@ -108,10 +130,10 @@ export default function Auth() {
           title: "הרשמה הושלמה!",
           description: "נרשמת בהצלחה למערכת",
         });
-        navigate('/', { replace: true });
+        navigate('/dashboard', { replace: true });
       }
     } catch (error: any) {
-      setError(error.message || 'שגיאה בהרשמה');
+      setError(translateError(error.message) || 'שגיאה בהרשמה');
     } finally {
       setLoading(false);
     }
