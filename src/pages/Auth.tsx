@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Car, Shield } from 'lucide-react';
+import { Car, Shield, KeyRound, ArrowRight } from 'lucide-react';
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
@@ -17,6 +17,8 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -39,6 +41,8 @@ export default function Auth() {
       'Signup requires a valid password': 'נדרשת סיסמה תקינה להרשמה',
       'Email address': 'כתובת האימייל',
       'is invalid': 'לא תקינה',
+      'For security purposes, you can only request this once every 60 seconds': 'מסיבות אבטחה, ניתן לבקש איפוס סיסמה פעם ב-60 שניות',
+      'Email rate limit exceeded': 'חרגת ממכסת האימיילים, נסה שוב מאוחר יותר',
     };
     
     let translated = errorMessage;
@@ -67,6 +71,7 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccessMessage('');
 
     try {
       cleanupAuthState();
@@ -101,6 +106,7 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccessMessage('');
 
     try {
       cleanupAuthState();
@@ -138,6 +144,102 @@ export default function Auth() {
       setLoading(false);
     }
   };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccessMessage('');
+
+    if (!email.trim()) {
+      setError('אנא הזן כתובת אימייל');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const redirectUrl = `${window.location.origin}/auth`;
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      });
+
+      if (error) throw error;
+
+      setSuccessMessage('נשלח אימייל לאיפוס סיסמה. בדוק את תיבת הדואר שלך.');
+      toast({
+        title: "אימייל נשלח",
+        description: "קישור לאיפוס סיסמה נשלח לאימייל שלך",
+      });
+    } catch (error: any) {
+      setError(translateError(error.message) || 'שגיאה בשליחת אימייל לאיפוס סיסמה');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Password Reset Form
+  if (showResetPassword) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center items-center gap-2 mb-4">
+              <KeyRound className="h-8 w-8 text-primary" />
+            </div>
+            <CardTitle className="text-2xl">איפוס סיסמה</CardTitle>
+            <CardDescription>
+              הזן את כתובת האימייל שלך ונשלח לך קישור לאיפוס סיסמה
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="reset-email">אימייל</Label>
+                <Input
+                  id="reset-email"
+                  type="email"
+                  placeholder="הכנס את האימייל שלך"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  dir="ltr"
+                />
+              </div>
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              {successMessage && (
+                <Alert className="border-green-500 bg-green-50 dark:bg-green-950/20">
+                  <AlertDescription className="text-green-700 dark:text-green-400">
+                    {successMessage}
+                  </AlertDescription>
+                </Alert>
+              )}
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'שולח...' : 'שלח קישור לאיפוס'}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  setShowResetPassword(false);
+                  setError('');
+                  setSuccessMessage('');
+                }}
+              >
+                <ArrowRight className="h-4 w-4 ml-2" />
+                חזרה להתחברות
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/50 flex items-center justify-center p-4">
@@ -192,6 +294,18 @@ export default function Auth() {
                 )}
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? 'מתחבר...' : 'התחבר'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="link"
+                  className="w-full text-sm"
+                  onClick={() => {
+                    setShowResetPassword(true);
+                    setError('');
+                    setSuccessMessage('');
+                  }}
+                >
+                  שכחת סיסמה?
                 </Button>
               </form>
             </TabsContent>

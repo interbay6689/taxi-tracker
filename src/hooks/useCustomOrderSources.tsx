@@ -287,6 +287,7 @@ export const useCustomOrderSources = () => {
   return {
     // New API
     customOrderSources,
+    baseOrderSources,
     allOrderSources,
     paymentMethods,
     loading,
