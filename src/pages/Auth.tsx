@@ -55,16 +55,30 @@ export default function Auth() {
   };
 
   const cleanupAuthState = () => {
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+    // Clear all Supabase auth related items from localStorage
+    const localStorageKeys = Object.keys(localStorage);
+    localStorageKeys.forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-') || key.includes('supabase')) {
         localStorage.removeItem(key);
       }
     });
-    Object.keys(sessionStorage || {}).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+    
+    // Clear all Supabase auth related items from sessionStorage
+    const sessionStorageKeys = Object.keys(sessionStorage || {});
+    sessionStorageKeys.forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-') || key.includes('supabase')) {
         sessionStorage.removeItem(key);
       }
     });
+
+    // Also clear IndexedDB if exists (some Supabase versions use it)
+    if (window.indexedDB) {
+      try {
+        window.indexedDB.deleteDatabase('supabase-auth');
+      } catch (e) {
+        // Ignore if fails
+      }
+    }
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
