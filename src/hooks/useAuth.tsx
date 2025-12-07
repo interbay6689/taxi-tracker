@@ -49,13 +49,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const initAuth = async () => {
       try {
-        // Clear any corrupted auth data first
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (mounted) {
           if (error) {
             console.error('Auth session error:', error);
-            cleanupAuthState();
+            // Check for specific refresh token errors
+            if (error.message?.includes('oauth_client_id') || error.message?.includes('refresh_token')) {
+              console.warn('Session corrupted, clearing auth state');
+              cleanupAuthState();
+            }
             setSession(null);
             setUser(null);
           } else {
@@ -64,10 +67,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           setLoading(false);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Auth initialization error:', error);
         if (mounted) {
-          cleanupAuthState();
+          // Handle refresh token errors gracefully
+          if (error?.message?.includes('oauth_client_id') || error?.status === 500) {
+            console.warn('Auth error detected, clearing corrupted session');
+            cleanupAuthState();
+          }
           setSession(null);
           setUser(null);
           setLoading(false);
@@ -79,9 +86,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (mounted) {
+          // Handle token refresh errors
+          if (event === 'TOKEN_REFRESHED' && !session) {
+            console.warn('Token refresh failed, clearing session');
+            cleanupAuthState();
+          }
           setSession(session);
           setUser(session?.user ?? null);
-          if (!loading) setLoading(false);
+          setLoading(false);
         }
       }
     );
