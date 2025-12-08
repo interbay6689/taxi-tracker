@@ -49,15 +49,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const initAuth = async () => {
       try {
+        // First, clear any potentially corrupted sessions
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (mounted) {
           if (error) {
             console.error('Auth session error:', error);
-            // Check for specific refresh token errors
-            if (error.message?.includes('oauth_client_id') || error.message?.includes('refresh_token')) {
-              console.warn('Session corrupted, clearing auth state');
+            // Check for specific refresh token errors or 500 errors
+            if (error.message?.includes('oauth_client_id') || 
+                error.message?.includes('refresh_token') ||
+                error.message?.includes('missing destination') ||
+                (error as any)?.status === 500) {
+              console.warn('Session corrupted, clearing auth state and signing out');
               cleanupAuthState();
+              try {
+                await supabase.auth.signOut({ scope: 'local' });
+              } catch (e) {
+                // Ignore signout errors
+              }
             }
             setSession(null);
             setUser(null);
@@ -71,9 +80,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('Auth initialization error:', error);
         if (mounted) {
           // Handle refresh token errors gracefully
-          if (error?.message?.includes('oauth_client_id') || error?.status === 500) {
+          if (error?.message?.includes('oauth_client_id') || 
+              error?.message?.includes('missing destination') ||
+              error?.status === 500) {
             console.warn('Auth error detected, clearing corrupted session');
             cleanupAuthState();
+            try {
+              await supabase.auth.signOut({ scope: 'local' });
+            } catch (e) {
+              // Ignore signout errors
+            }
           }
           setSession(null);
           setUser(null);
@@ -86,9 +102,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (mounted) {
-          // Handle token refresh errors
+          // Handle token refresh errors or sign out events
           if (event === 'TOKEN_REFRESHED' && !session) {
             console.warn('Token refresh failed, clearing session');
+            cleanupAuthState();
+          }
+          if (event === 'SIGNED_OUT') {
             cleanupAuthState();
           }
           setSession(session);
