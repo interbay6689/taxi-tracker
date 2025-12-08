@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Target, Fuel, List, FileText, BarChart3, Moon, Sun, Tag, Tags } from "lucide-react";
+import { Target, Fuel, List, FileText, BarChart3, Moon, Sun, Tag, User } from "lucide-react";
 import { Trip, DailyGoals, DailyExpenses, WorkDay } from "@/hooks/useDatabase";
 import { ReportsExport } from "./ReportsExport";
 import { GoalsTab } from "./settings/GoalsTab";
@@ -10,7 +10,7 @@ import { ExpensesTab } from "./settings/ExpensesTab";
 import { TripsTab } from "./settings/TripsTab";
 import { PaymentTypesTab } from "./settings/PaymentTypesTab";
 import { AnalyticsTab } from "./analytics/AnalyticsTab";
-import { TagsManagement } from "./TagsManagement";
+import { ProfileTab } from "./settings/ProfileTab";
 import { useAppMode } from "@/hooks/useAppMode";
 import { useState } from "react";
 import { DateRange } from "react-day-picker";
@@ -41,8 +41,6 @@ export const SettingsDialog = ({
   onUpdateGoals,
   onUpdateExpenses,
   onUpdateTrips,
-  tags = ["שדה", "תחנה", "הזמנה", "שדה תעופה", "נסיעה ארוכה", "עיר"],
-  onUpdateTags
 }: SettingsDialogProps) => {
   const { mode, toggleNightMode } = useAppMode();
   const [selectedAnalyticsPeriod, setSelectedAnalyticsPeriod] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('today');
@@ -55,7 +53,7 @@ export const SettingsDialog = ({
       <DialogContent className="w-[95vw] max-w-lg mx-auto max-h-[90vh] overflow-y-auto rtl" aria-describedby="settings-desc">
         <DialogHeader>
           <DialogTitle className="text-center text-lg">הגדרות</DialogTitle>
-          <p id="settings-desc" className="sr-only">מרכז הגדרות האפליקציה לניהול יעדים, הוצאות, תשלומים, תיוגים, נסיעות ודוחות.</p>
+          <p id="settings-desc" className="sr-only">מרכז הגדרות האפליקציה לניהול יעדים, הוצאות, תשלומים, פרופיל, נסיעות ודוחות.</p>
         </DialogHeader>
 
         <div className="flex justify-between items-center mb-4">
@@ -84,9 +82,9 @@ export const SettingsDialog = ({
               <Tag className="h-3 w-3 ml-1" />
               תשלומים
             </TabsTrigger>
-            <TabsTrigger value="tags" className="text-xs">
-              <Tags className="h-3 w-3 ml-1" />
-              תיוגים
+            <TabsTrigger value="profile" className="text-xs">
+              <User className="h-3 w-3 ml-1" />
+              פרופיל
             </TabsTrigger>
             <TabsTrigger value="trips" className="text-xs">
               <List className="h-3 w-3 ml-1" />
@@ -114,17 +112,8 @@ export const SettingsDialog = ({
             <PaymentTypesTab />
           </TabsContent>
 
-          <TabsContent value="tags">
-            {onUpdateTags ? (
-              <TagsManagement
-                tags={tags}
-                onUpdateTags={onUpdateTags}
-              />
-            ) : (
-              <div className="text-center text-muted-foreground p-4">
-                ניהול תיוגים לא זמין
-              </div>
-            )}
+          <TabsContent value="profile">
+            <ProfileTab />
           </TabsContent>
 
           <TabsContent value="trips">
