@@ -19,6 +19,7 @@ import Reports from "./pages/Reports";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import TestAdmin from "./pages/TestAdmin";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
             {/* Public routes */}
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<Index />} />
+            <Route path="/testAdmin" element={<TestAdmin />} />
             
             {/* Protected routes with sidebar */}
             <Route path="/*" element={
