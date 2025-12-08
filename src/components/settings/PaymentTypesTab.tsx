@@ -171,14 +171,14 @@ export const PaymentTypesTab = () => {
       <Card>
         <CardHeader>
           <CardTitle>תיוגי תשלום מותאמים (מקורות הזמנה)</CardTitle>
-          <CardDescription>
-            הוסף מקורות הזמנה מותאמים אישית עם אמצעי תשלום ברירת מחדל.
+          <div className="text-sm text-muted-foreground">
+            <span>הוסף מקורות הזמנה מותאמים אישית עם אמצעי תשלום ברירת מחדל.</span>
             <div className="mt-2 p-3 bg-muted rounded-lg text-sm">
               <p className="font-medium mb-1">💡 הבדל חשוב:</p>
               <p>• <strong>מקור הזמנה</strong> = מאיפה הגיעה הנסיעה (גט, דהרי, מזדמן וכו')</p>
               <p>• <strong>אמצעי תשלום</strong> = איך שילמו (מזומן, אשראי, ביט)</p>
             </div>
-          </CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex justify-between items-center mb-4">
